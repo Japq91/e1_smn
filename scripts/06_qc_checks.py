@@ -81,7 +81,7 @@ def main(in_dir: str, out_csv: str) -> None:
         })
 
     if not rows:
-        sys.exit(f"08_qc_checks.py: no se encontraron archivos tos_*.nc en {in_dir}")
+        sys.exit(f"06_qc_checks.py: no se encontraron archivos tos_*.nc en {in_dir}")
 
     Path(out_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as fh:

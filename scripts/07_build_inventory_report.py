@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Inventario final de modelos (paso 07).
 
-Combina el resultado del catalogo (01, via el CSV de control de
-calidad de 08) y metadatos de grilla obtenidos directamente con CDO,
-en la tabla resumen final de modelos seleccionados.
+Combina el resultado del control de calidad (06, via qc_report.csv)
+y metadatos de grilla obtenidos directamente con CDO, en la tabla
+resumen final de modelos seleccionados.
 """
 import csv
 import subprocess
@@ -23,7 +23,7 @@ def main(qc_csv: str, data_dir: str, out_csv: str) -> None:
         qc_rows = list(csv.DictReader(f))
 
     if not qc_rows:
-        sys.exit(f"09_build_inventory_report.py: {qc_csv} esta vacio")
+        sys.exit(f"07_build_inventory_report.py: {qc_csv} esta vacio")
 
     by_model: dict[str, dict] = {}
     for row in qc_rows:
@@ -57,5 +57,5 @@ def main(qc_csv: str, data_dir: str, out_csv: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        sys.exit("uso: 09_build_inventory_report.py <qc.csv> <data_dir> <out_final.csv>")
+        sys.exit("uso: 07_build_inventory_report.py <qc.csv> <data_dir> <out_final.csv>")
     main(sys.argv[1], sys.argv[2], sys.argv[3])
