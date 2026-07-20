@@ -1,0 +1,10 @@
+file,model,experiment,min_sst,max_sst,n_months,ok_range,ok_length,status,detail
+tos_ACCESS-CM2_historical.nc,ACCESS-CM2,historical,15.2998,33.6541,1980,True,True,PASS,
+tos_ACCESS-CM2_ssp245.nc,ACCESS-CM2,ssp245,17.8976,35.589,1032,True,True,PASS,
+tos_ACCESS-CM2_ssp585.nc,ACCESS-CM2,ssp585,17.3293,37.7158,1032,True,True,PASS,
+tos_ACCESS-ESM1-5_historical.nc,ACCESS-ESM1-5,historical,15.761,33.0173,1980,True,True,PASS,
+tos_ACCESS-ESM1-5_ssp245.nc,ACCESS-ESM1-5,ssp245,18.3292,34.9659,1032,True,True,PASS,
+tos_ACCESS-ESM1-5_ssp585.nc,ACCESS-ESM1-5,ssp585,18.7747,36.6657,1032,True,True,PASS,
+tos_AWI-CM-1-1-MR_historical.nc,AWI-CM-1-1-MR,historical,12.9417,33.5707,1980,True,True,PASS,
+tos_AWI-CM-1-1-MR_ssp245.nc,AWI-CM-1-1-MR,ssp245,13.8652,34.5939,1032,True,True,PASS,
+tos_AWI-CM-1-1-MR_ssp585.nc,AWI-CM-1-1-MR,ssp585,13.7611,35.9288,1032,True,True,PASS,

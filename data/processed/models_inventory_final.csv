@@ -1,0 +1,4 @@
+model,resolution,experiments_pass,experiments_total,selected
+ACCESS-CM2,96x21,3,3,True
+ACCESS-ESM1-5,96x21,3,3,True
+AWI-CM-1-1-MR,96x21,3,3,True
