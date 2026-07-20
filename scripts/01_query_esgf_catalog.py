@@ -21,16 +21,16 @@ consulta ESGF a nivel de archivo y se guardan URLs HTTP de descarga
 directa (NetCDF real, verificado), en vez de prefijos S3.
 
 NOTA: ya no se busca ni descarga 'sftlf' (fraccion de tierra) por
-modelo. El paso 07 aplica en su lugar la mascara oceano-tierra propia
+modelo. El paso 05 aplica en su lugar la mascara oceano-tierra propia
 de ERSSTv5 (el dato observado de referencia) sobre los campos ya
-regrillados a esa misma grilla en el paso 06 -- evita depender de una
+regrillados a esa misma grilla en el paso 04 -- evita depender de una
 variable fx que a veces se publica en un grid_label distinto al de tos
 (se observo empiricamente, p.ej. GFDL-ESM4: tos en 'gr', sftlf en
 'gr1') y garantiza que modelo y observado compartan exactamente la
 misma huella valida/faltante.
 
 Solo se descarga 'tos' mensual (Omon). No descarga ningun dato: eso lo
-hace 02_subset_cmip6_opendap.sh.
+hace 02_download_cmip6_chunks.sh.
 
 NOTA (correccion): la busqueda no filtraba por 'variant_label' (el
 miembro del ensamble, p.ej. r1i1p1f1). CMIP6 publica rutinariamente

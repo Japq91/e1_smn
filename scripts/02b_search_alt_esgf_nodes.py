@@ -14,8 +14,8 @@ nodo de la federacion. Este script repite la misma busqueda a nivel de
 archivo que 01, pero contra una lista de nodos alternativos, y agrega
 los modelos que SI encuentra a los mismos archivos que ya usa el resto
 del pipeline (data/interim/models_catalog_status.csv y
-esgf_file_urls.json), para que 02_subset_cmip6_opendap.sh los descargue
-en su proxima corrida sin necesidad de cambiar nada mas.
+esgf_file_urls.json), para que 02_download_cmip6_chunks.sh los
+descargue en su proxima corrida sin necesidad de cambiar nada mas.
 
 AVISO: la federacion ESGF tuvo reorganizaciones/caidas de nodos
 importantes en 2023-2024; no todos los nodos de esta lista estaran

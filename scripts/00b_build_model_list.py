@@ -11,7 +11,7 @@ acordado con el proyecto:
      historical, ssp245, ssp585 (piControl ya no es requisito).
   3. De las variantes de grilla (grid_label) que publique cada modelo,
      se elige la MAS GRUESA disponible (mayor 'nominal_resolution' en
-     km), ya que de todos modos el paso 06 regrilla todo a la
+     km), ya que de todos modos el paso 04 regrilla todo a la
      resolucion del dato observado de referencia (ERSSTv5, ~2 grados)
      -- no hace falta descargar en alta resolucion.
 
