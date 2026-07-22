@@ -12,6 +12,14 @@ de piControl (100 anios). piControl ya no es un experimento requerido
 verificacion de que historical/ssp245/ssp585 cubran razonablemente el
 periodo esperado (1850-2014 y 2015-2100, con 10% de tolerancia), en
 vez de quedar como una condicion que nunca se evalua.
+
+NOTA 2: para 'historical' ese chequeo por tolerancia de meses se
+reemplazo por uno mas simple: que el registro tenga datos por encima
+de HISTORICAL_MIN_LAST_YEAR. IITM-ESM, por ejemplo, solo publica
+historical desde 1900 (no 1850) y aun asi es un dato valido y
+utilizable -- no hace falta descartarlo solo por no cubrir el
+historical completo, siempre que llegue razonablemente cerca del
+presente. ssp245/ssp585 mantienen el chequeo por tolerancia de meses.
 """
 import csv
 import re
@@ -22,6 +30,7 @@ from pathlib import Path
 MIN_SST, MAX_SST = -2.0, 39.0
 EXPECTED_YEARS = {"historical": 165, "ssp245": 86, "ssp585": 86}
 LENGTH_TOLERANCE = 0.9  # se acepta hasta 10% menos de lo esperado
+HISTORICAL_MIN_LAST_YEAR = 1950  # historical debe llegar por encima de este anio
 
 
 def cdo_run(args: list[str]) -> str:
@@ -41,6 +50,10 @@ def n_timesteps(path: str) -> int:
     return int(cdo_run(["ntime", path]).strip().splitlines()[-1])
 
 
+def last_year(path: str) -> int:
+    return max(int(y) for y in cdo_run(["showyear", path]).split())
+
+
 def split_model_experiment(stem: str) -> tuple[str, str]:
     name = stem.replace("tos_", "", 1)
     for exp in EXPECTED_YEARS:
@@ -57,6 +70,7 @@ def main(in_dir: str, out_csv: str) -> None:
         try:
             vmin, vmax = field_minmax(str(f))
             ntime = n_timesteps(str(f))
+            last_hist_year = last_year(str(f)) if exp == "historical" else None
         except subprocess.CalledProcessError as e:
             rows.append({
                 "file": f.name, "model": model, "experiment": exp,
@@ -67,11 +81,14 @@ def main(in_dir: str, out_csv: str) -> None:
             continue
 
         ok_range = MIN_SST <= vmin and vmax <= MAX_SST
-        expected_years = EXPECTED_YEARS.get(exp)
-        ok_length = (
-            True if expected_years is None
-            else ntime >= expected_years * 12 * LENGTH_TOLERANCE
-        )
+        if exp == "historical":
+            ok_length = last_hist_year > HISTORICAL_MIN_LAST_YEAR
+        else:
+            expected_years = EXPECTED_YEARS.get(exp)
+            ok_length = (
+                True if expected_years is None
+                else ntime >= expected_years * 12 * LENGTH_TOLERANCE
+            )
         rows.append({
             "file": f.name, "model": model, "experiment": exp,
             "min_sst": vmin, "max_sst": vmax, "n_months": ntime,

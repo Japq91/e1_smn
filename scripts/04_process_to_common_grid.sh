@@ -63,20 +63,24 @@ fix_calendar () {
     fi
 }
 
-# Unidades: K -> degC si corresponde (CMIP6 casi siempre publica K,
-# pero al menos un modelo -- GFDL-ESM4, grid gr -- ya viene en degC).
-# La variable de datos se detecta con showname (evita asumir 'tos':
-# ERSSTv5 usa 'sst').
+# Unidades: K -> degC si corresponde. Ya no se confia en el atributo
+# 'units' declarado: un archivo de GISS-E2-1-G (ssp585) publicado por
+# ESGF trae el atributo en 'degC' pero los valores reales siguen en
+# Kelvin. Por eso la prueba es por VALOR: se promedia el campo (todo el
+# periodo, todo el dominio) en la caja Nino 3.4 (lon 190-240, lat -5/5,
+# mismo formato 0-360 que config/domains.yaml); un promedio >= 100 solo
+# es posible si el dato sigue en Kelvin. La variable de datos se
+# detecta con showname (evita asumir 'tos': ERSSTv5 usa 'sst').
 fix_units () {
     local infile="$1" outfile="$2"
-    local varname unit
+    local varname mean_c
     varname=$(cdo -s showname "$infile" 2>/dev/null | tr -s ' ' '\n' \
         | grep -v '^$' | grep -vE '^(lat_bnds|lon_bnds|time_bnds|bnds)$' | head -1)
-    unit=$(cdo -s showattribute,"${varname}@units" "$infile" 2>/dev/null | tail -1 | tr -d ' ')
-    if [ "$unit" = "K" ]; then
-        cdo -O -s chunit,K,degC -subc,273.15 "$infile" "$outfile"
-    else
+    mean_c=$(cdo -s output -timmean -fldmean -selname,"$varname" -sellonlatbox,190,240,-5,5 "$infile" 2>/dev/null | tr -d ' ')
+    if awk -v v="$mean_c" 'BEGIN{exit !(v < 100)}'; then
         cp "$infile" "$outfile"
+    else
+        cdo -O -s setattribute,"${varname}"@units=degC -subc,273.15 "$infile" "$outfile"
     fi
 }
 

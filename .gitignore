@@ -1,5 +1,6 @@
 data/raw/
 data/interim/
+data/processed/masked/
 __pycache__/
 .ipynb_checkpoints/
 logs/*.log
