@@ -3,14 +3,21 @@
 # Procesamiento de CMIP6 a datos listos para cálculo
 # Flujo por periodo (historical, ssp245, ssp585) y por chunk crudo:
 #
-# 1. Remapeo de cada chunk a la grilla ERSSTv5 (dominio ya recortado)
-#    usando pesos precalculados (ver abajo).
-# 2. Fusión temporal (mergetime) de los chunks ya regrillados del mismo
+# 1. selvar,tos: se descarta cualquier variable auxiliar del chunk
+#    crudo salvo 'tos' (y sus coordenadas). Necesario porque algunos
+#    modelos (p. ej. IPSL-CM6A-LR, malla curvilinea tripolar) publican
+#    ademas 'area(y,x)' sin atributo 'coordinates' propio -- CDO no
+#    sabe a que malla pertenece y aborta ('Unsupported generic
+#    coordinates') al generar pesos o regrillar sobre el archivo
+#    completo. Se aplica siempre, no solo para ese caso.
+# 2. Remapeo de cada chunk (ya filtrado) a la grilla ERSSTv5 (dominio ya
+#    recortado) usando pesos precalculados (ver abajo).
+# 3. Fusión temporal (mergetime) de los chunks ya regrillados del mismo
 #    periodo.
-# 3. Recorte temporal: historical → 1850-2014; ssp245/ssp585 → 2015-2100.
-# 4. Homogeneización de calendario: si falta el atributo 'calendar', se
+# 4. Recorte temporal: historical → 1850-2014; ssp245/ssp585 → 2015-2100.
+# 5. Homogeneización de calendario: si falta el atributo 'calendar', se
 #    asigna 'standard'; si existe, se respeta.
-# 5. Homogeneización de unidades: conversión K → °C si corresponde.
+# 6. Homogeneización de unidades: conversión K → °C si corresponde.
 #
 # ======================================================================
 # Cálculo de pesos (una sola vez por modelo)
@@ -22,8 +29,12 @@
 # - Ambos operadores usan la misma grilla objetivo (ERSSTV5_RAW).
 # - Los pesos se guardan en WEIGHTS_DIR/<model>.nc y se reutilizan para
 #   todos los experimentos del modelo (historical, ssp245, ssp585).
-# - Supuesto: la malla nativa no cambia entre experimentos. Si se rompe,
-#   borrar el archivo de pesos para forzar el recalculo.
+# - Supuesto: la malla nativa no cambia entre experimentos. Si el remap
+#   con esos pesos compartidos falla para un periodo puntual, se
+#   recalculan pesos propios de ese periodo (WEIGHTS_DIR/<model>_<exp>.nc,
+#   ver ensure_period_weights) y se reintenta -- asi un cambio de malla
+#   entre historical/ssp245/ssp585 (detectado por el propio error de
+#   CDO) no bloquea el resto del modelo.
 #
 # ======================================================================
 # ERSSTv5 (grilla objetivo)
@@ -84,6 +95,34 @@ fix_units () {
     fi
 }
 
+# Paso 1 (ver encabezado): descarta toda variable auxiliar del chunk
+# crudo salvo 'tos'. CDO conserva junto con ella las coordenadas/bounds
+# que efectivamente use (nav_lat/nav_lon, lat/lon, etc.); lo que se
+# descarta es lo que no está atado a 'tos' via el atributo
+# 'coordinates' -- p. ej. 'area(y,x)' en IPSL-CM6A-LR.
+select_tos () {
+    local infile="$1" outfile="$2"
+    cdo -s selvar,tos "$infile" "$outfile"
+}
+
+# Genera (por stdout) un archivo de pesos gencon/genbil hacia
+# ERSSTV5_RAW a partir de un chunk crudo puntual (ya filtrado con
+# select_tos por el llamador), detectando 'unstructured' igual que
+# antes. La usan tanto ensure_weights (pesos compartidos por modelo)
+# como el fallback por periodo de process_experiment.
+gen_weights () {
+    local chunk="$1" weights_file="$2"
+    local gen_op="genbil"
+    local gridtype
+    gridtype=$(cdo -s griddes "$chunk" 2>/dev/null | grep -oP 'gridtype\s*=\s*\K\S+' | head -1)
+    if [ "$gridtype" = "unstructured" ]; then
+        gen_op="gencon"
+        echo "  malla no estructurada detectada: usando gencon en vez de genbil" >&2
+    fi
+    echo "  calculando pesos ($gen_op) a partir de $(basename "$chunk") ..." >&2
+    cdo -O -s "$gen_op","$ERSSTV5_RAW" "$chunk" "$weights_file"
+}
+
 # Devuelve (por stdout) la ruta al archivo de pesos de un modelo,
 # calculandolo con gencon/genbil si todavia no existe en cache. Los
 # pesos se calculan una unica vez por modelo (no por chunk ni por
@@ -111,19 +150,33 @@ ensure_weights () {
         return 1
     fi
 
-    # gencon/genbil no soporta remapbil sobre malla no estructurada;
-    # se detecta el tipo de grilla igual que antes.
-    local gen_op="genbil"
-    local gridtype
-    gridtype=$(cdo -s griddes "$first_chunk" 2>/dev/null | grep -oP 'gridtype\s*=\s*\K\S+' | head -1)
-    if [ "$gridtype" = "unstructured" ]; then
-        gen_op="gencon"
-        echo "  malla no estructurada detectada en $model: usando gencon en vez de genbil" >&2
+    local tos_only="$TMPDIR/w_src.nc"
+    select_tos "$first_chunk" "$tos_only"
+    gen_weights "$tos_only" "$weights_file"
+    rm -f "$tos_only"
+    echo "$weights_file"
+}
+
+# Pesos propios de un periodo (model+exp), en cache aparte del archivo
+# compartido del modelo. Solo se calculan como fallback (ver
+# process_experiment) cuando el remap con los pesos compartidos falla
+# -- eso indica que la malla nativa de ese periodo no coincide con la
+# del chunk usado para los pesos compartidos (ver supuesto documentado
+# arriba). Sirve ademas como verificacion: si nunca hace falta, es que
+# la malla en efecto no cambia entre periodos para ese modelo.
+ensure_period_weights () {
+    local model="$1" exp="$2" chunk="$3"
+    local weights_file="$WEIGHTS_DIR/${model}_${exp}.nc"
+
+    if [ -f "$weights_file" ]; then
+        echo "$weights_file"
+        return
     fi
 
-    echo "  calculando pesos de $model ($gen_op) a partir de $(basename "$first_chunk") ..." >&2
-    cdo -O -s "$gen_op","$ERSSTV5_RAW" "$first_chunk" "$weights_file"
-
+    local tos_only="$TMPDIR/w_src.nc"
+    select_tos "$chunk" "$tos_only"
+    gen_weights "$tos_only" "$weights_file"
+    rm -f "$tos_only"
     echo "$weights_file"
 }
 
@@ -144,13 +197,26 @@ process_experiment () {
     fi
 
     rm -rf "${TMPDIR:?}"/*
+    local active_weights="$weights_file" switched_weights=0
     local regridded=() i=0
     for chunk in "${chunks[@]}"; do
+        local chunk_tos="$TMPDIR/tos_${i}.nc"
+        select_tos "$chunk" "$chunk_tos"
         local rg="$TMPDIR/regrid_${i}.nc"
-        cdo -O -s remap,"$ERSSTV5_RAW","$weights_file" "$chunk" "$rg"
+        if ! cdo -O -s remap,"$ERSSTV5_RAW","$active_weights" "$chunk_tos" "$rg" 2>"$TMPDIR/remap_err.log"; then
+            echo "  aviso: fallo el remap de $model $exp con los pesos compartidos del modelo:" >&2
+            cat "$TMPDIR/remap_err.log" >&2
+            echo "  recalculando pesos propios de $model $exp (verificacion: la malla puede cambiar entre periodos) ..." >&2
+            active_weights=$(ensure_period_weights "$model" "$exp" "$chunk")
+            switched_weights=1
+            cdo -O -s remap,"$ERSSTV5_RAW","$active_weights" "$chunk_tos" "$rg"
+        fi
         regridded+=("$rg")
         i=$((i + 1))
     done
+    if [ "$switched_weights" -eq 1 ]; then
+        echo "  $model $exp: se proceso con pesos propios de este periodo (distintos a los del resto del modelo)" >&2
+    fi
 
     local merged="$TMPDIR/merged.nc"
     if [ "${#regridded[@]}" -gt 1 ]; then
