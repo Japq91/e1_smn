@@ -114,9 +114,10 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
     return [{"filename": fn, "urls": urls} for fn, urls in sorted(by_filename.items())]
 
 
-def search_model_all_nodes(model: str) -> dict[str, list[dict]] | None:
+def search_model_all_nodes(model: str) -> tuple[dict[str, list[dict]], str, str] | None:
     """Prueba cada nodo alternativo hasta encontrar los 3 experimentos
-    completos para el modelo. Devuelve None si ninguno lo logra."""
+    completos para el modelo. Devuelve (archivos, member_id, nodo) o
+    None si ninguno lo logra."""
     for base_url in ALT_ESGF_SEARCH_URLS:
         try:
             member = find_common_member(base_url, model)
@@ -130,7 +131,7 @@ def search_model_all_nodes(model: str) -> dict[str, list[dict]] | None:
 
         if all(found[exp] for exp in EXPERIMENTS):
             print(f"  encontrado completo en {base_url} (miembro {member})", file=sys.stderr)
-            return found
+            return found, member, base_url
         else:
             n_files = {exp: len(found[exp]) for exp in EXPERIMENTS}
             print(f"  {base_url}: incompleto {n_files}", file=sys.stderr)
@@ -143,10 +144,17 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
 
     # Cargar catalogo existente (si ya corrio 01 antes) para no perderlo.
     catalog_rows = []
+    catalog_fieldnames = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente"]
     if Path(catalog_csv).exists():
         with open(catalog_csv, newline="") as f:
-            catalog_rows = list(csv.DictReader(f))
-    already = {r["model"] for r in catalog_rows}
+            reader = csv.DictReader(f)
+            catalog_fieldnames = reader.fieldnames or catalog_fieldnames
+            catalog_rows = list(reader)
+    # 'no_encontrado' no cuenta como resuelto: son justamente los
+    # candidatos a reintentar en nodos alternativos. Solo se omiten
+    # modelos que ya tengan una fuente real (esgf_principal,
+    # copernicus_parcial, esgf_alt_node de una corrida anterior).
+    already = {r["model"] for r in catalog_rows if r.get("fuente") != "no_encontrado"}
 
     file_catalog: dict[str, dict] = {}
     if Path(files_json).exists():
@@ -159,21 +167,27 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
             continue
 
         print(f"Buscando {model} en nodos alternativos ...", file=sys.stderr)
-        found = search_model_all_nodes(model)
-        if found is None:
+        result = search_model_all_nodes(model)
+        if result is None:
             still_missing.append(model)
             continue
+        found, member, node_url = result
 
         resolved.append(model)
+        # reemplaza la fila 'no_encontrado' de este modelo (si existia),
+        # no la duplica.
+        catalog_rows = [r for r in catalog_rows if r["model"] != model]
         catalog_rows.append({
             "model": model, "grid_label": "", "complete": "True",
             "historical": "True", "ssp245": "True", "ssp585": "True",
+            "member_id": member, "fuente": "esgf_alt_node",
         })
         file_catalog[model] = found
+        print(f"  nodo usado: {node_url}", file=sys.stderr)
 
     if resolved:
         with open(catalog_csv, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=["model", "grid_label", "complete", *EXPERIMENTS])
+            writer = csv.DictWriter(f, fieldnames=catalog_fieldnames, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(catalog_rows)
 

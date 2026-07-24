@@ -23,8 +23,8 @@ flowchart TD
 
     S00 --> S00b --> S01
     S00b -.-> S00c
-    S00c -."faltantes".-> S02b -."faltantes".-> S02c
     S01 --> S02
+    S02 --> S02b --> S02c
     S02b -.->|"actualiza catálogo"| S01
     S02c -.->|"actualiza catálogo"| S01
     S02 --> S04
@@ -34,7 +34,7 @@ flowchart TD
     S05 -."exploración".-> NB["graficos_exploratorios.ipynb"]
 ```
 
-Las líneas punteadas corresponden a pasos manuales, fuera de la secuencia automática de `run.sh`.
+`02 → 02b → 02c` es una cascada **automática** dentro del paso 02 de `run.sh` (ver `02_download_all_sources.sh`): cada fuente solo se intenta para lo que la anterior no haya resuelto. Las líneas punteadas corresponden a pasos manuales (00c, verificación contra la literatura) o a la actualización que 02b/02c hacen sobre el catálogo de 01.
 
 ## Estructura de datos
 
@@ -63,18 +63,19 @@ Confirma la disponibilidad de CDO, Python y las librerías necesarias (`requests
 Revisa el vocabulario CMIP6 completo y selecciona, por modelo, la grilla (`grid_label`) más gruesa que cubre `historical` + `ssp245` + `ssp585`. El resultado se escribe en `../config/models_seed_cmip6.csv`.
 
 ### 00c — Verificación contra la literatura (`00c_check_paper_models.py`, manual)
-Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes se registran en `../config/models_missing_from_esgf.csv`, insumo de 02b/02c.
+Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes se registran en `../config/models_missing_from_esgf.csv` -- útil como insumo manual adicional para `02b_search_alt_esgf_nodes.py` si se quiere ampliar el universo de modelos más allá de lo que ya intenta automáticamente el paso 02 (ver abajo) con los `no_encontrado` del catálogo.
 
 ### 01 — Catálogo ESGF (`01_query_esgf_catalog.py`)
 Para cada modelo, determina el `variant_label` (miembro de ensamble) disponible simultáneamente en los tres experimentos —se prioriza `r1i1p1f1`— y localiza los archivos de esa combinación exacta. El resultado se escribe en `models_catalog_status.csv` y `esgf_file_urls.json`.
 
 > Un hallazgo relevante durante el desarrollo: sin fijar un único miembro, ESGF devuelve varias realizaciones (r1i1p1f1, r2i1p1f1, …) del mismo modelo. Sin ese filtro, se descargan y fusionan todas como si fueran una sola serie, duplicando artificialmente los pasos de tiempo.
 
-### 02b / 02c — Fuentes alternativas (manual)
-`02b_search_alt_esgf_nodes.py` repite la búsqueda de 01 contra nodos ESGF alternativos (CEDA, DKRZ, IPSL, …) para los modelos no encontrados en el nodo principal. `02c_download_copernicus_cds.py` constituye el último recurso, mediante credenciales personales de Copernicus CDS. Ninguno de los dos forma parte de la secuencia automática; se ejecutan manualmente y, de tener éxito, actualizan los mismos `models_catalog_status.csv` / `esgf_file_urls.json` que usa 01.
+### 02 — Descarga CMIP6, en cascada (`02_download_all_sources.sh`)
+Ya no es manual: encadena automáticamente las 3 fuentes, cada una solo para lo que la anterior no haya resuelto.
 
-### 02 — Descarga CMIP6 (`02_download_cmip6_chunks.sh`)
-Descarga cada archivo tal como lo entrega ESGF, sin fusionar ni recortar, en `data/raw/cmip6/<modelo>/<experimento>/`. El parámetro `MAX_MODELS` limita cuántos modelos completos se descargan, en el orden del catálogo.
+1. **`02_download_cmip6_chunks.sh`**: descarga cada archivo tal como lo entrega ESGF (nodo principal), sin fusionar ni recortar, en `data/raw/cmip6/<modelo>/<experimento>/`. El parámetro `MAX_MODELS` limita cuántos modelos completos se descargan, en el orden del catálogo.
+2. **`02b_search_alt_esgf_nodes.py`**: para los modelos que quedaron `no_encontrado`, repite la búsqueda de 01 contra nodos ESGF alternativos (CEDA, DKRZ, IPSL, NSC, NCI). Lo que encuentra actualiza `models_catalog_status.csv` / `esgf_file_urls.json` (mismo formato que usa 01), y el paso 1 se vuelve a correr para descargarlo.
+3. **`02c_download_copernicus_cds.py`**: último recurso, vía Copernicus CDS, **solo para los modelos que siguen sin encontrarse Y que además están en `config/models_copernicus_ssp245_whitelist.csv`**. Esa lista blanca existe porque CDS no espeja el catálogo completo de ESGF — para modelos de cola larga el job falla con `RoocsValueError` (el dataset no está replicado ahí); la lista se verificó a mano en el sitio de Copernicus para no gastar tiempo/cuota en modelos que sabemos que van a fallar. Requiere credenciales personales (`~/.cdsapirc`) y la licencia del dataset aceptada; si no están disponibles, este paso se omite con un aviso, sin abortar el resto del pipeline.
 
 ### 03 — ERSSTv5 (`03_download_ersstv5.sh`)
 Descarga el dato observado de NOAA PSL, aísla la variable `sst` (`-selvar,sst`, descartando `lat_bnds`/`lon_bnds`/etc. desde el origen) y recorta a la ventana regional (100°E–70°W, 20°S–20°N). El resultado (`ersstv5_region.nc`) queda como una grilla `lonlat` única y limpia; sin este paso, CDO detectaba un segundo grid "generic" a partir de las variables de bounds y lo empleaba erróneamente como objetivo de regrillado en el paso 04. Esta grilla (~2°) constituye la referencia para 04.

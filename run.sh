@@ -12,6 +12,10 @@
 # - Gráficos bajo demanda desde: graficos_exploratorios.ipynb sobre data/processed/masked/.
 # - Idempotencia: cada paso salta el procesamiento si el archivo de salida ya existe.
 # - Nota: paso 00b_build_model_list.py se ejecuta entre 00 y 01 (sin renombrar scripts).
+# - Paso 02 ahora es scripts/02_download_all_sources.sh: encadena ESGF (nodo
+#   principal) -> ESGF (nodos alternativos, 02b) -> Copernicus CDS (02c, solo
+#   lista blanca config/models_copernicus_ssp245_whitelist.csv). 02b/02c ya
+#   NO son pasos manuales -- un clone nuevo + run.sh los ejecuta solo.
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p logs
@@ -63,7 +67,7 @@ run_step () {
 run_step 00  bash    scripts/00_setup_env.sh
 run_step 00b python3 scripts/00b_build_model_list.py ../config/models_seed_cmip6.csv
 run_step 01  python3 scripts/01_query_esgf_catalog.py ../config/models_seed_cmip6.csv data/interim/models_catalog_status.csv data/interim/esgf_file_urls.json
-run_step 02  bash    scripts/02_download_cmip6_chunks.sh
+run_step 02  bash    scripts/02_download_all_sources.sh
 run_step 03  bash    scripts/03_download_ersstv5.sh
 run_step 04  bash    scripts/04_process_to_common_grid.sh
 run_step 05  python3 scripts/05_apply_ocean_mask.py
