@@ -788,7 +788,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   <div class="grid3">
     <div class="card"><div class="stat">102</div><div class="stat-label">modelos candidatos en total</div></div>
     <div class="card"><div class="stat">48</div><div class="stat-label">completos (3/3 experimentos)</div></div>
-    <div class="card"><div class="stat" style="color:var(--good)">47</div><div class="stat-label">seleccionados tras control de calidad</div></div>
+    <div class="card"><div class="stat" style="color:var(--good)">48</div><div class="stat-label">seleccionados tras control de calidad</div></div>
   </div>
 </section>
 
@@ -798,7 +798,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
     <div class="kicker" style="align-self:flex-start">Resultados</div>
     <h1 style="align-self:flex-start">Control de calidad, por modelo</h1>
     <img class="fig" src="../figures/sst_QD.png" alt="Control de calidad por modelo">
-    <figcaption>141 de 142 combinaciones modelo-experimento pasan el control de calidad.</figcaption>
+    <figcaption>142 de 142 combinaciones modelo-experimento pasan el control de calidad.</figcaption>
   </div>
 </section>
 
@@ -808,15 +808,15 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   <h1>El dato ya homogeneizado: ERSSTv5 vs. modelos</h1>
   <div class="grid3">
     <figure style="margin:0">
-      <img class="fig-sm" src="../figures/sst_t0_ERSSTv5.png" alt="Mapa ERSSTv5">
+      <img class="fig-sm" src="../figures/sst_2d_ERSSTv5.png" alt="Mapa ERSSTv5">
       <figcaption>Observado (ERSSTv5)</figcaption>
     </figure>
     <figure style="margin:0">
-      <img class="fig-sm" src="../figures/sst_t0_ACCESS-CM2.png" alt="Mapa ACCESS-CM2">
+      <img class="fig-sm" src="../figures/sst_2d_ACCESS-CM2.png" alt="Mapa ACCESS-CM2">
       <figcaption>Modelo 1: ACCESS-CM2</figcaption>
     </figure>
     <figure style="margin:0">
-      <img class="fig-sm" src="../figures/sst_t0_GFDL-CM4.png" alt="Mapa GFDL-CM4">
+      <img class="fig-sm" src="../figures/sst_2d_GFDL-CM4.png" alt="Mapa GFDL-CM4">
       <figcaption>Modelo 2: GFDL-CM4</figcaption>
     </figure>
   </div>
@@ -828,19 +828,19 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   <div class="center-col">
     <div class="kicker" style="align-self:flex-start">Resultados</div>
     <h1 style="align-self:flex-start">Vista previa: primera comparación exploratoria</h1>
-    <img class="fig" src="../figures/sst_Nino3.4_boxplot.png" alt="Boxplot Nino 3.4, comparacion historica">
-    <figcaption>Dispersión (σ) y mediana (p50) de ERSSTv5 vs. tres modelos, mismo periodo histórico común — Niño 3.4.<br>Un anticipo de la evaluación de desempeño formal del Entregable 2, ya posible gracias a que el dato quedó homogeneizado.</figcaption>
+    <img class="fig" src="../figures/boxplot_Nino3.4.png" alt="Boxplot Nino 3.4, comparacion historica">
+    <figcaption>Dispersión (σ) y mediana (p50) de ERSSTv5 vs. los modelos del inventario, mismo periodo histórico común — Niño 3.4.<br>Un anticipo de la evaluación de desempeño formal del Entregable 2, ya posible gracias a que el dato quedó homogeneizado.</figcaption>
   </div>
 </section>
 
 <!-- 56 -->
 <section class="slide">
   <div class="kicker">Resultados</div>
-  <h1>Un caso pendiente</h1>
+  <h1>Un último filtro de seguridad, ya cerrado</h1>
   <ul>
-    <li>Un modelo (de los 48 completos) no pasa el control de calidad: un artefacto de regrillado en la línea de costa, en un punto que el observado considera océano</li>
-    <li>Queda identificado y documentado para revisión manual antes del Entregable 2</li>
-    <li>El resto del inventario (47 modelos) queda validado y listo para usarse</li>
+    <li>Un modelo llegó a fallar el control de calidad por un artefacto de regrillado en la línea de costa: un punto que el observado considera océano recibía un valor extremo, no físico</li>
+    <li><strong>Fix aplicado en el paso 05</strong>: cualquier punto con un valor por encima de un umbral físico razonable se vuelve <span class="mono">NaN</span> al momento de aplicar la máscara, sin importar qué diga la máscara océano-tierra</li>
+    <li>Con este filtro, <strong>los 48 modelos completos quedan seleccionados</strong> — no queda ningún caso pendiente de este tipo</li>
   </ul>
 </section>
 
@@ -852,7 +852,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
     <li>Evaluación histórica del estado medio: climatología, mapas de sesgo, RMSE y diagrama de Taylor respecto a ERSSTv5</li>
     <li>Evaluación de la variabilidad del ENSO: anomalías, índices (C, E, ONI, RONI, ICEN), comparación de distribuciones</li>
     <li>Evaluación de eventos extremos: identificación de eventos El Niño moderados y extremos, por percentiles</li>
-    <li>Revisión manual pendiente: el modelo con artefacto de regrillado costero (lámina anterior)</li>
+    <li>Base de datos ya lista: 48 modelos completos, sin fallas de control de calidad pendientes</li>
   </ul>
 </section>
 

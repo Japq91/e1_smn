@@ -70,6 +70,9 @@ def build_ocean_mask(ersstv5_path: Path, mask_path: Path) -> None:
     print(f"Mascara construida: {n_ocean}/{ocean_mask.size} puntos de oceano", file=sys.stderr)
 
 
+VALUE_LIMIT = 400.0  # cualquier punto con |valor| > esto se vuelve NaN
+
+
 def apply_mask(infile: Path, outfile: Path, ocean_mask: np.ndarray) -> None:
     shutil.copyfile(infile, outfile)
     with nc.Dataset(outfile, "r+") as ds:
@@ -77,7 +80,20 @@ def apply_mask(infile: Path, outfile: Path, ocean_mask: np.ndarray) -> None:
         var = ds.variables[varname]
         data = var[:]
         land = np.broadcast_to(~ocean_mask.astype(bool), data.shape)
-        var[:] = np.ma.masked_where(land, data)
+
+        # Ultima verificacion, por valor: se encontro (FGOALS-f3-L) un
+        # punto que ERSSTv5 considera oceano pero que trae un valor de
+        # relleno mal propagado por el regrillado (~1e35), muy por
+        # encima de cualquier SST fisica. Cualquier grilla con un valor
+        # por encima de VALUE_LIMIT se vuelve NaN, sin importar la
+        # mascara oceano-tierra.
+        raw = np.ma.getdata(data)
+        invalid = np.abs(raw) > VALUE_LIMIT
+        n_invalid = int(invalid.sum())
+        if n_invalid:
+            print(f"  {infile.name}: {n_invalid} puntos con |valor| > {VALUE_LIMIT:g}, vueltos NaN", file=sys.stderr)
+
+        var[:] = np.ma.masked_where(land | invalid, data)
 
 
 def main() -> None:

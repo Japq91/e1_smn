@@ -20,7 +20,7 @@ EC-Earth3,96x21,3,3,True
 EC-Earth3-CC,96x21,3,3,True
 EC-Earth3-Veg,96x21,3,3,True
 EC-Earth3-Veg-LR,96x21,3,3,True
-FGOALS-f3-L,96x21,2,3,False
+FGOALS-f3-L,96x21,3,3,True
 FGOALS-g3,96x21,3,3,True
 FIO-ESM-2-0,96x21,3,3,True
 GFDL-CM4,96x21,3,3,True
