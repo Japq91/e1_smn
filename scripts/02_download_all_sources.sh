@@ -3,7 +3,7 @@
 # cascada: ESGF (nodo principal, 02_download_cmip6_chunks.sh) -> ESGF
 # (nodos alternativos, 02b_search_alt_esgf_nodes.py) -> Copernicus CDS
 # (02c_download_copernicus_cds.py, solo para los modelos de la lista
-# blanca ../config/models_copernicus_ssp245_whitelist.csv).
+# blanca config/models_copernicus_ssp245_whitelist.csv).
 #
 # A diferencia de versiones anteriores del pipeline, 02b y 02c ya NO
 # son pasos manuales: este script los ejecuta automaticamente como

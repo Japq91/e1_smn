@@ -17,7 +17,7 @@ a buscar por una via alternativa (ver 02b_search_alt_esgf_nodes.py y
 02c_download_copernicus_cds.py).
 
 Uso:
-    python3 00c_check_paper_models.py ../files_MD ../config/models_seed_cmip6.csv ../config/models_missing_from_esgf.csv
+    python3 00c_check_paper_models.py ../files_MD config/models_seed_cmip6.csv config/models_missing_from_esgf.csv
 """
 import csv
 import re

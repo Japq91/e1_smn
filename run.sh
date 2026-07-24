@@ -77,8 +77,8 @@ run_step () {
 }
 
 run_step 00  bash    scripts/00_setup_env.sh
-run_step 00b python3 scripts/00b_build_model_list.py ../config/models_seed_cmip6.csv
-run_step 01  python3 scripts/01_query_esgf_catalog.py ../config/models_seed_cmip6.csv data/interim/models_catalog_status.csv data/interim/esgf_file_urls.json
+run_step 00b python3 scripts/00b_build_model_list.py config/models_seed_cmip6.csv
+run_step 01  python3 scripts/01_query_esgf_catalog.py config/models_seed_cmip6.csv data/interim/models_catalog_status.csv data/interim/esgf_file_urls.json
 run_step 02  bash    scripts/run_download_if_idle.sh
 run_step 03  bash    scripts/03_download_ersstv5.sh
 run_step 04  bash    scripts/04_process_to_common_grid.sh

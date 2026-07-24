@@ -1,0 +1,25 @@
+# Todas las longitudes en este archivo estan en formato 0-360 (no
+# -180/180), por consistencia y practicidad de calculo en todos los
+# pasos del pipeline (descarga, homogeneizacion, regrillado y cajas de
+# analisis usan la misma convencion).
+
+nino34:
+  # Nino 3.4 clasico: 170W-120W, 5S-5N -> en 0-360: 190-240
+  lon_min: 190.0
+  lon_max: 240.0
+  lat_min: -5.0
+  lat_max: 5.0
+nino12:
+  # Nino 1+2 clasico: 90W-80W, 10S-0 -> en 0-360: 270-280
+  lon_min: 270.0
+  lon_max: 280.0
+  lat_min: -10.0
+  lat_max: 0.0
+# caja de descarga regional (envolvente de ambas cajas, con margen).
+# Actualizado: 100E a 70W (mas amplia que la version anterior,
+# 120E-80W), 20S a 20N.
+download_window:
+  lon_min: 100.0    # 100E
+  lon_max: 290.0    # 70W (0-360: 360 - 70 = 290)
+  lat_min: -20.0    # 20S
+  lat_max: 20.0     # 20N

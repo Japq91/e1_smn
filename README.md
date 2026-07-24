@@ -60,10 +60,10 @@ figures/                                            # graficos_exploratorios.ipy
 Confirma la disponibilidad de CDO, Python y las librerías necesarias (`requests`, `netCDF4`, `matplotlib`) antes de iniciar la ejecución.
 
 ### 00b — Lista de modelos candidatos (`00b_build_model_list.py`)
-Revisa el vocabulario CMIP6 completo y selecciona, por modelo, la grilla (`grid_label`) más gruesa que cubre `historical` + `ssp245` + `ssp585`. El resultado se escribe en `../config/models_seed_cmip6.csv`.
+Revisa el vocabulario CMIP6 completo y selecciona, por modelo, la grilla (`grid_label`) más gruesa que cubre `historical` + `ssp245` + `ssp585`. El resultado se escribe en `config/models_seed_cmip6.csv`.
 
 ### 00c — Verificación contra la literatura (`00c_check_paper_models.py`, manual)
-Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes se registran en `../config/models_missing_from_esgf.csv` -- útil como insumo manual adicional para `02b_search_alt_esgf_nodes.py` si se quiere ampliar el universo de modelos más allá de lo que ya intenta automáticamente el paso 02 (ver abajo) con los `no_encontrado` del catálogo.
+Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes se registran en `config/models_missing_from_esgf.csv` -- útil como insumo manual adicional para `02b_search_alt_esgf_nodes.py` si se quiere ampliar el universo de modelos más allá de lo que ya intenta automáticamente el paso 02 (ver abajo) con los `no_encontrado` del catálogo.
 
 ### 01 — Catálogo ESGF (`01_query_esgf_catalog.py`)
 Para cada modelo, determina el `variant_label` (miembro de ensamble) disponible simultáneamente en los tres experimentos —se prioriza `r1i1p1f1`— y localiza los archivos de esa combinación exacta. El resultado se escribe en `models_catalog_status.csv` y `esgf_file_urls.json`.

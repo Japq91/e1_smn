@@ -31,7 +31,7 @@ r1i1p1f1) antes de buscar los archivos.
 
 Uso:
     python3 02b_search_alt_esgf_nodes.py \
-        ../config/models_missing_from_esgf.csv \
+        config/models_missing_from_esgf.csv \
         data/interim/models_catalog_status.csv \
         data/interim/esgf_file_urls.json
 """

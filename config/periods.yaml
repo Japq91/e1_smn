@@ -1,0 +1,21 @@
+referencia_historica: {inicio: 1981, fin: 2014}
+validacion:           {inicio: 1981, fin: 2014}
+proyeccion_p1:        {inicio: 2036, fin: 2065}
+proyeccion_p2:        {inicio: 2071, fin: 2100}
+escenarios: [ssp245, ssp585]
+# piControl ya no es requisito de seleccion de modelos: el conjunto de
+# modelos se amplio a todo CMIP6 y el filtro acordado con el proyecto
+# es unicamente disponibilidad de tos/Omon en estos tres experimentos.
+experimentos_requeridos: [historical, ssp245, ssp585]
+variable: tos
+tabla_cmor: Omon
+# Rango temporal completo de descarga: 1850-2100
+descarga_temporal:
+  inicio: 1850
+  fin: 2100
+# La resolucion de descarga/regrillado ya no es una malla fija propia:
+# se usa, para cada modelo, la variante de grilla mas gruesa disponible
+# (ver 00b_build_model_list.py), y el regrillado final (paso 06) usa
+# como referencia la resolucion real del dato observado (ERSSTv5, ~2
+# grados), no un mnemonico fijo.
+resolucion_referencia: ERSSTv5 (~2 grados lat/lon)
