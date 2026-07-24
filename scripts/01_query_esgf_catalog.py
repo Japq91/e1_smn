@@ -127,44 +127,72 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
     return [{"filename": fn, "urls": urls} for fn, urls in sorted(by_filename.items())]
 
 
+CATALOG_FIELDNAMES = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente"]
+
+
 def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
     with open(seed_csv, newline="") as f:
         seed_rows = list(csv.DictReader(f))
 
-    status_rows = []
+    # Fusiona con lo que ya exista, en vez de sobreescribir: preserva
+    # modelos que no estan en la semilla (agregados a mano via 00c/02b/
+    # 02c, ej. los 56 citados en la literatura) y nunca degrada un
+    # modelo ya resuelto por otra fuente (esgf_alt_node, copernicus_
+    # parcial) aunque esta consulta puntual a ESGF no lo encuentre --
+    # eso perderia trabajo de 02b/02c sin motivo real (esos modelos
+    # siguen igual de disponibles/no disponibles independientemente de
+    # lo que diga el nodo principal). Solo se actualiza un modelo ya
+    # resuelto si estaba 'no_encontrado' y esta corrida SI lo encuentra
+    # (mejora real), o si es la primera vez que se ve.
+    existing_by_model: dict[str, dict] = {}
+    if Path(out_csv).exists():
+        with open(out_csv, newline="") as f:
+            for row in csv.DictReader(f):
+                existing_by_model[row["model"]] = row
+
     file_catalog: dict[str, dict] = {}
+    if Path(out_files_json).exists():
+        file_catalog = json.loads(Path(out_files_json).read_text())
 
     for row in seed_rows:
         model = row["model"]
         grid_label = row.get("grid_label") or None
+        existing = existing_by_model.get(model)
+
+        if existing is not None and existing.get("fuente") not in (None, "", "no_encontrado"):
+            print(f"{model}: ya resuelto via '{existing.get('fuente')}', se conserva sin re-consultar", file=sys.stderr)
+            continue
 
         member = find_common_member(model, VARIABLE, TABLE)
         if member is None:
             print(f"{model}: sin variant_label comun a los 3 experimentos, se omite", file=sys.stderr)
-            status_rows.append({
-                "model": model, "grid_label": grid_label, "member_id": "", "complete": False,
-                **{exp: False for exp in EXPERIMENTS},
-            })
+            if existing is None:
+                existing_by_model[model] = {
+                    "model": model, "grid_label": grid_label or "", "member_id": "", "complete": "False",
+                    **{exp: "False" for exp in EXPERIMENTS}, "fuente": "no_encontrado",
+                }
             continue
 
         found = {exp: esgf_file_search(model, exp, VARIABLE, TABLE, grid_label, member) for exp in EXPERIMENTS}
         complete = all(found[exp] for exp in EXPERIMENTS)
-        status_rows.append({
-            "model": model, "grid_label": grid_label, "member_id": member, "complete": complete,
-            **{exp: bool(found[exp]) for exp in EXPERIMENTS},
-        })
         n_files = {exp: len(found[exp]) for exp in EXPERIMENTS}
         print(f"{model} (grid={grid_label}, miembro={member}): completo={complete} archivos_por_experimento={n_files}",
               file=sys.stderr)
 
-        if not complete:
-            continue
+        existing_by_model[model] = {
+            "model": model, "grid_label": grid_label or "", "member_id": member, "complete": str(complete),
+            **{exp: str(bool(found[exp])) for exp in EXPERIMENTS},
+            "fuente": "esgf_principal" if complete else "no_encontrado",
+        }
 
-        file_catalog[model] = dict(found)
+        if complete:
+            file_catalog[model] = dict(found)
+
+    status_rows = list(existing_by_model.values())
 
     Path(out_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["model", "grid_label", "complete", *EXPERIMENTS, "member_id"])
+        writer = csv.DictWriter(f, fieldnames=CATALOG_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(status_rows)
 
@@ -172,7 +200,7 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
     with open(out_files_json, "w") as f:
         json.dump(file_catalog, f, indent=2)
 
-    n_complete = sum(1 for r in status_rows if r["complete"])
+    n_complete = sum(1 for r in status_rows if r["complete"] == "True")
     print(f"Catalogo escrito en {out_csv} y {out_files_json} "
           f"({n_complete}/{len(status_rows)} modelos completos)", file=sys.stderr)
 
