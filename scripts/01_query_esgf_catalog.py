@@ -136,14 +136,21 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
 
     # Fusiona con lo que ya exista, en vez de sobreescribir: preserva
     # modelos que no estan en la semilla (agregados a mano via 00c/02b/
-    # 02c, ej. los 56 citados en la literatura) y nunca degrada un
-    # modelo ya resuelto por otra fuente (esgf_alt_node, copernicus_
-    # parcial) aunque esta consulta puntual a ESGF no lo encuentre --
-    # eso perderia trabajo de 02b/02c sin motivo real (esos modelos
-    # siguen igual de disponibles/no disponibles independientemente de
-    # lo que diga el nodo principal). Solo se actualiza un modelo ya
-    # resuelto si estaba 'no_encontrado' y esta corrida SI lo encuentra
-    # (mejora real), o si es la primera vez que se ve.
+    # 02c, ej. los 56 citados en la literatura). Se re-consulta ESGF
+    # SIEMPRE para cada modelo de la semilla (asi se detectan mejoras --
+    # ESGF publica datos nuevos con el tiempo; se confirmo en la
+    # practica con CESM2: la primera corrida solo probo 'r1i1p1f1' y no
+    # encontro ssp245/ssp585 bajo ese miembro, pero 'r4i1p1f1' si tiene
+    # los 3 experimentos). La regla para no perder trabajo previo es al
+    # ESCRIBIR el resultado, no al consultar:
+    #   - si la consulta fresca da complete=True, siempre se usa (mejora
+    #     real, sea cual sea el estado anterior)
+    #   - si NO da complete=True, se conserva el estado anterior tal
+    #     cual cuando ese estado anterior ya era 'lo mejor posible'
+    #     (complete=True por cualquier fuente, o resuelto via
+    #     copernicus_parcial/esgf_alt_node) -- para no degradar un
+    #     modelo ya resuelto solo porque esta consulta puntual al nodo
+    #     principal no lo encuentre completo
     existing_by_model: dict[str, dict] = {}
     if Path(out_csv).exists():
         with open(out_csv, newline="") as f:
@@ -158,19 +165,21 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
         model = row["model"]
         grid_label = row.get("grid_label") or None
         existing = existing_by_model.get(model)
-
-        if existing is not None and existing.get("fuente") not in (None, "", "no_encontrado"):
-            print(f"{model}: ya resuelto via '{existing.get('fuente')}', se conserva sin re-consultar", file=sys.stderr)
-            continue
+        existing_is_protected = existing is not None and (
+            existing.get("complete") == "True"
+            or existing.get("fuente") in ("copernicus_parcial", "esgf_alt_node")
+        )
 
         member = find_common_member(model, VARIABLE, TABLE)
         if member is None:
-            print(f"{model}: sin variant_label comun a los 3 experimentos, se omite", file=sys.stderr)
-            if existing is None:
+            print(f"{model}: sin variant_label comun a los 3 experimentos", file=sys.stderr)
+            if not existing_is_protected:
                 existing_by_model[model] = {
                     "model": model, "grid_label": grid_label or "", "member_id": "", "complete": "False",
                     **{exp: "False" for exp in EXPERIMENTS}, "fuente": "no_encontrado",
                 }
+            elif existing is not None:
+                print(f"  {model}: se conserva el estado existente ('{existing.get('fuente')}'), no se degrada", file=sys.stderr)
             continue
 
         found = {exp: esgf_file_search(model, exp, VARIABLE, TABLE, grid_label, member) for exp in EXPERIMENTS}
@@ -178,6 +187,10 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
         n_files = {exp: len(found[exp]) for exp in EXPERIMENTS}
         print(f"{model} (grid={grid_label}, miembro={member}): completo={complete} archivos_por_experimento={n_files}",
               file=sys.stderr)
+
+        if not complete and existing_is_protected:
+            print(f"  {model}: se conserva el estado existente ('{existing.get('fuente')}'), no se degrada", file=sys.stderr)
+            continue
 
         existing_by_model[model] = {
             "model": model, "grid_label": grid_label or "", "member_id": member, "complete": str(complete),
