@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Entregable 1 — Pipeline SST CMIP6 + ERSSTv5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#f4f7fa; --fg:#12232e; --panel:#ffffff; --panel2:#eef3f7; --accent:#0f6e8c; --accent2:#c9622a;
+  --muted:#54697a; --border:#d5e0e8; --code-bg:#0f2430; --code-fg:#dbe9f0; --good:#1f8a5f; --bad:#c0392b;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0b141c; --fg:#e7eef4; --panel:#101d27; --panel2:#16242f; --accent:#5cc3e8; --accent2:#f0975c; --muted:#8fa5b6; --border:#223140; --code-bg:#04141c; --code-fg:#bfe3f2; --good:#4fce9a; --bad:#e57373; }
+}
+:root[data-theme="dark"]{ --bg:#0b141c; --fg:#e7eef4; --panel:#101d27; --panel2:#16242f; --accent:#5cc3e8; --accent2:#f0975c; --muted:#8fa5b6; --border:#223140; --code-bg:#04141c; --code-fg:#bfe3f2; --good:#4fce9a; --bad:#e57373; }
+:root[data-theme="light"]{ --bg:#f4f7fa; --fg:#12232e; --panel:#ffffff; --panel2:#eef3f7; --accent:#0f6e8c; --accent2:#c9622a; --muted:#54697a; --border:#d5e0e8; --code-bg:#0f2430; --code-fg:#dbe9f0; --good:#1f8a5f; --bad:#c0392b; }
+
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
+.deck{position:relative;height:100vh;width:100vw;}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:5.5vh 7vw 8vh;overflow-y:auto;}
+.slide.active{display:flex;}
+.kicker{font-size:.82rem;text-transform:uppercase;letter-spacing:.09em;color:var(--accent2);font-weight:700;margin:0 0 .5em;}
+h1{font-size:clamp(1.5rem,3vw,2.5rem);color:var(--accent);margin:0 0 .5em;line-height:1.15;}
+h2.sub{font-size:clamp(1.05rem,1.8vw,1.4rem);color:var(--muted);font-weight:500;margin:-0.6em 0 1em;}
+.slide ul{font-size:clamp(.98rem,1.5vw,1.28rem);line-height:1.6;padding-left:1.15em;}
+.slide li{margin-bottom:.35em;}
+.slide p.lead{font-size:clamp(1.05rem,1.7vw,1.45rem);color:var(--muted);max-width:52em;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;}
+.center-col{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;height:100%;}
+img.fig{max-width:100%;max-height:56vh;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.12);}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:.6em;text-align:center;}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code-bg);color:var(--code-fg);
+  padding:.12em .45em;border-radius:4px;font-size:.92em;}
+pre{background:var(--code-bg);color:var(--code-fg);padding:.9em 1.1em;border-radius:8px;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(.82rem,1.3vw,1.05rem);line-height:1.5;}
+.step-pill{display:inline-block;background:var(--accent);color:#04222d;padding:.18em .75em;border-radius:999px;
+  font-weight:700;font-size:.82em;margin-right:.6em;letter-spacing:.02em;}
+.pill-manual{background:var(--panel2);color:var(--muted);border:1px dashed var(--border);}
+.pill-alt{background:var(--accent2);color:#2a1305;}
+table{border-collapse:collapse;width:100%;font-size:clamp(.82rem,1.25vw,1.05rem);margin-top:.6em;}
+th,td{border:1px solid var(--border);padding:.45em .75em;text-align:left;vertical-align:top;}
+th{background:var(--panel2);color:var(--accent);}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.1em 1.3em;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;}
+.stat{font-size:clamp(2rem,4.5vw,3.4rem);color:var(--accent);font-weight:800;line-height:1;}
+.stat-label{color:var(--muted);font-size:.95rem;margin-top:.3em;}
+.flow{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:center;margin-top:1em;}
+.flow .box{background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:.55em .9em;
+  font-size:clamp(.72rem,1.15vw,.95rem);font-weight:600;text-align:center;min-width:6.2em;}
+.flow .box.manual{border-style:dashed;border-color:var(--muted);color:var(--muted);font-weight:500;}
+.flow .arrow{color:var(--muted);font-size:1.3rem;}
+.timeline{display:flex;justify-content:space-between;margin-top:1.4em;position:relative;}
+.timeline::before{content:"";position:absolute;top:19px;left:2%;right:2%;height:3px;background:var(--border);}
+.tl-item{flex:1;text-align:center;position:relative;padding-top:0;}
+.tl-dot{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#04222d;font-weight:800;
+  display:flex;align-items:center;justify-content:center;margin:0 auto .5em;position:relative;z-index:1;font-size:.95rem;}
+.tl-label{font-size:.85rem;color:var(--muted);max-width:9em;margin:0 auto;}
+.footer{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+  padding:.55em 1.4em;font-size:.78rem;color:var(--muted);border-top:1px solid var(--border);background:var(--bg);z-index:5;}
+.progress{position:fixed;top:0;left:0;height:4px;background:var(--accent);transition:width .25s;z-index:6;}
+.nav-btn{position:fixed;top:50%;transform:translateY(-50%);background:var(--panel);border:1px solid var(--border);
+  color:var(--fg);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.15rem;z-index:6;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.15);}
+.nav-btn:hover{background:var(--panel2);}
+#prevBtn{left:14px;} #nextBtn{right:14px;}
+.badge-good{color:var(--good);font-weight:700;}
+.badge-bad{color:var(--bad);font-weight:700;}
+.title-slide{align-items:center;text-align:center;justify-content:center;}
+.title-slide h1{font-size:clamp(1.9rem,4.2vw,3.1rem);}
+.small{font-size:.85em;color:var(--muted);}
+.divider{height:1px;background:var(--border);margin:1em 0;}
+.theme-toggle{position:fixed;top:10px;right:14px;z-index:7;background:var(--panel);border:1px solid var(--border);
+  border-radius:6px;padding:.3em .6em;font-size:.8rem;cursor:pointer;color:var(--fg);}
+ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" title="Cambiar tema">🌓</button>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1 -->
+<section class="slide title-slide">
+  <div class="kicker">Subdirección de Modelamiento Numérico de la Atmósfera — SMN</div>
+  <h1>Entregable 1<br><span style="color:var(--fg)">Pipeline de datos SST — CMIP6 + ERSSTv5</span></h1>
+  <h2 class="sub">Adquisición, homogeneización y control de calidad de datos para el cálculo del<br><em>Time of Emergence</em> en Niño 3.4 y Niño 1+2</h2>
+  <div class="divider" style="width:40%"></div>
+  <p class="lead"><strong>Jonathan Paredes</strong> — Ingeniero Meteorólogo</p>
+  <p class="small">24 de agosto de 2026</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">Agenda</div>
+  <h1>Qué vamos a ver hoy</h1>
+  <div class="two-col">
+    <ul>
+      <li>Contexto y objetivo del Entregable 1</li>
+      <li>Arquitectura general del pipeline</li>
+      <li>Cómo instalar el entorno en una máquina nueva</li>
+      <li>Los pasos del pipeline, uno por uno</li>
+    </ul>
+    <ul>
+      <li>La historia de la descarga: qué se encontró en el camino</li>
+      <li>Resultados y gráficas de control de calidad</li>
+      <li>Próximos pasos</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">Contexto</div>
+  <h1>¿Qué es el <em>Time of Emergence</em> (TOE)?</h1>
+  <p class="lead">El momento en el tiempo en que la señal climática forzada (el cambio de tendencia) se vuelve distinguible del ruido de la variabilidad natural del sistema.</p>
+  <ul>
+    <li>No basta con mirar la tendencia: hay que compararla contra cuánto varía el clima "por sí solo"</li>
+    <li>Para eso se necesita un conjunto amplio de modelos climáticos (para estimar el ruido) y un dato observado de referencia</li>
+    <li>Este entregable construye la <strong>base de datos</strong> sobre la que se calculará el TOE — no el cálculo en sí</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Objetivo</div>
+  <h1>Objetivo del Entregable 1</h1>
+  <p class="lead">Dejar listo un producto de datos homogéneo, comparable y verificado, a partir de fuentes crudas heterogéneas.</p>
+  <ul>
+    <li>Adquirir <strong>temperatura superficial del mar (SST)</strong> de múltiples modelos CMIP6 y del dato observado ERSSTv5</li>
+    <li>Llevar todo a la <strong>misma grilla espacial</strong> y las mismas convenciones (calendario, unidades)</li>
+    <li>Aplicar una <strong>máscara océano-tierra</strong> común a todas las fuentes</li>
+    <li>Pasar un <strong>control de calidad</strong> automático antes de aceptar cualquier dato</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">Regiones de análisis</div>
+  <h1>Dos cajas de referencia en el Pacífico</h1>
+  <div class="two-col">
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">Niño 3.4</h2>
+      <ul>
+        <li>170°O – 120°O, 5°S – 5°N</li>
+        <li>Formato 0-360 usado en el pipeline: lon 190–240</li>
+        <li>Referencia clásica de variabilidad ENSO</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">Niño 1+2</h2>
+      <ul>
+        <li>90°O – 80°O, 10°S – 0°</li>
+        <li>Formato 0-360: lon 270–280</li>
+        <li>Costa oeste de Sudamérica — relevancia directa para el Perú</li>
+      </ul>
+    </div>
+  </div>
+  <p class="small" style="margin-top:1.2em">Todas las longitudes del proyecto usan formato 0-360, por consistencia entre descarga, regrillado y cálculo de cajas.</p>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">Periodos de referencia</div>
+  <h1>Ventanas temporales del análisis</h1>
+  <table>
+    <tr><th>Periodo</th><th>Rango</th><th>Uso</th></tr>
+    <tr><td>Histórico / validación</td><td>1981 – 2014</td><td>Línea base observada y de referencia entre fuentes</td></tr>
+    <tr><td>Proyección P1</td><td>2036 – 2065</td><td>Horizonte de mediano plazo</td></tr>
+    <tr><td>Proyección P2</td><td>2071 – 2100</td><td>Horizonte de largo plazo</td></tr>
+  </table>
+  <p class="lead" style="margin-top:1.2em">Escenarios de emisión considerados: <span class="mono">ssp245</span> y <span class="mono">ssp585</span>. Rango completo de descarga: 1850–2100 (incluye todo el histórico disponible).</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">Fuentes de datos</div>
+  <h1>Dos grandes fuentes de SST</h1>
+  <div class="two-col">
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">CMIP6 (modelos)</h2>
+      <ul>
+        <li>Decenas de modelos climáticos globales</li>
+        <li>Variable <span class="mono">tos</span> (SST), tabla <span class="mono">Omon</span> (mensual)</li>
+        <li>Obtenidos vía la federación <strong>ESGF</strong>, y como respaldo <strong>Copernicus CDS</strong></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">ERSSTv5 (observado)</h2>
+      <ul>
+        <li>Dato de referencia de NOAA PSL</li>
+        <li>Resolución ~2° — se convierte en la grilla objetivo de todo el pipeline</li>
+        <li>Define también la máscara océano-tierra final</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Un solo orquestador: <span class="mono">run.sh</span></h1>
+  <pre>./run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]</pre>
+  <ul>
+    <li>Sin argumentos: corre todos los pasos, de punta a punta</li>
+    <li>Con rango: por ejemplo <span class="mono">./run.sh 04 07</span> corre solo el procesamiento</li>
+    <li><strong>Idempotente</strong>: cada paso revisa si su salida ya existe y la omite — se puede interrumpir y reanudar sin repetir trabajo ni perder tiempo</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Flujo del pipeline, paso a paso</h1>
+  <div class="flow">
+    <div class="box">00<br>Entorno</div><div class="arrow">→</div>
+    <div class="box">00b<br>Modelos candidatos</div><div class="arrow">→</div>
+    <div class="box manual">00c<br>Literatura (manual)</div>
+  </div>
+  <div class="flow">
+    <div class="box">01<br>Catálogo ESGF</div><div class="arrow">→</div>
+    <div class="box">02<br>Descarga (cascada)</div><div class="arrow">→</div>
+    <div class="box">03<br>ERSSTv5</div>
+  </div>
+  <div class="flow">
+    <div class="box">04<br>Grilla común</div><div class="arrow">→</div>
+    <div class="box">05<br>Máscara</div><div class="arrow">→</div>
+    <div class="box">06<br>Control calidad</div><div class="arrow">→</div>
+    <div class="box">07<br>Inventario final</div>
+  </div>
+  <p class="small" style="margin-top:1em">Cada paso de este diagrama se explica en detalle más adelante.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Estructura de carpetas del proyecto</h1>
+  <pre>e1_smn/
+├── run.sh                 # orquestador único
+├── environment.yml        # entorno reproducible (paso 0)
+├── scripts/                # un script por paso del pipeline
+├── config/                 # semillas, dominios, periodos (fuera del repo de datos)
+├── data/                   # raw / interim / processed (ver próxima lámina)
+├── logs/                   # logs por paso + reportes de estado
+├── figures/                 # gráficos exploratorios (bajo demanda)
+├── informe/                 # entregables: este PDF/HTML, reportes .md
+└── graficos_exploratorios.ipynb</pre>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Estructura de <span class="mono">data/</span></h1>
+  <pre>data/raw/cmip6/&lt;modelo&gt;/&lt;experimento&gt;/&lt;chunk&gt;.nc   # crudo, grilla nativa
+data/raw/ersstv5/                                  # observado, crudo
+data/interim/.weights/&lt;modelo&gt;.nc                  # pesos de regrilla (cache)
+data/interim/processed/tos_&lt;modelo&gt;_&lt;exp&gt;.nc       # regrillado, sin máscara
+data/interim/ocean_mask.nc                         # máscara 1 = océano
+data/processed/masked/tos_&lt;modelo&gt;_&lt;exp&gt;.nc        # dato final, listo para TOE
+data/processed/qc_report.csv                       # control de calidad
+data/processed/models_inventory_final.csv          # inventario final</pre>
+  <p class="small">Todo lo pesado (<span class="mono">data/raw</span>, <span class="mono">data/interim</span>, <span class="mono">data/processed/masked</span>) queda fuera del repositorio de código — solo se versionan scripts, configuración y reportes.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Principio de idempotencia</h1>
+  <p class="lead">Cada paso, antes de trabajar, se pregunta: <em>"¿ya existe mi salida?"</em></p>
+  <ul>
+    <li>Si existe → la omite y sigue al siguiente modelo/experimento</li>
+    <li>Si no existe → la genera</li>
+    <li>Consecuencia práctica: se puede <strong>cortar el proceso a la mitad</strong> (por ejemplo, una descarga larga) y volver a correr <span class="mono">run.sh</span> sin duplicar nada ni perder lo ya avanzado</li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>Convenciones clave del proyecto</h1>
+  <ul>
+    <li><strong>Un solo miembro de ensamble</strong> (<span class="mono">variant_label</span>, ej. <span class="mono">r1i1p1f1</span>) por modelo, el mismo en los 3 experimentos — evita mezclar realizaciones distintas como si fueran una sola serie</li>
+    <li><strong>Longitudes en formato 0-360</strong> en todo el pipeline (descarga, cajas de análisis, regrillado)</li>
+    <li><strong>Malla no estructurada</strong> (ej. mallas oceánicas tipo FESOM): se detecta automáticamente y se usa un método de regrillado distinto (conservativo en vez de bilineal)</li>
+  </ul>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">Paso 0 — antes de todo</div>
+  <h1>El entorno reproducible: <span class="mono">environment.yml</span></h1>
+  <p class="lead">El primer paso en <strong>cualquier</strong> máquina Linux nueva, antes de tocar <span class="mono">run.sh</span>.</p>
+  <ul>
+    <li>Un solo archivo con todo lo necesario: Python, CDO, y las librerías de cada script</li>
+    <li>Reproducible con <strong>conda</strong> — misma versión de herramientas en cualquier equipo</li>
+    <li>Incluye: <span class="mono">cdo</span>, <span class="mono">netcdf4</span>, <span class="mono">numpy</span>, <span class="mono">pandas</span>, <span class="mono">xarray</span>, <span class="mono">matplotlib</span>, <span class="mono">requests</span>, <span class="mono">cdsapi</span></li>
+  </ul>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="kicker">Paso 0 — antes de todo</div>
+  <h1>Instalación en una máquina nueva</h1>
+  <ol class="steps">
+    <li><span class="mono">git clone</span> del repositorio</li>
+    <li><span class="mono">conda env create -f environment.yml</span></li>
+    <li><span class="mono">conda activate e1_smn</span></li>
+    <li><em>(opcional)</em> configurar credenciales de Copernicus CDS — ver próxima lámina</li>
+    <li><span class="mono">bash run.sh</span></li>
+  </ol>
+  <p class="small">Cinco pasos, sin instalar nada manualmente aparte del entorno conda.</p>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="kicker">Paso 0 — antes de todo</div>
+  <h1>Credenciales opcionales: Copernicus CDS</h1>
+  <ul>
+    <li>Solo hace falta si se quiere usar Copernicus como <strong>último recurso</strong> de descarga (paso 02c)</li>
+    <li>Requiere un archivo <span class="mono">~/.cdsapirc</span> con credenciales personales, y aceptar la licencia del dataset <span class="mono">projections-cmip6</span> en el sitio de Copernicus</li>
+    <li><strong>Si no están configuradas, el pipeline sigue funcionando igual</strong> — ese paso se omite con un aviso, no es un error</li>
+  </ul>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">00</span>Verificación de entorno</h1>
+  <p class="lead"><span class="mono">scripts/00_setup_env.sh</span></p>
+  <ul>
+    <li>Confirma que estén instalados <span class="mono">cdo</span>, <span class="mono">wget</span>, <span class="mono">python3</span> y el paquete <span class="mono">requests</span></li>
+    <li>No instala nada — falla temprano y con mensaje claro si algo falta</li>
+    <li>Crea el esqueleto de carpetas de datos y logs</li>
+  </ul>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">00b</span>Lista de modelos candidatos</h1>
+  <p class="lead"><span class="mono">scripts/00b_build_model_list.py</span></p>
+  <ul>
+    <li>Revisa el vocabulario completo de CMIP6</li>
+    <li>Para cada modelo, elige la variante de grilla más gruesa que cubre <span class="mono">historical</span> + <span class="mono">ssp245</span> + <span class="mono">ssp585</span></li>
+    <li>Escribe <span class="mono">config/models_seed_cmip6.csv</span> — la semilla de partida (unos 46 modelos)</li>
+  </ul>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill pill-manual">00c</span>Verificación contra la literatura</h1>
+  <p class="lead"><span class="mono">scripts/00c_check_paper_models.py</span> — manual</p>
+  <ul>
+    <li>Compara los modelos citados en la bibliografía del proyecto contra la semilla del paso anterior</li>
+    <li>Los que faltan se registran como candidatos adicionales para buscar por vías alternativas</li>
+    <li>Amplía el universo de ~46 a 102 modelos candidatos en total</li>
+  </ul>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">01</span>Catálogo ESGF</h1>
+  <p class="lead"><span class="mono">scripts/01_query_esgf_catalog.py</span></p>
+  <ul>
+    <li>Para cada modelo, determina el miembro de ensamble disponible en los <strong>3 experimentos a la vez</strong></li>
+    <li>Localiza los archivos exactos y guarda las URLs de <strong>todos</strong> los mirrors que los replican (para poder reintentar si uno falla)</li>
+    <li>Se puede re-correr para refrescar el catálogo contra ESGF sin perder lo ya resuelto por otras vías — <strong>fusiona, no sobreescribe</strong></li>
+  </ul>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">02</span>Descarga CMIP6 — cascada automática</h1>
+  <p class="lead"><span class="mono">scripts/02_download_all_sources.sh</span></p>
+  <div class="flow">
+    <div class="box">02a<br>ESGF principal</div><div class="arrow">→</div>
+    <div class="box">02b<br>ESGF alternativo</div><div class="arrow">→</div>
+    <div class="box pill-alt" style="border-color:var(--accent2)">02c<br>Copernicus (acotado)</div>
+  </div>
+  <p class="lead" style="margin-top:1.2em">Cada fuente se intenta <strong>solo</strong> para lo que la anterior no resolvió. Ya no son pasos manuales.</p>
+</section>
+
+<!-- 22 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">02a</span>ESGF, nodo principal</h1>
+  <p class="lead"><span class="mono">scripts/02_download_cmip6_chunks.sh</span></p>
+  <ul>
+    <li>Descarga cada archivo tal como lo entrega ESGF, sin fusionar ni recortar</li>
+    <li>Organiza en <span class="mono">data/raw/cmip6/&lt;modelo&gt;/&lt;experimento&gt;/</span></li>
+    <li>Idempotente <strong>por archivo</strong>: si ya existe y no está vacío, se omite</li>
+    <li><span class="mono">MAX_MODELS</span> limita cuántos modelos completos se descargan en una corrida</li>
+  </ul>
+</section>
+
+<!-- 23 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">02b</span>ESGF, nodos alternativos</h1>
+  <p class="lead"><span class="mono">scripts/02b_search_alt_esgf_nodes.py</span> — automático</p>
+  <ul>
+    <li>Para los modelos que el nodo principal no encontró</li>
+    <li>Prueba 5 nodos índice adicionales de la federación ESGF (CEDA, DKRZ, IPSL, NSC, NCI)</li>
+    <li>Lo que encuentra actualiza el catálogo del paso 01 automáticamente</li>
+  </ul>
+</section>
+
+<!-- 24 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">02c</span>Copernicus CDS — último recurso</h1>
+  <p class="lead"><span class="mono">scripts/02c_download_copernicus_cds.py</span> — automático, acotado</p>
+  <ul>
+    <li>Solo se intenta para modelos que <strong>siguen sin encontrarse</strong> tras 02a y 02b</li>
+    <li>Y solo para los que están en una <strong>lista blanca</strong> verificada a mano contra el sitio de Copernicus</li>
+    <li>Si faltan credenciales, se omite con un aviso — no detiene el resto del pipeline</li>
+  </ul>
+</section>
+
+<!-- 25 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">03</span>Descarga de ERSSTv5</h1>
+  <p class="lead"><span class="mono">scripts/03_download_ersstv5.sh</span></p>
+  <ul>
+    <li>Descarga el dato observado de NOAA PSL</li>
+    <li>Aísla la variable <span class="mono">sst</span> desde el origen (descarta variables auxiliares que confundían el regrillado)</li>
+    <li>Recorta a la ventana regional (100°E–70°O, 20°S–20°N)</li>
+    <li>Esta grilla (~2°) es la <strong>referencia espacial</strong> para todo el resto del pipeline</li>
+  </ul>
+</section>
+
+<!-- 26 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">04</span>Regrillado a la malla común</h1>
+  <p class="lead"><span class="mono">scripts/04_process_to_common_grid.sh</span></p>
+  <ol class="steps">
+    <li>Filtrar variables auxiliares (ver lámina siguiente)</li>
+    <li>Remapeo de cada chunk crudo a la grilla de ERSSTv5</li>
+    <li>Fusión temporal de los chunks ya regrillados</li>
+    <li>Recorte de años según el experimento</li>
+    <li>Homogeneización de calendario y unidades</li>
+  </ol>
+</section>
+
+<!-- 27 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">04</span>Pesos de regrilla, con verificación</h1>
+  <ul>
+    <li>Un solo cálculo de pesos por modelo (reutilizado en los 3 experimentos) — rápido</li>
+    <li><strong>Respaldo automático:</strong> si el regrillado falla con esos pesos compartidos, se recalculan pesos propios para ese periodo puntual</li>
+    <li>Esto permitió confirmar, con evidencia directa, que en algunos modelos la malla nativa <strong>sí cambia</strong> entre <span class="mono">historical</span> y los escenarios futuros</li>
+  </ul>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">04</span>Primer filtro: <span class="mono">selvar,tos</span></h1>
+  <ul>
+    <li>Algunos modelos publican variables auxiliares (ej. área de celda) <strong>sin declarar a qué malla pertenecen</strong></li>
+    <li>Eso hacía abortar el cálculo de regrillado por "coordenadas genéricas no soportadas"</li>
+    <li>Fix: quedarse solo con la variable <span class="mono">tos</span> (y sus coordenadas reales) como primer paso, antes de calcular pesos o regrillar</li>
+  </ul>
+</section>
+
+<!-- 29 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">05</span>Máscara océano-tierra</h1>
+  <p class="lead"><span class="mono">scripts/05_apply_ocean_mask.py</span></p>
+  <ul>
+    <li>La máscara se construye a partir del propio dato <strong>observado</strong> (ERSSTv5), no de cada modelo por separado</li>
+    <li>Un punto es océano si tiene al menos un mes válido en todo el registro observado</li>
+    <li>Se aplica por igual a todos los modelos — garantiza que todas las fuentes compartan <strong>exactamente</strong> la misma huella válida/faltante</li>
+  </ul>
+</section>
+
+<!-- 30 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">06</span>Control de calidad</h1>
+  <p class="lead"><span class="mono">scripts/06_qc_checks.py</span> — el filtro de aceptación del pipeline</p>
+  <ul>
+    <li>Rango físico de la SST (−2 a 39 °C)</li>
+    <li>Cobertura temporal esperada por experimento (con tolerancia)</li>
+    <li>Clasifica cada combinación modelo-experimento como <span class="badge-good">PASS</span> o <span class="badge-bad">FAIL</span></li>
+  </ul>
+</section>
+
+<!-- 31 -->
+<section class="slide">
+  <div class="kicker">Los pasos del pipeline</div>
+  <h1><span class="step-pill">07</span>Inventario final</h1>
+  <p class="lead"><span class="mono">scripts/07_build_inventory_report.py</span></p>
+  <ul>
+    <li>Combina el resultado del control de calidad con la resolución real de cada modelo</li>
+    <li>Produce la tabla resumen de los modelos <strong>finalmente seleccionados</strong> para el análisis de TOE</li>
+    <li>Es el producto de cierre de este entregable</li>
+  </ul>
+</section>
+
+<!-- 32 -->
+<section class="slide">
+  <div class="kicker">Novedades operativas</div>
+  <h1>Reporte de estado automático</h1>
+  <ul>
+    <li>Cada corrida de <span class="mono">run.sh</span> (sin importar el rango de pasos) escribe un reporte en <span class="mono">logs/</span></li>
+    <li>Incluye: modelos ya descargados, con descarga parcial, procesados, descargados-pero-sin-procesar, y pendientes vía fuentes alternativas</li>
+    <li>Permite saber el estado del pipeline sin tener que revisar carpeta por carpeta</li>
+  </ul>
+</section>
+
+<!-- 33 -->
+<section class="slide">
+  <div class="kicker">Novedades operativas</div>
+  <h1>Guardia contra descargas duplicadas</h1>
+  <ul>
+    <li><span class="mono">run.sh</span> detecta si ya hay una descarga corriendo en otro proceso</li>
+    <li>Si es así, no lanza una segunda — evita competencia por ancho de banda y archivos a medio escribir</li>
+    <li>Se puede correr <span class="mono">run.sh</span> con confianza mientras una descarga anterior sigue en curso</li>
+  </ul>
+</section>
+
+<!-- 34 -->
+<section class="slide">
+  <div class="kicker">Cómo usarlo</div>
+  <h1>Ejemplos de comandos</h1>
+  <pre># Corrida completa, de punta a punta
+./run.sh
+
+# Solo el procesamiento (datos ya descargados)
+./run.sh 04 07
+
+# Restringir el procesamiento a un modelo puntual
+MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
+
+# Limitar cuántos modelos nuevos se descargan
+./run.sh 02 02 5</pre>
+</section>
+
+<!-- 35 -->
+<section class="slide">
+  <div class="kicker">La historia de la descarga</div>
+  <h1>Línea de tiempo del trabajo</h1>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-dot">1</div><div class="tl-label">Arranque del pipeline</div></div>
+    <div class="tl-item"><div class="tl-dot">2</div><div class="tl-label">Primera corrida completa</div></div>
+    <div class="tl-item"><div class="tl-dot">3</div><div class="tl-label">Identificando huecos</div></div>
+    <div class="tl-item"><div class="tl-dot">4</div><div class="tl-label">Nodo caído + bugs de proceso</div></div>
+    <div class="tl-item"><div class="tl-dot">5</div><div class="tl-label">Automatización + hallazgos finales</div></div>
+  </div>
+  <p class="small" style="margin-top:2em">Cinco días de trabajo efectivo, en la semana de arranque del proyecto.</p>
+</section>
+
+<!-- 36 -->
+<section class="slide">
+  <div class="kicker">Día 1</div>
+  <h1>Arranque del pipeline</h1>
+  <ul>
+    <li>Desarrollo del orquestador <span class="mono">run.sh</span> y los scripts de cada paso</li>
+    <li>Primeras corridas de prueba, ajustando el orden de operaciones</li>
+    <li>Se corrige un bug temprano: sin fijar un único miembro de ensamble, ESGF entrega varias realizaciones que se fusionaban como si fueran una sola serie continua</li>
+  </ul>
+</section>
+
+<!-- 37 -->
+<section class="slide">
+  <div class="kicker">Día 2</div>
+  <h1>Primera corrida completa</h1>
+  <ul>
+    <li>Descarga vía ESGF (nodo principal): la gran mayoría de los modelos completos en el primer intento</li>
+    <li>Primer intento con Copernicus CDS — bloqueado inicialmente por una licencia sin aceptar; resuelto, y se logra el primer modelo completo por esa vía (15,6 GB)</li>
+  </ul>
+</section>
+
+<!-- 38 -->
+<section class="slide">
+  <div class="kicker">Día 3</div>
+  <h1>Identificando los huecos</h1>
+  <ul>
+    <li>Comparación fina entre el catálogo de archivos esperados y lo que realmente había en disco</li>
+    <li>Resultado: <strong>298 archivos faltantes</strong>, concentrados en 5 modelos de la familia EC-Earth3 y TaiESM1</li>
+    <li>Segundo lote de Copernicus CDS (14 modelos con disponibilidad verificada a mano): resultados mixtos, varios fallan por no estar replicados en ese servicio</li>
+  </ul>
+</section>
+
+<!-- 39 -->
+<section class="slide">
+  <div class="kicker">Día 4</div>
+  <h1>Un nodo completamente caído</h1>
+  <ul>
+    <li>Se descubre que un único nodo (compartido por la mayoría de los 298 archivos faltantes) no respondía — no un error puntual, sino <strong>timeout de conexión total</strong></li>
+    <li>Se consultan en vivo 6 nodos adicionales de la federación ESGF, agregando más de <strong>10 800 URLs de mirrors alternativos</strong> al catálogo</li>
+    <li>Resultado del reintento dirigido: <strong>286 de 289 archivos recuperados</strong></li>
+  </ul>
+</section>
+
+<!-- 40 -->
+<section class="slide">
+  <div class="kicker">Día 4</div>
+  <h1>Bugs de procesamiento, no de descarga</h1>
+  <div class="two-col">
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">Malla curvilínea sin coordenadas</h2>
+      <p>Un modelo publica una variable auxiliar (área de celda) sin declarar su malla — el regrillado abortaba al toparse con ella.</p>
+    </div>
+    <div class="card">
+      <h2 class="sub" style="margin-top:0">Malla que cambia entre experimentos</h2>
+      <p>Otro modelo cambia su malla nativa entre el histórico y los escenarios futuros — los pesos de regrilla calculados una sola vez ya no aplicaban.</p>
+    </div>
+  </div>
+  <p class="small" style="margin-top:1.2em">Ambos casos, ya corregidos (ver paso 04, láminas anteriores).</p>
+</section>
+
+<!-- 41 -->
+<section class="slide">
+  <div class="kicker">Día 5</div>
+  <h1>Automatización y un hallazgo inesperado</h1>
+  <ul>
+    <li>Se automatiza la cascada completa de descarga (02a → 02b → 02c) dentro de <span class="mono">run.sh</span></li>
+    <li>A partir de evidencia externa, se descubre que un modelo marcado como "incompleto" en realidad sí tenía sus 3 experimentos — bajo un <strong>miembro de ensamble distinto</strong> al que se había probado originalmente</li>
+    <li>Se corrige el catálogo para que siempre pueda mejorar un modelo incompleto en corridas futuras, sin perder lo ya resuelto</li>
+  </ul>
+</section>
+
+<!-- 42 -->
+<section class="slide">
+  <div class="kicker">Día 5</div>
+  <h1>Último hueco cerrado</h1>
+  <ul>
+    <li>Un modelo adicional presentaba el mismo patrón que el Día 4: su único mirror registrado (más un segundo mirror de respaldo, de la institución dueña del modelo) también estaba caído</li>
+    <li>Se localizan mirrors activos en otros 3 nodos de la federación y se completa la descarga</li>
+    <li>Con esto se cierra el ciclo de recuperación de datos de este entregable</li>
+  </ul>
+</section>
+
+<!-- 43 -->
+<section class="slide">
+  <div class="kicker">Resumen de la descarga</div>
+  <h1>Vía regular vs. mirror alternativo</h1>
+  <div class="grid3">
+    <div class="card"><div class="stat">39</div><div class="stat-label">modelos por la vía regular (primer mirror, sin intervención)</div></div>
+    <div class="card"><div class="stat">8</div><div class="stat-label">requirieron mirror alternativo dentro de ESGF</div></div>
+    <div class="card"><div class="stat">1</div><div class="stat-label">requirió un miembro de ensamble distinto</div></div>
+  </div>
+  <p class="small" style="margin-top:1.4em">Los 8 con mirror alternativo: familia EC-Earth3 (4), TaiESM1, CIESM y otros dos modelos puntuales.</p>
+</section>
+
+<!-- 44 -->
+<section class="slide">
+  <div class="kicker">Resumen de la descarga</div>
+  <h1>Caminos que no aportaron modelos nuevos</h1>
+  <ul>
+    <li><strong>Copernicus CDS:</strong> no espeja el catálogo completo de ESGF — la mayoría de los intentos fallan porque ese modelo/experimento simplemente no está replicado ahí (no es un error de nuestra solicitud)</li>
+    <li><strong>Nodos ESGF alternativos</strong> para los modelos "no encontrados": 0 de 44 resueltos — se verificó, modelo por modelo, que ninguno tiene los 3 experimentos publicados bajo ningún miembro (varios son de otros proyectos de intercomparación, o de alta resolución, o solo corrieron el histórico)</li>
+  </ul>
+</section>
+
+<!-- 45 -->
+<section class="slide">
+  <div class="kicker">Resultados</div>
+  <h1>Estado final del universo de modelos</h1>
+  <div class="grid3">
+    <div class="card"><div class="stat">102</div><div class="stat-label">modelos candidatos en total</div></div>
+    <div class="card"><div class="stat">48</div><div class="stat-label">completos (3/3 experimentos)</div></div>
+    <div class="card"><div class="stat" style="color:var(--good)">47</div><div class="stat-label">seleccionados tras control de calidad</div></div>
+  </div>
+</section>
+
+<!-- 46 -->
+<section class="slide">
+  <div class="center-col">
+    <div class="kicker" style="align-self:flex-start">Resultados</div>
+    <h1 style="align-self:flex-start">Control de calidad, por modelo</h1>
+    <img class="fig" src="../figures/sst_QD.png" alt="Control de calidad por modelo">
+    <figcaption>141 de 142 combinaciones modelo-experimento pasan el control de calidad.</figcaption>
+  </div>
+</section>
+
+<!-- 47 -->
+<section class="slide">
+  <div class="two-col">
+    <figure style="margin:0">
+      <img class="fig" src="../figures/sst_t0_ERSSTv5.png" alt="Mapa ERSSTv5">
+      <figcaption>Dato observado (ERSSTv5) — grilla de referencia</figcaption>
+    </figure>
+    <figure style="margin:0">
+      <img class="fig" src="../figures/sst_t0_ACCESS-CM2.png" alt="Mapa modelo ejemplo">
+      <figcaption>Un modelo CMIP6, ya regrillado a la misma malla</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 48 -->
+<section class="slide">
+  <div class="two-col">
+    <figure style="margin:0">
+      <img class="fig" src="../figures/sst_Nino3.4_boxplot.png" alt="Boxplot Nino 3.4">
+      <figcaption>Comparación de dispersión, periodo histórico — Niño 3.4</figcaption>
+    </figure>
+    <figure style="margin:0">
+      <img class="fig" src="../figures/sst_ACCESS-CM2_serie_Nino3.4.png" alt="Serie de caja">
+      <figcaption>Serie temporal de caja — histórico y ambos escenarios</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 49 -->
+<section class="slide">
+  <div class="kicker">Próximos pasos</div>
+  <h1>Hacia el Entregable 2</h1>
+  <ul>
+    <li>Cálculo propiamente dicho del <em>Time of Emergence</em> sobre el producto final (<span class="mono">data/processed/masked/</span>)</li>
+    <li>Revisión manual pendiente: un modelo con un artefacto de regrillado costero, único caso que no pasó el control de calidad</li>
+    <li>Ampliar cobertura donde sea posible: seguir monitoreando la disponibilidad en ESGF de los modelos aún no encontrados</li>
+  </ul>
+</section>
+
+<!-- 50 -->
+<section class="slide title-slide">
+  <h1>Gracias</h1>
+  <p class="lead">Entregable 1 — Pipeline de datos SST (CMIP6 + ERSSTv5)</p>
+  <div class="divider" style="width:30%"></div>
+  <p><strong>Jonathan Paredes</strong><br>Ingeniero Meteorólogo</p>
+  <p class="small">Subdirección de Modelamiento Numérico de la Atmósfera — SMN</p>
+</section>
+
+</div>
+
+<button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
+<button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
+<div class="footer">
+  <span>Entregable 1 — SST CMIP6 + ERSSTv5 — SMN</span>
+  <span id="counter">1 / 50</span>
+</div>
+
+<script>
+(function(){
+  var slides = document.querySelectorAll('.slide');
+  var idx = 0;
+  function show(i){
+    slides[idx].classList.remove('active');
+    idx = Math.max(0, Math.min(slides.length-1, i));
+    slides[idx].classList.add('active');
+    document.getElementById('counter').textContent = (idx+1)+' / '+slides.length;
+    document.getElementById('progress').style.width = ((idx+1)/slides.length*100)+'%';
+    history.replaceState(null,'','#s'+(idx+1));
+  }
+  document.getElementById('prevBtn').addEventListener('click', function(){show(idx-1);});
+  document.getElementById('nextBtn').addEventListener('click', function(){show(idx+1);});
+  window.addEventListener('keydown', function(e){
+    if(['ArrowRight','PageDown',' '].indexOf(e.key)>-1){ show(idx+1); e.preventDefault(); }
+    if(['ArrowLeft','PageUp'].indexOf(e.key)>-1){ show(idx-1); e.preventDefault(); }
+    if(e.key==='Home') show(0);
+    if(e.key==='End') show(slides.length-1);
+  });
+  document.getElementById('deck').addEventListener('click', function(e){
+    var rect = document.getElementById('deck').getBoundingClientRect();
+    if(e.clientX - rect.left > rect.width/2){ show(idx+1); } else { show(idx-1); }
+  });
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var root = document.documentElement;
+    var cur = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', cur==='dark' ? 'light' : 'dark');
+  });
+  var h = parseInt((location.hash||'').replace('#s',''));
+  show(isNaN(h) ? 0 : h-1);
+})();
+</script>
+</body>
+</html>

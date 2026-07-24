@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Consolida el catalogo de archivos a descargar (paso 01).
-
+url: https://esgf-metagrid.cloud.dkrz.de/search
 Lee config/models_seed_cmip6.csv (generado por 00b_build_model_list.py,
 que ya inspecciono TODOS los modelos CMIP6 y eligio, por modelo, la
 variante de grilla (grid_label) mas gruesa disponible que cubre los
