@@ -4,3 +4,4 @@ data/processed/masked/
 __pycache__/
 .ipynb_checkpoints/
 logs/*.log
+logs/run_report_*.txt

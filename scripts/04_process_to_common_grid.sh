@@ -51,6 +51,7 @@ ERSSTV5_RAW="data/raw/ersstv5/ersstv5_region.nc"
 OUT_DIR="data/interim/processed"
 TMPDIR="data/interim/.tmp_process"
 WEIGHTS_DIR="data/interim/.weights"
+CATALOG_CSV="data/interim/models_catalog_status.csv"
 mkdir -p "$OUT_DIR" "$TMPDIR" "$WEIGHTS_DIR"
 
 declare -A YEAR_START=( [historical]=1850 [ssp245]=2015 [ssp585]=2015 )
@@ -235,6 +236,26 @@ process_experiment () {
     rm -rf "${TMPDIR:?}"/*
 }
 
+# Modelos con 'complete=True' en el catalogo (los unicos que alguna vez
+# podrian quedar seleccionados en el inventario final, al tener los 3
+# experimentos). Se usa para no procesar por accion carpetas de
+# data/raw/cmip6/ que vienen de descargas parciales via fuentes
+# alternativas (Copernicus, nodos alt de ESGF) que nunca se completaron
+# -- esas a veces traen archivos con metadatos de malla incompletos
+# (ej. CESM2, CMCC-CM2-HR4: falta el atributo 'coordinates' en 'tos',
+# CDO aborta con 'Unsupported generic coordinates') y no tiene sentido
+# ni pueden completarse sin los 3 experimentos de todos modos.
+complete_models_csv () {
+    python3 -c "
+import csv
+with open('$CATALOG_CSV', newline='') as f:
+    for row in csv.DictReader(f):
+        if row.get('complete') == 'True':
+            print(row['model'])
+"
+}
+COMPLETE_MODELS=" $(complete_models_csv | tr '\n' ' ') "
+
 for model_dir in "$RAW_DIR"/*/; do
     [ -d "$model_dir" ] || continue
     model=$(basename "$model_dir")
@@ -243,11 +264,22 @@ for model_dir in "$RAW_DIR"/*/; do
     # por espacios para restringir el procesamiento a esos, sin tocar
     # los demas -- util para procesar los modelos ya descargados
     # mientras otro sigue en curso (02 puede tardar mucho en algunos
-    # modelos con muchos chunks, p.ej. AWI-CM-1-1-MR).
+    # modelos con muchos chunks, p.ej. AWI-CM-1-1-MR). Si no se define,
+    # se procesan por defecto todos los 'complete=True' del catalogo
+    # (ver COMPLETE_MODELS arriba) -- MODELS es una restriccion manual
+    # explicita y tiene prioridad sobre ese filtro automatico.
     if [ -n "${MODELS:-}" ]; then
         case " $MODELS " in
             *" $model "*) ;;
             *) continue ;;
+        esac
+    else
+        case "$COMPLETE_MODELS" in
+            *" $model "*) ;;
+            *)
+                echo "  $model: no esta 'complete=True' en el catalogo, se omite (descarga parcial, nunca seleccionable sin los 3 experimentos)" >&2
+                continue
+                ;;
         esac
     fi
 

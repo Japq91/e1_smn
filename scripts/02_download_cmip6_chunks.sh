@@ -71,8 +71,8 @@ download_experiment () {
         [ -z "$filename" ] && continue
         local outfile="$dest_dir/$filename"
 
-        if [ -f "$outfile" ]; then
-            continue   # idempotente: no re-descargar este chunk
+        if [ -s "$outfile" ]; then
+            continue   # idempotente: no re-descargar este chunk (-s: existe y no esta vacio)
         fi
 
         echo "  descargando $filename"
