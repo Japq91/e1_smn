@@ -20,62 +20,66 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
 .deck{position:relative;height:100vh;width:100vw;}
 .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
-  padding:5.5vh 7vw 8vh;overflow-y:auto;}
+  padding:5vh 7vw 8vh;overflow-y:auto;}
 .slide.active{display:flex;}
-.kicker{font-size:.82rem;text-transform:uppercase;letter-spacing:.09em;color:var(--accent2);font-weight:700;margin:0 0 .5em;}
-h1{font-size:clamp(1.5rem,3vw,2.5rem);color:var(--accent);margin:0 0 .5em;line-height:1.15;}
-h2.sub{font-size:clamp(1.05rem,1.8vw,1.4rem);color:var(--muted);font-weight:500;margin:-0.6em 0 1em;}
-.slide ul{font-size:clamp(.98rem,1.5vw,1.28rem);line-height:1.6;padding-left:1.15em;}
-.slide li{margin-bottom:.35em;}
-.slide p.lead{font-size:clamp(1.05rem,1.7vw,1.45rem);color:var(--muted);max-width:52em;}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;}
+.kicker{font-size:.8rem;text-transform:uppercase;letter-spacing:.09em;color:var(--accent2);font-weight:700;margin:0 0 .5em;}
+h1{font-size:clamp(1.4rem,2.8vw,2.35rem);color:var(--accent);margin:0 0 .5em;line-height:1.15;}
+h2.sub{font-size:clamp(1rem,1.7vw,1.35rem);color:var(--muted);font-weight:500;margin:-0.6em 0 1em;}
+.slide ul{font-size:clamp(.94rem,1.4vw,1.2rem);line-height:1.55;padding-left:1.1em;}
+.slide li{margin-bottom:.32em;}
+.slide p.lead{font-size:clamp(1rem,1.6vw,1.35rem);color:var(--muted);max-width:54em;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:2.4rem;align-items:start;}
 .center-col{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;height:100%;}
-img.fig{max-width:100%;max-height:56vh;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.12);}
-figcaption{color:var(--muted);font-size:.9rem;margin-top:.6em;text-align:center;}
+img.fig{max-width:100%;max-height:52vh;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.12);}
+img.fig-sm{max-width:100%;max-height:38vh;border:1px solid var(--border);border-radius:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.10);}
+figcaption{color:var(--muted);font-size:.85rem;margin-top:.5em;text-align:center;}
 code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code-bg);color:var(--code-fg);
-  padding:.12em .45em;border-radius:4px;font-size:.92em;}
-pre{background:var(--code-bg);color:var(--code-fg);padding:.9em 1.1em;border-radius:8px;overflow-x:auto;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(.82rem,1.3vw,1.05rem);line-height:1.5;}
-.step-pill{display:inline-block;background:var(--accent);color:#04222d;padding:.18em .75em;border-radius:999px;
-  font-weight:700;font-size:.82em;margin-right:.6em;letter-spacing:.02em;}
+  padding:.12em .45em;border-radius:4px;font-size:.9em;}
+pre{background:var(--code-bg);color:var(--code-fg);padding:.85em 1.05em;border-radius:8px;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(.78rem,1.2vw,1rem);line-height:1.5;}
+.step-pill{display:inline-block;background:var(--accent);color:#04222d;padding:.16em .7em;border-radius:999px;
+  font-weight:700;font-size:.8em;margin-right:.55em;letter-spacing:.02em;}
 .pill-manual{background:var(--panel2);color:var(--muted);border:1px dashed var(--border);}
 .pill-alt{background:var(--accent2);color:#2a1305;}
-table{border-collapse:collapse;width:100%;font-size:clamp(.82rem,1.25vw,1.05rem);margin-top:.6em;}
-th,td{border:1px solid var(--border);padding:.45em .75em;text-align:left;vertical-align:top;}
+table{border-collapse:collapse;width:100%;font-size:clamp(.78rem,1.15vw,1rem);margin-top:.55em;}
+th,td{border:1px solid var(--border);padding:.4em .7em;text-align:left;vertical-align:top;}
 th{background:var(--panel2);color:var(--accent);}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.1em 1.3em;}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;}
-.stat{font-size:clamp(2rem,4.5vw,3.4rem);color:var(--accent);font-weight:800;line-height:1;}
-.stat-label{color:var(--muted);font-size:.95rem;margin-top:.3em;}
-.flow{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:center;margin-top:1em;}
-.flow .box{background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:.55em .9em;
-  font-size:clamp(.72rem,1.15vw,.95rem);font-weight:600;text-align:center;min-width:6.2em;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1em 1.2em;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.stat{font-size:clamp(1.8rem,4vw,3.1rem);color:var(--accent);font-weight:800;line-height:1;}
+.stat-label{color:var(--muted);font-size:.9rem;margin-top:.3em;}
+.flow{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;justify-content:center;margin-top:.9em;}
+.flow .box{background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:.5em .85em;
+  font-size:clamp(.68rem,1.1vw,.9rem);font-weight:600;text-align:center;min-width:6em;}
 .flow .box.manual{border-style:dashed;border-color:var(--muted);color:var(--muted);font-weight:500;}
-.flow .arrow{color:var(--muted);font-size:1.3rem;}
-.timeline{display:flex;justify-content:space-between;margin-top:1.4em;position:relative;}
+.flow .arrow{color:var(--muted);font-size:1.25rem;}
+.timeline{display:flex;justify-content:space-between;margin-top:1.3em;position:relative;}
 .timeline::before{content:"";position:absolute;top:19px;left:2%;right:2%;height:3px;background:var(--border);}
 .tl-item{flex:1;text-align:center;position:relative;padding-top:0;}
-.tl-dot{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#04222d;font-weight:800;
-  display:flex;align-items:center;justify-content:center;margin:0 auto .5em;position:relative;z-index:1;font-size:.95rem;}
-.tl-label{font-size:.85rem;color:var(--muted);max-width:9em;margin:0 auto;}
+.tl-dot{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#04222d;font-weight:800;
+  display:flex;align-items:center;justify-content:center;margin:0 auto .5em;position:relative;z-index:1;font-size:.9rem;}
+.tl-label{font-size:.82rem;color:var(--muted);max-width:9em;margin:0 auto;}
 .footer{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
-  padding:.55em 1.4em;font-size:.78rem;color:var(--muted);border-top:1px solid var(--border);background:var(--bg);z-index:5;}
+  padding:.5em 1.3em;font-size:.76rem;color:var(--muted);border-top:1px solid var(--border);background:var(--bg);z-index:5;}
 .progress{position:fixed;top:0;left:0;height:4px;background:var(--accent);transition:width .25s;z-index:6;}
 .nav-btn{position:fixed;top:50%;transform:translateY(-50%);background:var(--panel);border:1px solid var(--border);
-  color:var(--fg);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.15rem;z-index:6;
+  color:var(--fg);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem;z-index:6;
   display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.15);}
 .nav-btn:hover{background:var(--panel2);}
-#prevBtn{left:14px;} #nextBtn{right:14px;}
+#prevBtn{left:12px;} #nextBtn{right:12px;}
 .badge-good{color:var(--good);font-weight:700;}
 .badge-bad{color:var(--bad);font-weight:700;}
 .title-slide{align-items:center;text-align:center;justify-content:center;}
-.title-slide h1{font-size:clamp(1.9rem,4.2vw,3.1rem);}
-.small{font-size:.85em;color:var(--muted);}
+.title-slide h1{font-size:clamp(1.8rem,4vw,2.9rem);}
+.small{font-size:.83em;color:var(--muted);}
 .divider{height:1px;background:var(--border);margin:1em 0;}
 .theme-toggle{position:fixed;top:10px;right:14px;z-index:7;background:var(--panel);border:1px solid var(--border);
   border-radius:6px;padding:.3em .6em;font-size:.8rem;cursor:pointer;color:var(--fg);}
-ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
+ol.steps{font-size:clamp(.92rem,1.4vw,1.1rem);line-height:1.65;}
+.check{color:var(--good);font-weight:800;margin-right:.4em;}
+.ref-card{border-left:4px solid var(--accent);padding:.3em 0 .3em 1em;margin-bottom:.7em;}
+.ref-card .ref-meta{color:var(--muted);font-size:.85em;}
 </style>
 </head>
 <body>
@@ -86,9 +90,9 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
 
 <!-- 1 -->
 <section class="slide title-slide">
-  <div class="kicker">Subdirección de Modelamiento Numérico de la Atmósfera — SMN</div>
+  <div class="kicker">Subdirección de Modelamiento Numérico de la Atmósfera — SMN — SENAMHI</div>
   <h1>Entregable 1<br><span style="color:var(--fg)">Pipeline de datos SST — CMIP6 + ERSSTv5</span></h1>
-  <h2 class="sub">Adquisición, homogeneización y control de calidad de datos para el cálculo del<br><em>Time of Emergence</em> en Niño 3.4 y Niño 1+2</h2>
+  <h2 class="sub">Revisión científica, definición conceptual y preparación de la base de datos<br>para evaluar la influencia del cambio climático sobre el ENSO</h2>
   <div class="divider" style="width:40%"></div>
   <p class="lead"><strong>Jonathan Paredes</strong> — Ingeniero Meteorólogo</p>
   <p class="small">24 de agosto de 2026</p>
@@ -100,14 +104,15 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
   <h1>Qué vamos a ver hoy</h1>
   <div class="two-col">
     <ul>
-      <li>Contexto y objetivo del Entregable 1</li>
-      <li>Arquitectura general del pipeline</li>
-      <li>Cómo instalar el entorno en una máquina nueva</li>
-      <li>Los pasos del pipeline, uno por uno</li>
+      <li>El proyecto completo y dónde encaja este entregable</li>
+      <li>Revisión científica y metodológica</li>
+      <li>Contexto conceptual: TOE, regiones, periodos, fuentes</li>
+      <li>Arquitectura del pipeline y cómo instalarlo</li>
     </ul>
     <ul>
+      <li>Cada paso de <span class="mono">run.sh</span>, explicado</li>
       <li>La historia de la descarga: qué se encontró en el camino</li>
-      <li>Resultados y gráficas de control de calidad</li>
+      <li>Resultados y gráficas</li>
       <li>Próximos pasos</li>
     </ul>
   </div>
@@ -115,92 +120,201 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
 
 <!-- 3 -->
 <section class="slide">
-  <div class="kicker">Contexto</div>
+  <div class="kicker">Marco del proyecto</div>
+  <h1>Un servicio de 5 entregables</h1>
+  <p class="lead">"Servicio de locación para evaluar la influencia del cambio climático en los eventos de El Niño y sus impactos en el Perú."</p>
+  <div class="flow">
+    <div class="box" style="border-color:var(--accent);background:var(--accent);color:#04222d">E1 · Base de datos</div><div class="arrow">→</div>
+    <div class="box manual">E2 · Evaluación histórica</div><div class="arrow">→</div>
+    <div class="box manual">E3 · Proyecciones e incertidumbre</div>
+  </div>
+  <div class="flow">
+    <div class="box manual">E4 · Señal-ruido y TOE</div><div class="arrow">→</div>
+    <div class="box manual">E5 · Evaluación integrada</div>
+  </div>
+  <p class="small" style="margin-top:1.2em">Pregunta principal del servicio: ¿en qué momento la señal de cambio climático en la TSM de Niño 3.4 / Niño 1+2 supera la variabilidad interna del sistema climático?</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Marco del proyecto</div>
+  <h1>Objetivo y actividades del Entregable 1</h1>
+  <p class="lead">Establecer el marco conceptual, la metodología, los indicadores y la base de datos necesaria para evaluar la influencia del cambio climático sobre el ENSO.</p>
+  <div class="two-col">
+    <ul>
+      <li><span class="check">✓</span>Revisión de antecedentes ENSO / Niño costero</li>
+      <li><span class="check">✓</span>Metodologías de partición de incertidumbre y TOE</li>
+      <li><span class="check">✓</span>Consolidación del conjunto de modelos CMIP6</li>
+    </ul>
+    <ul>
+      <li><span class="check">✓</span>Recopilación de observaciones ERSSTv5</li>
+      <li><span class="check">✓</span>Definición de dominios y periodos</li>
+      <li><span class="check">✓</span>Homogeneización: unidades, calendarios, resolución, máscara</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Antecedentes: ENSO y Niño costero</h1>
+  <div class="ref-card">
+    <strong>Takahashi &amp; Martínez (2019)</strong> — <em>The very strong coastal El Niño in 1925 in the far-eastern Pacific</em>
+    <div class="ref-meta">Climate Dynamics · IGP, Perú</div>
+  </div>
+  <ul>
+    <li>El Niño costero: fenómeno regional distinto del ENSO canónico, con impactos directos en el litoral norte del Perú</li>
+    <li>La dinámica de la ITCZ y la asimetría norte-sur de TSM en el Pacífico oriental modulan su intensidad</li>
+    <li>Referencia clave para justificar por qué Niño 1+2 se analiza como región propia, separada de Niño 3.4</li>
+  </ul>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Hawkins &amp; Sutton — partición de incertidumbres y TOE</h1>
+  <div class="ref-card">
+    <strong>Hawkins &amp; Sutton (2011)</strong> — <em>The potential to narrow uncertainty in regional climate predictions</em>
+    <div class="ref-meta">Climate Dynamics</div>
+  </div>
+  <div class="ref-card">
+    <strong>Hawkins &amp; Sutton (2012)</strong> — <em>Time of emergence of climate signals</em>
+    <div class="ref-meta">Geophysical Research Letters</div>
+  </div>
+  <ul>
+    <li>Separan la incertidumbre total en tres fuentes: <strong>variabilidad interna</strong>, <strong>incertidumbre del modelo</strong> e <strong>incertidumbre del escenario</strong></li>
+    <li>Definen el TOE como el momento en que la señal supera el ruido de variabilidad natural</li>
+    <li>Metodología base que este servicio adopta y sistematiza para Niño 3.4 / Niño 1+2 (Entregables 3 y 4)</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Szabó &amp; Szépszó — aplicación regional</h1>
+  <div class="ref-card">
+    <strong>Szabó &amp; Szépszó (2014)</strong> — <em>Quantifying Sources of Uncertainty in Temperature and Precipitation Projections over Different Parts of Europe</em>
+    <div class="ref-meta">Capítulo de libro</div>
+  </div>
+  <ul>
+    <li>Aplica la partición de incertidumbre de Hawkins &amp; Sutton a temperatura <strong>y</strong> precipitación, con modelos CMIP3, sobre distintas regiones de Europa</li>
+    <li>Ejemplo directo de cómo adaptar la metodología a una región específica — el mismo ejercicio que este servicio hace para el Pacífico tropical</li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Bruno Ramírez — selección de modelos para Sudamérica</h1>
+  <div class="ref-card">
+    <strong>Bruno Ramírez (2023)</strong> — <em>Análisis de fuentes de incertidumbre en los modelos climáticos CMIP6 para las proyecciones climáticas de temperatura y precipitación en Sudamérica</em>
+    <div class="ref-meta">Trabajo de suficiencia profesional, Ing. Meteorología — Universidad Nacional Agraria La Molina</div>
+  </div>
+  <ul>
+    <li>Evalúa el desempeño de modelos CMIP6 específicamente para Sudamérica</li>
+    <li>Insumo directo para <strong>consolidar el conjunto de modelos</strong> de este entregable: se prioriza el desempeño regional ya documentado, no solo la disponibilidad de datos</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Álvarez Sánchez — TSM del Pacífico tropical</h1>
+  <div class="ref-card">
+    <strong>Álvarez Sánchez (2024)</strong> — <em>Proyecciones climáticas de temperatura superficial del mar y nivel del mar en las costas de Sudamérica y océano Pacífico tropical usando modelos del CMIP5</em>
+    <div class="ref-meta">Trabajo de suficiencia profesional, Ing. Meteorología — Universidad Nacional Agraria La Molina</div>
+  </div>
+  <ul>
+    <li>Antecedente directo en TSM del Pacífico tropical y costas de Sudamérica, con la generación anterior de modelos (CMIP5)</li>
+    <li>Este servicio extiende ese enfoque a CMIP6 y a la metodología de TOE</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">Revisión científica</div>
+  <h1>Otras metodologías del TOE</h1>
+  <ul>
+    <li><strong>Giorgi &amp; Bi (2009)</strong> — TOE de "hot-spots" de cambio en precipitación forzados por gases de efecto invernadero, con el ensamble CMIP3</li>
+    <li><strong>Barrow &amp; Sauchyn (2019)</strong> — incertidumbre en proyecciones climáticas y TOE en las praderas canadienses</li>
+    <li><strong>University of Washington (2014)</strong> — TOE de señales de cambio climático en la cuenca de Puget Sound</li>
+  </ul>
+  <p class="lead" style="margin-top:1em">Todas coinciden en el marco de Hawkins &amp; Sutton, aplicado a distintas regiones y variables — confirma que es la metodología estándar a adoptar en los Entregables 3 y 4.</p>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">Contexto conceptual</div>
   <h1>¿Qué es el <em>Time of Emergence</em> (TOE)?</h1>
   <p class="lead">El momento en el tiempo en que la señal climática forzada (el cambio de tendencia) se vuelve distinguible del ruido de la variabilidad natural del sistema.</p>
   <ul>
     <li>No basta con mirar la tendencia: hay que compararla contra cuánto varía el clima "por sí solo"</li>
     <li>Para eso se necesita un conjunto amplio de modelos climáticos (para estimar el ruido) y un dato observado de referencia</li>
-    <li>Este entregable construye la <strong>base de datos</strong> sobre la que se calculará el TOE — no el cálculo en sí</li>
+    <li>Este entregable construye la <strong>base de datos</strong> sobre la que se calculará el TOE en entregables posteriores</li>
   </ul>
 </section>
 
-<!-- 4 -->
+<!-- 12 -->
 <section class="slide">
-  <div class="kicker">Objetivo</div>
-  <h1>Objetivo del Entregable 1</h1>
-  <p class="lead">Dejar listo un producto de datos homogéneo, comparable y verificado, a partir de fuentes crudas heterogéneas.</p>
-  <ul>
-    <li>Adquirir <strong>temperatura superficial del mar (SST)</strong> de múltiples modelos CMIP6 y del dato observado ERSSTv5</li>
-    <li>Llevar todo a la <strong>misma grilla espacial</strong> y las mismas convenciones (calendario, unidades)</li>
-    <li>Aplicar una <strong>máscara océano-tierra</strong> común a todas las fuentes</li>
-    <li>Pasar un <strong>control de calidad</strong> automático antes de aceptar cualquier dato</li>
-  </ul>
-</section>
-
-<!-- 5 -->
-<section class="slide">
-  <div class="kicker">Regiones de análisis</div>
-  <h1>Dos cajas de referencia en el Pacífico</h1>
   <div class="two-col">
-    <div class="card">
-      <h2 class="sub" style="margin-top:0">Niño 3.4</h2>
-      <ul>
-        <li>170°O – 120°O, 5°S – 5°N</li>
-        <li>Formato 0-360 usado en el pipeline: lon 190–240</li>
-        <li>Referencia clásica de variabilidad ENSO</li>
-      </ul>
+    <div>
+      <div class="kicker">Contexto conceptual</div>
+      <h1>Regiones de análisis</h1>
+      <div class="card" style="margin-bottom:.8em">
+        <strong>Niño 3.4</strong> — 5°N–5°S, 170°O–120°O<br>
+        <span class="small">Formato 0-360 del pipeline: lon 190–240</span>
+      </div>
+      <div class="card">
+        <strong>Niño 1+2</strong> — 0°–10°S, 90°O–80°O<br>
+        <span class="small">Formato 0-360: lon 270–280 — costa oeste de Sudamérica</span>
+      </div>
     </div>
-    <div class="card">
-      <h2 class="sub" style="margin-top:0">Niño 1+2</h2>
-      <ul>
-        <li>90°O – 80°O, 10°S – 0°</li>
-        <li>Formato 0-360: lon 270–280</li>
-        <li>Costa oeste de Sudamérica — relevancia directa para el Perú</li>
-      </ul>
-    </div>
+    <figure style="margin:0">
+      <img class="fig" src="region_nino.png" alt="Regiones Niño">
+      <figcaption>Cajas Niño 1+2, Niño 3, Niño 3.4 y Niño 4 sobre el Pacífico tropical</figcaption>
+    </figure>
   </div>
-  <p class="small" style="margin-top:1.2em">Todas las longitudes del proyecto usan formato 0-360, por consistencia entre descarga, regrillado y cálculo de cajas.</p>
 </section>
 
-<!-- 6 -->
+<!-- 13 -->
 <section class="slide">
-  <div class="kicker">Periodos de referencia</div>
-  <h1>Ventanas temporales del análisis</h1>
+  <div class="kicker">Contexto conceptual</div>
+  <h1>Periodos de referencia</h1>
   <table>
     <tr><th>Periodo</th><th>Rango</th><th>Uso</th></tr>
-    <tr><td>Histórico / validación</td><td>1981 – 2014</td><td>Línea base observada y de referencia entre fuentes</td></tr>
+    <tr><td>Referencia histórica / validación</td><td>1981 – 2014</td><td>Línea base observada y de referencia entre fuentes</td></tr>
     <tr><td>Proyección P1</td><td>2036 – 2065</td><td>Horizonte de mediano plazo</td></tr>
     <tr><td>Proyección P2</td><td>2071 – 2100</td><td>Horizonte de largo plazo</td></tr>
   </table>
-  <p class="lead" style="margin-top:1.2em">Escenarios de emisión considerados: <span class="mono">ssp245</span> y <span class="mono">ssp585</span>. Rango completo de descarga: 1850–2100 (incluye todo el histórico disponible).</p>
+  <p class="lead" style="margin-top:1.1em">Escenarios de emisión: <span class="mono">ssp245</span> y <span class="mono">ssp585</span>. Rango completo de descarga: 1850–2100 (todo el histórico disponible, no solo la ventana de referencia).</p>
 </section>
 
-<!-- 7 -->
+<!-- 14 -->
 <section class="slide">
-  <div class="kicker">Fuentes de datos</div>
-  <h1>Dos grandes fuentes de SST</h1>
   <div class="two-col">
-    <div class="card">
-      <h2 class="sub" style="margin-top:0">CMIP6 (modelos)</h2>
-      <ul>
-        <li>Decenas de modelos climáticos globales</li>
-        <li>Variable <span class="mono">tos</span> (SST), tabla <span class="mono">Omon</span> (mensual)</li>
-        <li>Obtenidos vía la federación <strong>ESGF</strong>, y como respaldo <strong>Copernicus CDS</strong></li>
-      </ul>
+    <div>
+      <div class="kicker">Contexto conceptual</div>
+      <h1>Fuentes de datos</h1>
+      <div class="card" style="margin-bottom:.8em">
+        <strong>CMIP6 (modelos)</strong>
+        <ul style="margin:.4em 0 0">
+          <li>Decenas de modelos climáticos, aporte de instituciones de todo el mundo</li>
+          <li>Variable <span class="mono">tos</span> (SST), tabla <span class="mono">Omon</span></li>
+          <li>Vía ESGF, y como respaldo Copernicus CDS</li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>ERSSTv5 (observado)</strong> — NOAA PSL, ~2° de resolución, define la grilla y máscara objetivo
+      </div>
     </div>
-    <div class="card">
-      <h2 class="sub" style="margin-top:0">ERSSTv5 (observado)</h2>
-      <ul>
-        <li>Dato de referencia de NOAA PSL</li>
-        <li>Resolución ~2° — se convierte en la grilla objetivo de todo el pipeline</li>
-        <li>Define también la máscara océano-tierra final</li>
-      </ul>
-    </div>
+    <figure style="margin:0">
+      <img class="fig" src="cmip6_contribution.png" alt="Contribución internacional a CMIP6">
+      <figcaption>Instituciones y países que contribuyen modelos al ensamble CMIP6</figcaption>
+    </figure>
   </div>
 </section>
 
-<!-- 8 -->
+<!-- 15 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Un solo orquestador: <span class="mono">run.sh</span></h1>
@@ -212,7 +326,7 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
   </ul>
 </section>
 
-<!-- 9 -->
+<!-- 16 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Flujo del pipeline, paso a paso</h1>
@@ -235,7 +349,7 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
   <p class="small" style="margin-top:1em">Cada paso de este diagrama se explica en detalle más adelante.</p>
 </section>
 
-<!-- 10 -->
+<!-- 17 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Estructura de carpetas del proyecto</h1>
@@ -243,15 +357,16 @@ ol.steps{font-size:clamp(.95rem,1.5vw,1.2rem);line-height:1.7;}
 ├── run.sh                 # orquestador único
 ├── environment.yml        # entorno reproducible (paso 0)
 ├── scripts/                # un script por paso del pipeline
-├── config/                 # semillas, dominios, periodos (fuera del repo de datos)
+├── config/                  # semillas, dominios, periodos (dentro del repo)
 ├── data/                   # raw / interim / processed (ver próxima lámina)
 ├── logs/                   # logs por paso + reportes de estado
 ├── figures/                 # gráficos exploratorios (bajo demanda)
-├── informe/                 # entregables: este PDF/HTML, reportes .md
+├── informe/                 # entregables: esta presentación, reportes .md
 └── graficos_exploratorios.ipynb</pre>
+  <p class="small">Todo el proyecto vive en un único repositorio autocontenido — un <span class="mono">git clone</span> trae también <span class="mono">config/</span>.</p>
 </section>
 
-<!-- 11 -->
+<!-- 18 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Estructura de <span class="mono">data/</span></h1>
@@ -266,7 +381,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   <p class="small">Todo lo pesado (<span class="mono">data/raw</span>, <span class="mono">data/interim</span>, <span class="mono">data/processed/masked</span>) queda fuera del repositorio de código — solo se versionan scripts, configuración y reportes.</p>
 </section>
 
-<!-- 12 -->
+<!-- 19 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Principio de idempotencia</h1>
@@ -278,7 +393,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 13 -->
+<!-- 20 -->
 <section class="slide">
   <div class="kicker">Arquitectura</div>
   <h1>Convenciones clave del proyecto</h1>
@@ -289,7 +404,18 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 14 -->
+<!-- 21 -->
+<section class="slide">
+  <div class="kicker">Arquitectura</div>
+  <h1>¿Cómo se seleccionaron los modelos?</h1>
+  <ul>
+    <li><strong>Paso 00b</strong>: revisión de todo el vocabulario CMIP6, filtrando por disponibilidad de los 3 experimentos</li>
+    <li><strong>Paso 00c</strong>: se contrasta contra los modelos citados en la bibliografía del proyecto (incluida la tesis de Bruno Ramírez, con desempeño ya evaluado para Sudamérica)</li>
+    <li>Resultado: un universo de <strong>102 modelos candidatos</strong>, más amplio que cualquiera de las dos fuentes por separado</li>
+  </ul>
+</section>
+
+<!-- 22 -->
 <section class="slide">
   <div class="kicker">Paso 0 — antes de todo</div>
   <h1>El entorno reproducible: <span class="mono">environment.yml</span></h1>
@@ -301,12 +427,12 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 15 -->
+<!-- 23 -->
 <section class="slide">
   <div class="kicker">Paso 0 — antes de todo</div>
   <h1>Instalación en una máquina nueva</h1>
   <ol class="steps">
-    <li><span class="mono">git clone</span> del repositorio</li>
+    <li><span class="mono">git clone</span> del repositorio (incluye <span class="mono">config/</span>)</li>
     <li><span class="mono">conda env create -f environment.yml</span></li>
     <li><span class="mono">conda activate e1_smn</span></li>
     <li><em>(opcional)</em> configurar credenciales de Copernicus CDS — ver próxima lámina</li>
@@ -315,7 +441,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   <p class="small">Cinco pasos, sin instalar nada manualmente aparte del entorno conda.</p>
 </section>
 
-<!-- 16 -->
+<!-- 24 -->
 <section class="slide">
   <div class="kicker">Paso 0 — antes de todo</div>
   <h1>Credenciales opcionales: Copernicus CDS</h1>
@@ -326,7 +452,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 17 -->
+<!-- 25 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">00</span>Verificación de entorno</h1>
@@ -338,19 +464,19 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 18 -->
+<!-- 26 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">00b</span>Lista de modelos candidatos</h1>
   <p class="lead"><span class="mono">scripts/00b_build_model_list.py</span></p>
   <ul>
-    <li>Revisa el vocabulario completo de CMIP6</li>
+    <li>Revisa el vocabulario CMIP6 completo</li>
     <li>Para cada modelo, elige la variante de grilla más gruesa que cubre <span class="mono">historical</span> + <span class="mono">ssp245</span> + <span class="mono">ssp585</span></li>
     <li>Escribe <span class="mono">config/models_seed_cmip6.csv</span> — la semilla de partida (unos 46 modelos)</li>
   </ul>
 </section>
 
-<!-- 19 -->
+<!-- 27 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill pill-manual">00c</span>Verificación contra la literatura</h1>
@@ -362,7 +488,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 20 -->
+<!-- 28 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">01</span>Catálogo ESGF</h1>
@@ -374,7 +500,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 21 -->
+<!-- 29 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">02</span>Descarga CMIP6 — cascada automática</h1>
@@ -387,7 +513,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   <p class="lead" style="margin-top:1.2em">Cada fuente se intenta <strong>solo</strong> para lo que la anterior no resolvió. Ya no son pasos manuales.</p>
 </section>
 
-<!-- 22 -->
+<!-- 30 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">02a</span>ESGF, nodo principal</h1>
@@ -400,7 +526,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 23 -->
+<!-- 31 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">02b</span>ESGF, nodos alternativos</h1>
@@ -412,7 +538,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 24 -->
+<!-- 32 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">02c</span>Copernicus CDS — último recurso</h1>
@@ -424,7 +550,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 25 -->
+<!-- 33 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">03</span>Descarga de ERSSTv5</h1>
@@ -437,7 +563,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 26 -->
+<!-- 34 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">04</span>Regrillado a la malla común</h1>
@@ -451,7 +577,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ol>
 </section>
 
-<!-- 27 -->
+<!-- 35 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">04</span>Pesos de regrilla, con verificación</h1>
@@ -462,7 +588,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 28 -->
+<!-- 36 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">04</span>Primer filtro: <span class="mono">selvar,tos</span></h1>
@@ -473,7 +599,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 29 -->
+<!-- 37 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">05</span>Máscara océano-tierra</h1>
@@ -485,7 +611,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 30 -->
+<!-- 38 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">06</span>Control de calidad</h1>
@@ -497,7 +623,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 31 -->
+<!-- 39 -->
 <section class="slide">
   <div class="kicker">Los pasos del pipeline</div>
   <h1><span class="step-pill">07</span>Inventario final</h1>
@@ -509,7 +635,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 32 -->
+<!-- 40 -->
 <section class="slide">
   <div class="kicker">Novedades operativas</div>
   <h1>Reporte de estado automático</h1>
@@ -520,7 +646,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 33 -->
+<!-- 41 -->
 <section class="slide">
   <div class="kicker">Novedades operativas</div>
   <h1>Guardia contra descargas duplicadas</h1>
@@ -531,7 +657,7 @@ data/processed/models_inventory_final.csv          # inventario final</pre>
   </ul>
 </section>
 
-<!-- 34 -->
+<!-- 42 -->
 <section class="slide">
   <div class="kicker">Cómo usarlo</div>
   <h1>Ejemplos de comandos</h1>
@@ -548,7 +674,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
 ./run.sh 02 02 5</pre>
 </section>
 
-<!-- 35 -->
+<!-- 43 -->
 <section class="slide">
   <div class="kicker">La historia de la descarga</div>
   <h1>Línea de tiempo del trabajo</h1>
@@ -557,12 +683,12 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
     <div class="tl-item"><div class="tl-dot">2</div><div class="tl-label">Primera corrida completa</div></div>
     <div class="tl-item"><div class="tl-dot">3</div><div class="tl-label">Identificando huecos</div></div>
     <div class="tl-item"><div class="tl-dot">4</div><div class="tl-label">Nodo caído + bugs de proceso</div></div>
-    <div class="tl-item"><div class="tl-dot">5</div><div class="tl-label">Automatización + hallazgos finales</div></div>
+    <div class="tl-item"><div class="tl-dot">5</div><div class="tl-label">Automatización y cierre</div></div>
   </div>
   <p class="small" style="margin-top:2em">Cinco días de trabajo efectivo, en la semana de arranque del proyecto.</p>
 </section>
 
-<!-- 36 -->
+<!-- 44 -->
 <section class="slide">
   <div class="kicker">Día 1</div>
   <h1>Arranque del pipeline</h1>
@@ -573,17 +699,17 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </ul>
 </section>
 
-<!-- 37 -->
+<!-- 45 -->
 <section class="slide">
   <div class="kicker">Día 2</div>
   <h1>Primera corrida completa</h1>
   <ul>
     <li>Descarga vía ESGF (nodo principal): la gran mayoría de los modelos completos en el primer intento</li>
-    <li>Primer intento con Copernicus CDS — bloqueado inicialmente por una licencia sin aceptar; resuelto, y se logra el primer modelo completo por esa vía (15,6 GB)</li>
+    <li>Primer intento con Copernicus CDS — bloqueado inicialmente por una licencia sin aceptar; resuelto, y se logra el primer modelo completo por esa vía</li>
   </ul>
 </section>
 
-<!-- 38 -->
+<!-- 46 -->
 <section class="slide">
   <div class="kicker">Día 3</div>
   <h1>Identificando los huecos</h1>
@@ -594,7 +720,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </ul>
 </section>
 
-<!-- 39 -->
+<!-- 47 -->
 <section class="slide">
   <div class="kicker">Día 4</div>
   <h1>Un nodo completamente caído</h1>
@@ -605,7 +731,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </ul>
 </section>
 
-<!-- 40 -->
+<!-- 48 -->
 <section class="slide">
   <div class="kicker">Día 4</div>
   <h1>Bugs de procesamiento, no de descarga</h1>
@@ -622,29 +748,18 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   <p class="small" style="margin-top:1.2em">Ambos casos, ya corregidos (ver paso 04, láminas anteriores).</p>
 </section>
 
-<!-- 41 -->
+<!-- 49 -->
 <section class="slide">
   <div class="kicker">Día 5</div>
-  <h1>Automatización y un hallazgo inesperado</h1>
+  <h1>Automatización y cierre</h1>
   <ul>
-    <li>Se automatiza la cascada completa de descarga (02a → 02b → 02c) dentro de <span class="mono">run.sh</span></li>
-    <li>A partir de evidencia externa, se descubre que un modelo marcado como "incompleto" en realidad sí tenía sus 3 experimentos — bajo un <strong>miembro de ensamble distinto</strong> al que se había probado originalmente</li>
-    <li>Se corrige el catálogo para que siempre pueda mejorar un modelo incompleto en corridas futuras, sin perder lo ya resuelto</li>
+    <li>Se automatiza la cascada completa de descarga (02a → 02b → 02c) dentro de <span class="mono">run.sh</span>, y se agregan el reporte de estado y la guardia contra descargas duplicadas</li>
+    <li>A partir de evidencia adicional, se revisan y corrigen dos modelos puntuales que aún no estaban completos — el catálogo se ajusta para poder mejorar automáticamente cualquier modelo incompleto en corridas futuras, sin perder nunca lo ya resuelto</li>
+    <li>Con esto se cierra el ciclo de adquisición de datos de este entregable</li>
   </ul>
 </section>
 
-<!-- 42 -->
-<section class="slide">
-  <div class="kicker">Día 5</div>
-  <h1>Último hueco cerrado</h1>
-  <ul>
-    <li>Un modelo adicional presentaba el mismo patrón que el Día 4: su único mirror registrado (más un segundo mirror de respaldo, de la institución dueña del modelo) también estaba caído</li>
-    <li>Se localizan mirrors activos en otros 3 nodos de la federación y se completa la descarga</li>
-    <li>Con esto se cierra el ciclo de recuperación de datos de este entregable</li>
-  </ul>
-</section>
-
-<!-- 43 -->
+<!-- 50 -->
 <section class="slide">
   <div class="kicker">Resumen de la descarga</div>
   <h1>Vía regular vs. mirror alternativo</h1>
@@ -656,7 +771,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   <p class="small" style="margin-top:1.4em">Los 8 con mirror alternativo: familia EC-Earth3 (4), TaiESM1, CIESM y otros dos modelos puntuales.</p>
 </section>
 
-<!-- 44 -->
+<!-- 51 -->
 <section class="slide">
   <div class="kicker">Resumen de la descarga</div>
   <h1>Caminos que no aportaron modelos nuevos</h1>
@@ -666,7 +781,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </ul>
 </section>
 
-<!-- 45 -->
+<!-- 52 -->
 <section class="slide">
   <div class="kicker">Resultados</div>
   <h1>Estado final del universo de modelos</h1>
@@ -677,7 +792,7 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </div>
 </section>
 
-<!-- 46 -->
+<!-- 53 -->
 <section class="slide">
   <div class="center-col">
     <div class="kicker" style="align-self:flex-start">Resultados</div>
@@ -687,52 +802,67 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
   </div>
 </section>
 
-<!-- 47 -->
+<!-- 54 -->
 <section class="slide">
-  <div class="two-col">
+  <div class="kicker">Resultados</div>
+  <h1>El dato ya homogeneizado: ERSSTv5 vs. modelos</h1>
+  <div class="grid3">
     <figure style="margin:0">
-      <img class="fig" src="../figures/sst_t0_ERSSTv5.png" alt="Mapa ERSSTv5">
-      <figcaption>Dato observado (ERSSTv5) — grilla de referencia</figcaption>
+      <img class="fig-sm" src="../figures/sst_t0_ERSSTv5.png" alt="Mapa ERSSTv5">
+      <figcaption>Observado (ERSSTv5)</figcaption>
     </figure>
     <figure style="margin:0">
-      <img class="fig" src="../figures/sst_t0_ACCESS-CM2.png" alt="Mapa modelo ejemplo">
-      <figcaption>Un modelo CMIP6, ya regrillado a la misma malla</figcaption>
+      <img class="fig-sm" src="../figures/sst_t0_ACCESS-CM2.png" alt="Mapa ACCESS-CM2">
+      <figcaption>Modelo 1: ACCESS-CM2</figcaption>
     </figure>
+    <figure style="margin:0">
+      <img class="fig-sm" src="../figures/sst_t0_GFDL-CM4.png" alt="Mapa GFDL-CM4">
+      <figcaption>Modelo 2: GFDL-CM4</figcaption>
+    </figure>
+  </div>
+  <p class="lead" style="margin-top:1.2em">Mismo periodo histórico, misma grilla, misma máscara — ya comparables punto a punto.</p>
+</section>
+
+<!-- 55 -->
+<section class="slide">
+  <div class="center-col">
+    <div class="kicker" style="align-self:flex-start">Resultados</div>
+    <h1 style="align-self:flex-start">Vista previa: primera comparación exploratoria</h1>
+    <img class="fig" src="../figures/sst_Nino3.4_boxplot.png" alt="Boxplot Nino 3.4, comparacion historica">
+    <figcaption>Dispersión (σ) y mediana (p50) de ERSSTv5 vs. tres modelos, mismo periodo histórico común — Niño 3.4.<br>Un anticipo de la evaluación de desempeño formal del Entregable 2, ya posible gracias a que el dato quedó homogeneizado.</figcaption>
   </div>
 </section>
 
-<!-- 48 -->
+<!-- 56 -->
 <section class="slide">
-  <div class="two-col">
-    <figure style="margin:0">
-      <img class="fig" src="../figures/sst_Nino3.4_boxplot.png" alt="Boxplot Nino 3.4">
-      <figcaption>Comparación de dispersión, periodo histórico — Niño 3.4</figcaption>
-    </figure>
-    <figure style="margin:0">
-      <img class="fig" src="../figures/sst_ACCESS-CM2_serie_Nino3.4.png" alt="Serie de caja">
-      <figcaption>Serie temporal de caja — histórico y ambos escenarios</figcaption>
-    </figure>
-  </div>
+  <div class="kicker">Resultados</div>
+  <h1>Un caso pendiente</h1>
+  <ul>
+    <li>Un modelo (de los 48 completos) no pasa el control de calidad: un artefacto de regrillado en la línea de costa, en un punto que el observado considera océano</li>
+    <li>Queda identificado y documentado para revisión manual antes del Entregable 2</li>
+    <li>El resto del inventario (47 modelos) queda validado y listo para usarse</li>
+  </ul>
 </section>
 
-<!-- 49 -->
+<!-- 57 -->
 <section class="slide">
   <div class="kicker">Próximos pasos</div>
   <h1>Hacia el Entregable 2</h1>
   <ul>
-    <li>Cálculo propiamente dicho del <em>Time of Emergence</em> sobre el producto final (<span class="mono">data/processed/masked/</span>)</li>
-    <li>Revisión manual pendiente: un modelo con un artefacto de regrillado costero, único caso que no pasó el control de calidad</li>
-    <li>Ampliar cobertura donde sea posible: seguir monitoreando la disponibilidad en ESGF de los modelos aún no encontrados</li>
+    <li>Evaluación histórica del estado medio: climatología, mapas de sesgo, RMSE y diagrama de Taylor respecto a ERSSTv5</li>
+    <li>Evaluación de la variabilidad del ENSO: anomalías, índices (C, E, ONI, RONI, ICEN), comparación de distribuciones</li>
+    <li>Evaluación de eventos extremos: identificación de eventos El Niño moderados y extremos, por percentiles</li>
+    <li>Revisión manual pendiente: el modelo con artefacto de regrillado costero (lámina anterior)</li>
   </ul>
 </section>
 
-<!-- 50 -->
+<!-- 58 -->
 <section class="slide title-slide">
   <h1>Gracias</h1>
   <p class="lead">Entregable 1 — Pipeline de datos SST (CMIP6 + ERSSTv5)</p>
   <div class="divider" style="width:30%"></div>
   <p><strong>Jonathan Paredes</strong><br>Ingeniero Meteorólogo</p>
-  <p class="small">Subdirección de Modelamiento Numérico de la Atmósfera — SMN</p>
+  <p class="small">Subdirección de Modelamiento Numérico de la Atmósfera — SMN — SENAMHI</p>
 </section>
 
 </div>
@@ -740,8 +870,8 @@ MODELS="ACCESS-CM2" bash scripts/04_process_to_common_grid.sh
 <button class="nav-btn" id="prevBtn" aria-label="Anterior">‹</button>
 <button class="nav-btn" id="nextBtn" aria-label="Siguiente">›</button>
 <div class="footer">
-  <span>Entregable 1 — SST CMIP6 + ERSSTv5 — SMN</span>
-  <span id="counter">1 / 50</span>
+  <span>Entregable 1 — SST CMIP6 + ERSSTv5 — SMN / SENAMHI</span>
+  <span id="counter">1 / 58</span>
 </div>
 
 <script>
