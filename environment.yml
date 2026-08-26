@@ -23,6 +23,8 @@ dependencies:
   - matplotlib
   - requests
   - jupyterlab
+  - pyyaml
+  - cartopy
   - pip
   - pip:
       - cdsapi

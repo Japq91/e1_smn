@@ -67,24 +67,33 @@ if [ -n "$MAX_MODELS" ]; then
     echo "Limite de modelos activo: MAX_MODELS=$MAX_MODELS"
 fi
 
+# Directorios y archivos clave (para acortar rutas)
+MASKED_DIR="data/processed/masked"
+CATALOG_FILE="data/interim/models_catalog_status.csv"
+URLS_FILE="data/interim/esgf_file_urls.json"
+QC_REPORT="data/processed/qc_report.csv"
+INVENTORY_FILE="data/processed/models_inventory_final.csv"
+LOG_FILE="logs/pipeline.log"
+
 run_step () {
     local name="$1"; shift
     local idx; idx=$(index_of "$name")
     if [ "$idx" -ge "$FROM_IDX" ] && [ "$idx" -le "$TO_IDX" ]; then
-        echo "== Paso $name: $* ==" | tee -a logs/pipeline.log
-        "$@" 2>&1 | tee -a logs/pipeline.log
+        echo "== Paso $name: $* ==" | tee -a $LOG_FILE
+        "$@" 2>&1 | tee -a $LOG_FILE
     fi
 }
 
+
 run_step 00  bash    scripts/00_setup_env.sh
 run_step 00b python3 scripts/00b_build_model_list.py config/models_seed_cmip6.csv
-run_step 01  python3 scripts/01_query_esgf_catalog.py config/models_seed_cmip6.csv data/interim/models_catalog_status.csv data/interim/esgf_file_urls.json
+run_step 01  python3 scripts/01_query_esgf_catalog.py config/models_seed_cmip6.csv $CATALOG_FILE $URLS_FILE
 run_step 02  bash    scripts/run_download_if_idle.sh
 run_step 03  bash    scripts/03_download_ersstv5.sh
 run_step 04  bash    scripts/04_process_to_common_grid.sh
 run_step 05  python3 scripts/05_apply_ocean_mask.py
-run_step 06  python3 scripts/06_qc_checks.py data/processed/masked data/processed/qc_report.csv
-run_step 07  python3 scripts/07_build_inventory_report.py data/processed/qc_report.csv data/processed/masked data/processed/models_inventory_final.csv
+run_step 06  python3 scripts/06_qc_checks.py $MASKED_DIR $QC_REPORT
+run_step 07  python3 scripts/07_build_inventory_report.py $QC_REPORT $MASKED_DIR $INVENTORY_FILE
 
 echo "Pipeline completo." | tee -a logs/pipeline.log
 
@@ -92,6 +101,6 @@ echo "Pipeline completo." | tee -a logs/pipeline.log
 DOWNLOAD_FLAG_ARGS=()
 [ -f data/interim/.download_running_flag ] && DOWNLOAD_FLAG_ARGS=(--downloading)
 python3 scripts/generate_status_report.py \
-    data/interim/models_catalog_status.csv data/raw/cmip6 data/interim/processed data/processed/masked \
+    data/interim/models_catalog_status.csv data/raw/cmip6 data/interim/processed $MASKED_DIR \
     "logs/run_report_${RUN_TS}.txt" "$RUN_START_HUMAN" "$(date '+%Y-%m-%d %H:%M:%S')" \
     "${DOWNLOAD_FLAG_ARGS[@]}"

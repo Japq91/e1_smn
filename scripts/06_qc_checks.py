@@ -6,12 +6,9 @@ cobertura temporal esperada por experimento; escribe un reporte que
 07_build_inventory_report.py usa para descartar del inventario final
 los modelos que fallan.
 
-NOTA: la version anterior de este chequeo exigia una longitud minima
-de piControl (100 anios). piControl ya no es un experimento requerido
-(ver config/periods.yaml), asi que ese chequeo se reemplazo por una
-verificacion de que historical/ssp245/ssp585 cubran razonablemente el
-periodo esperado (1850-2014 y 2015-2100, con 10% de tolerancia), en
-vez de quedar como una condicion que nunca se evalua.
+NOTA: este chequeo verifica que historical/ssp245/ssp585 cubran
+razonablemente el periodo esperado (1850-2014 y 2015-2100, con 10% de
+tolerancia).
 
 NOTA 2: para 'historical' ese chequeo por tolerancia de meses se
 reemplazo por uno mas simple: que el registro tenga datos por encima

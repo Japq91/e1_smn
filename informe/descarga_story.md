@@ -10,7 +10,7 @@ Este documento reconstruye, con el mayor detalle posible, cómo se obtuvo el dat
 
 | Fecha | Evento |
 |---|---|
-| **19–20 jul** | Desarrollo original del pipeline (pasos 00–07, `run.sh`). Primeras corridas de prueba (`test_run2` a `test_run18`). Se identifica y corrige el bug de `piControl`/duplicación de miembros de ensamble sin fijar `variant_label`. |
+| **19–20 jul** | Desarrollo original del pipeline (pasos 00–07, `run.sh`). Primeras corridas de prueba (`test_run2` a `test_run18`). Se identifica y corrige el bug de duplicación de miembros de ensamble sin fijar `variant_label`. |
 | **20 jul, tarde** | Primer intento sistemático de Copernicus CDS (`copernicus_batch1.log`): bloqueado inicialmente por licencia no aceptada (`projections-cmip6`); se resuelve manualmente y se logra descargar `HadGEM3-GC31-MM` (historical, 15.6 GB) y avanzar en otros modelos antes de que el lote se interrumpiera en `SAM0-UNICON` (`404` al consultar el job). |
 | **22 jul, 12:10** | Corrida completa de ESGF (nodo principal) reportada como `Entregable 1 completo` — 127 GB descargados, la mayoría de los 47 modelos "completos" del catálogo ya presentes, con huecos puntuales en 9 modelos (ver §3). |
 | **22 jul, tarde** | Se verifica el estado de la descarga y se identifican los primeros huecos: `download_failures.log` acumulaba cientos de fallos, la mayoría de corridas de prueba anteriores ya resueltas; el análisis fino (comparando `esgf_file_urls.json` contra disco) deja **298 archivos realmente faltantes** en 5 modelos (`EC-Earth3`, `EC-Earth3-CC`, `EC-Earth3-Veg`, `EC-Earth3-Veg-LR`, `TaiESM1`). |

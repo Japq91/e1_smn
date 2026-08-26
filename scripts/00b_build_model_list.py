@@ -8,7 +8,7 @@ acordado con el proyecto:
 
   1. Deben tener la variable 'tos' (Omon) disponible.
   2. Deben tener datos en los tres experimentos requeridos:
-     historical, ssp245, ssp585 (piControl ya no es requisito).
+     historical, ssp245, ssp585.
   3. De las variantes de grilla (grid_label) que publique cada modelo,
      se elige la MAS GRUESA disponible (mayor 'nominal_resolution' en
      km), ya que de todos modos el paso 04 regrilla todo a la

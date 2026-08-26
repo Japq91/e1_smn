@@ -4,8 +4,8 @@ url: https://esgf-metagrid.cloud.dkrz.de/search
 Lee config/models_seed_cmip6.csv (generado por 00b_build_model_list.py,
 que ya inspecciono TODOS los modelos CMIP6 y eligio, por modelo, la
 variante de grilla (grid_label) mas gruesa disponible que cubre los
-tres experimentos requeridos: historical, ssp245, ssp585 -- piControl
-ya no es requisito). Para cada modelo, busca en ESGF a nivel de
+tres experimentos requeridos: historical, ssp245, ssp585). Para cada
+modelo, busca en ESGF a nivel de
 ARCHIVO los .nc de esa grilla especifica y escribe:
 
   1) un CSV de estado por modelo/experimento (models_catalog_status.csv)
@@ -53,9 +53,8 @@ from pathlib import Path
 import requests
 
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
-# piControl ya no es requisito (ver config/periods.yaml); el metodo de
-# Szabo usado en esta propuesta estima la variabilidad interna a partir
-# de los residuos de historical+escenario, no de una corrida piControl.
+# El metodo de Szabo usado en esta propuesta estima la variabilidad
+# interna a partir de los residuos de historical+escenario.
 EXPERIMENTS = ["historical", "ssp245", "ssp585"]
 VARIABLE, TABLE = "tos", "Omon"
 
