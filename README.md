@@ -84,6 +84,8 @@ Revisa el vocabulario CMIP6 completo (nodo principal, LLNL) y para cada modelo:
 
 Los modelos que cumplen ambos puntos quedan en `config/models_seed_cmip6.csv` (lo que alimenta la descarga real, paso 01). Además, para **todos** los modelos inspeccionados (no solo los seleccionados), escribe `informe/model_availability_report.csv`/`.md` con la disponibilidad real por experimento — así se ve, por ejemplo, que un modelo tiene `historical`+`ssp245` pero le falta `ssp370`/`ssp585`, en vez de perderlo en silencio. Ese reporte **no se versiona** (está en `.gitignore`): es una foto de la disponibilidad al momento de correr 00b, no algo para sincronizar a mano en git.
 
+**Idempotente**: si `config/models_seed_cmip6.csv` ya existe, no se vuelve a inspeccionar el universo CMIP6 (100+ modelos, varias peticiones cada uno). Para forzar un refresco (modelos nuevos publicados en ESGF, o un cambio en `config/periods.yaml`), hay que borrar ese CSV a mano.
+
 ### 00c — Verificación contra la literatura (`00c_check_paper_models.py`, manual)
 Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes quedan en `config/models_missing_from_esgf.csv`, insumo manual adicional para 02b si se quiere ampliar el universo de modelos.
 
@@ -133,7 +135,7 @@ python3 scripts/check_model_availability.py
 
 ## Convenciones
 
-- **Idempotencia**: todo paso que procesa datos por modelo verifica si la salida ya existe y la omite, lo que permite reanudar o ampliar `MAX_MODELS` sin repetir trabajo. `check_model_availability.py` (manual, ver notebook) lleva esto al extremo: si su CSV de salida existe, no hace ninguna verificación parcial, directamente no corre.
+- **Idempotencia**: todo paso que procesa datos por modelo verifica si la salida ya existe y la omite, lo que permite reanudar o ampliar `MAX_MODELS` sin repetir trabajo. `00b_build_model_list.py` y `check_model_availability.py` (manual, ver notebook) llevan esto al extremo: si su CSV de salida existe, no hacen ninguna verificación parcial, directamente no corren -- para forzar un refresco hay que borrar ese CSV a mano.
 - **`MODELS`** (variable de entorno, opcional): restringe el paso 04 a una lista de modelos separada por espacios.
 - **Un solo miembro de ensamble** (`variant_label`) por modelo, consistente en todos los experimentos requeridos (ver paso 01) — puede ser `r1i1p1f1` o cualquier otro (`r2i1p1f1`, etc.); lo único que importa es que sea el mismo para `historical` y todos los SSP de ese modelo.
 - **Mallas no estructuradas**: el paso 04 detecta el `gridtype` nativo y usa `gencon` automáticamente cuando `genbil` no aplica; la salida queda en la misma grilla para todos los modelos.

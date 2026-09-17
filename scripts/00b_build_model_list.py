@@ -37,6 +37,11 @@ opinion (ver su docstring).
 Este script reemplaza a config/models_seed_bruno2023.csv como fuente
 de la lista de modelos; ese archivo se conserva sin usar, como
 referencia historica (no se elimina).
+
+Idempotente: si config/models_seed_cmip6.csv ya existe, no se vuelve a
+inspeccionar el universo CMIP6 (100+ modelos, varias peticiones cada
+uno). Para forzar un refresco (modelos nuevos publicados en ESGF, o un
+cambio en config/periods.yaml), hay que borrar ese CSV a mano.
 """
 import csv
 import re
@@ -215,4 +220,23 @@ def main(out_csv: str, report_prefix: Path = DEFAULT_REPORT_PREFIX) -> None:
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit("uso: 00b_build_model_list.py <out_seed.csv>")
-    main(sys.argv[1])
+    out_csv_arg = sys.argv[1]
+
+    # Idempotente (mismo patron que check_model_availability.py): si ya
+    # existe la lista de modelos, no se vuelve a inspeccionar todo el
+    # universo CMIP6 (100+ modelos, varias peticiones cada uno -- lento
+    # y con riesgo de rate limit de ESGF). Para detectar modelos nuevos
+    # publicados o un cambio en config/periods.yaml, hay que borrar
+    # config/models_seed_cmip6.csv (e informe/model_availability_report.csv/.md
+    # si tambien se quiere refrescar el reporte) y volver a correr esto.
+    if Path(out_csv_arg).exists():
+        print(
+            f"{out_csv_arg} ya existe, no se vuelve a inspeccionar el universo CMIP6.\n"
+            f"Para forzar un refresco (modelos nuevos en ESGF, o cambios en "
+            f"config/periods.yaml): borra ese archivo (y opcionalmente "
+            f"{DEFAULT_REPORT_PREFIX.with_suffix('.csv')} / .md) y volve a correr esto.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
+
+    main(out_csv_arg)
