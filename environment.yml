@@ -1,9 +1,13 @@
 # Entorno reproducible del pipeline SST (CMIP6 + ERSSTv5).
-# Primer paso en cualquier maquina Linux, ANTES de correr run.sh:
+# Primer paso en cualquier maquina Linux, UNA SOLA VEZ, antes de correr run.sh:
 #
 #   conda env create -f environment.yml
-#   conda activate e1_smn
 #   bash run.sh
+#
+# No hace falta "conda activate e1_smn" a mano: run.sh activa el
+# entorno el mismo si lo encuentra creado (ver comentario al inicio de
+# run.sh). Si corres algun script suelto (sin pasar por run.sh), ahi si
+# hace falta activarlo vos: "conda activate e1_smn".
 #
 # Incluye todo lo que scripts/00_setup_env.sh verifica (cdo, wget,
 # python3, requests) mas el resto de paquetes que usan los demas

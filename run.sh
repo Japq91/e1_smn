@@ -45,6 +45,39 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p logs
 
+# Activa el entorno conda del pipeline (creado una vez con
+# "conda env create -f environment.yml") sin que quien ejecuta tenga
+# que saber que es un PATH ni acordarse de "conda activate": alcanza
+# con correr ./run.sh. Si ya hay un entorno "e1_smn" activo se deja
+# como esta; si no, y existe uno con ese nombre, se activa aca mismo.
+# Si conda no esta instalado o el entorno todavia no se creo, esto no
+# hace nada y 00_setup_env.sh (paso 00) va a reportar con claridad que
+# falta.
+# NOTA: 'conda shell.bash hook' puede correr activate.d/deactivate.d
+# de OTROS paquetes instalados (verificado: un hook de geotiff referencia
+# una variable sin definir) -- no estan pensados para 'set -u', asi que
+# se relajan -eu justo para este bloque y se restauran despues.
+set +eu
+if command -v conda >/dev/null 2>&1 && [ "$(basename "${CONDA_PREFIX:-}")" != "e1_smn" ]; then
+    eval "$(conda shell.bash hook 2>/dev/null)" || true
+    if conda env list 2>/dev/null | grep -qE '(^|[[:space:]])e1_smn([[:space:]]|$)'; then
+        conda activate e1_smn 2>/dev/null || true
+    fi
+fi
+set -eu
+
+# En algunos clusters HPC (verificado con un setup Spack/OpenHPC) el
+# PATH del sistema antepone sus propios binarios (python3, cdo, etc.)
+# incluso con el entorno conda ya activado -- 'python3' termina
+# resolviendo a un interprete sin las dependencias del pipeline
+# (requests, pyyaml, ...) en vez de al del entorno. Si detectamos un
+# entorno conda activo (CONDA_PREFIX), anteponemos su bin al PATH de
+# este proceso (y de todos los pasos que invoca) para no depender de
+# que el PATH del sistema coopere.
+if [ -n "${CONDA_PREFIX:-}" ]; then
+    export PATH="$CONDA_PREFIX/bin:$PATH"
+fi
+
 RUN_TS="$(date +%Y%m%d_%H%M%S)"
 RUN_START_HUMAN="$(date '+%Y-%m-%d %H:%M:%S')"
 
