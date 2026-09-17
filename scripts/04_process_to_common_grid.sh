@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ======================================================================
 # Procesamiento de CMIP6 a datos listos para cálculo
-# Flujo por periodo (historical, ssp245, ssp585) y por chunk crudo:
+# Flujo por periodo (historical + escenarios SSP de config/periods.yaml) y por chunk crudo:
 #
 # 1. selvar,tos: se descarta cualquier variable auxiliar del chunk
 #    crudo salvo 'tos' (y sus coordenadas). Necesario porque algunos
@@ -14,7 +14,9 @@
 #    recortado) usando pesos precalculados (ver abajo).
 # 3. Fusión temporal (mergetime) de los chunks ya regrillados del mismo
 #    periodo.
-# 4. Recorte temporal: historical → 1850-2014; ssp245/ssp585 → 2015-2100.
+# 4. Recorte temporal: rango por experimento leido de config/periods.yaml
+#    (historical: descarga_temporal.inicio-referencia_historica.fin;
+#    cada SSP: referencia_historica.fin+1-descarga_temporal.fin).
 # 5. Homogeneización de calendario: si falta el atributo 'calendar', se
 #    asigna 'standard'; si existe, se respeta.
 # 6. Homogeneización de unidades: conversión K → °C si corresponde.
@@ -28,12 +30,12 @@
 #     * cualquier otro → genbil
 # - Ambos operadores usan la misma grilla objetivo (ERSSTV5_RAW).
 # - Los pesos se guardan en WEIGHTS_DIR/<model>.nc y se reutilizan para
-#   todos los experimentos del modelo (historical, ssp245, ssp585).
+#   todos los experimentos del modelo (historical + escenarios SSP configurados).
 # - Supuesto: la malla nativa no cambia entre experimentos. Si el remap
 #   con esos pesos compartidos falla para un periodo puntual, se
 #   recalculan pesos propios de ese periodo (WEIGHTS_DIR/<model>_<exp>.nc,
 #   ver ensure_period_weights) y se reintenta -- asi un cambio de malla
-#   entre historical/ssp245/ssp585 (detectado por el propio error de
+#   entre experimentos (detectado por el propio error de
 #   CDO) no bloquea el resto del modelo.
 #
 # ======================================================================
@@ -54,8 +56,16 @@ WEIGHTS_DIR="data/interim/.weights"
 CATALOG_CSV="data/interim/models_catalog_status.csv"
 mkdir -p "$OUT_DIR" "$TMPDIR" "$WEIGHTS_DIR"
 
-declare -A YEAR_START=( [historical]=1850 [ssp245]=2015 [ssp585]=2015 )
-declare -A YEAR_END=(   [historical]=2014 [ssp245]=2100 [ssp585]=2100 )
+# Experimentos a procesar y su rango de anios de recorte: leidos de
+# config/periods.yaml (fuente unica de verdad, ver scripts/pipeline_config.py),
+# no hardcodeados aqui.
+mapfile -t EXPERIMENTS < <(python3 scripts/pipeline_config.py experiments | tr ' ' '\n')
+declare -A YEAR_START YEAR_END
+for exp in "${EXPERIMENTS[@]}"; do
+    read -r y_start y_end < <(python3 scripts/pipeline_config.py year_range "$exp")
+    YEAR_START[$exp]="$y_start"
+    YEAR_END[$exp]="$y_end"
+done
 
 if [ ! -f "$ERSSTV5_RAW" ]; then
     echo "FALTA $ERSSTV5_RAW -- corre antes el paso 03 (descarga de ERSSTv5)." >&2
@@ -139,7 +149,7 @@ ensure_weights () {
     fi
 
     local first_chunk=""
-    for exp in historical ssp245 ssp585; do
+    for exp in "${EXPERIMENTS[@]}"; do
         local candidate=("$RAW_DIR/$model/$exp"/*.nc)
         if [ -e "${candidate[0]}" ]; then
             first_chunk="${candidate[0]}"
@@ -286,7 +296,7 @@ for model_dir in "$RAW_DIR"/*/; do
     echo "Preparando pesos de regrilla para $model ..."
     weights_file=$(ensure_weights "$model") || continue
 
-    for exp in historical ssp245 ssp585; do
+    for exp in "${EXPERIMENTS[@]}"; do
         echo "Procesando $model $exp ..."
         process_experiment "$model" "$exp" "$weights_file"
     done

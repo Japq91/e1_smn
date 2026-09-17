@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Verifica en vivo, contra ESGF, que experimentos (historical, ssp245,
-ssp585) tiene publicados cada modelo para la variable tos/Omon (paso de
-diagnostico -- NO forma parte de la secuencia automatica de run.sh).
+"""Verifica en vivo, contra ESGF, que experimentos (historical + los
+escenarios SSP de config/periods.yaml) tiene publicados cada modelo
+para la variable tos/Omon (paso 01b de run.sh).
+
+Idempotente: si informe/model_availability_report.csv ya existe, no
+se vuelve a consultar ESGF (son cientos de peticiones); solo hace
+falta la primera vez que se corre el pipeline en una maquina nueva.
+Para forzar una nueva verificacion, borrar ese CSV a mano.
 
 Se escribio porque data/interim/models_catalog_status.csv qued con
-inconsistencias (modelos marcados sin ssp245 NI ssp585 que en realidad
-si tienen uno de los dos) -- en vez de depurar ese CSV, este script
-reconsulta el estado real directamente en ESGF con una sola peticion
-por modelo (facetas de experiment_id), evitando heredar el error.
+inconsistencias (modelos marcados sin ningun SSP que en realidad si
+tienen alguno) -- en vez de depurar ese CSV, este script reconsulta el
+estado real directamente en ESGF con una sola peticion por modelo
+(facetas de experiment_id), evitando heredar el error.
 
 Uso:
     python3 check_model_availability.py [models.txt] [out_prefix]
@@ -18,7 +23,8 @@ nombres son confiables, el bug estaba en las columnas de experimento,
 no en la lista de modelos-- union con config/models_missing_from_esgf.csv).
 
 Escribe:
-    <out_prefix>.csv  -- una fila por modelo, columnas historical/ssp245/ssp585 (True/False/ERROR)
+    <out_prefix>.csv  -- una fila por modelo, columnas historical + un SSP
+                          por columna (True/False/ERROR)
     <out_prefix>.md   -- reporte legible, agrupado por categoria
 """
 import csv
@@ -28,10 +34,13 @@ from pathlib import Path
 
 import requests
 
+import pipeline_config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
 VARIABLE, TABLE = "tos", "Omon"
-EXPERIMENTS = ("historical", "ssp245", "ssp585")
+EXPERIMENTS = tuple(pipeline_config.experiments())
+SCENARIOS = tuple(pipeline_config.scenarios())
 TIMEOUT = 30
 MAX_RETRIES = 2
 
@@ -74,33 +83,40 @@ def query_experiments(model: str) -> set[str] | None:
 
 
 def classify(status: dict[str, bool]) -> str:
-    h, s2, s5 = status["historical"], status["ssp245"], status["ssp585"]
-    if h and s2 and s5:
+    h = status["historical"]
+    missing = [s for s in SCENARIOS if not status[s]]
+    any_ssp = any(status[s] for s in SCENARIOS)
+
+    if h and not missing:
         return "completo"
-    if not h and not s2 and not s5:
+    if not h and not any_ssp:
         return "sin_tos"
-    if h and not s2 and not s5:
+    if h and not any_ssp:
         return "solo_historical"
     if not h:
         return "sin_historical_pero_con_algun_ssp"
-    if h and s2 and not s5:
-        return "falta_ssp585"
-    if h and not s2 and s5:
-        return "falta_ssp245"
-    return "otro"
+    return "falta_" + "_".join(missing)
 
 
-CATEGORY_LABELS = {
-    "completo": "Completos (historical + ssp245 + ssp585, con tos/Omon)",
-    "falta_ssp585": "Tienen historical + ssp245, les falta ssp585",
-    "falta_ssp245": "Tienen historical + ssp585, les falta ssp245",
-    "solo_historical": "Solo tienen historical (les faltan ambos SSP)",
-    "sin_historical_pero_con_algun_ssp": "Tienen algun SSP pero no historical",
-    "sin_tos": "Sin tos/Omon publicado en ningun experimento (no encontrado)",
-    "otro": "Otros casos",
-}
-CATEGORY_ORDER = ["completo", "falta_ssp585", "falta_ssp245", "solo_historical",
-                  "sin_historical_pero_con_algun_ssp", "sin_tos", "otro"]
+def category_label(cat: str) -> str:
+    if cat == "completo":
+        return f"Completos (historical + {' + '.join(SCENARIOS)}, con tos/Omon)"
+    if cat == "sin_tos":
+        return "Sin tos/Omon publicado en ningun experimento (no encontrado)"
+    if cat == "solo_historical":
+        return "Solo tienen historical (les faltan todos los SSP)"
+    if cat == "sin_historical_pero_con_algun_ssp":
+        return "Tienen algun SSP pero no historical"
+    if cat.startswith("falta_"):
+        faltantes = cat[len("falta_"):].replace("_", ", ")
+        return f"Tienen historical y el resto de los SSP, les falta: {faltantes}"
+    if cat == "error_consulta":
+        return "Error de consulta -- reintentar manualmente"
+    return "Otros casos"
+
+
+CATEGORY_ORDER = ["completo", "solo_historical",
+                  "sin_historical_pero_con_algun_ssp", "sin_tos"]
 
 
 def main(models: list[str], out_prefix: Path) -> None:
@@ -109,22 +125,18 @@ def main(models: list[str], out_prefix: Path) -> None:
         print(f"[{i}/{len(models)}] {model} ...", file=sys.stderr)
         found = query_experiments(model)
         if found is None:
-            rows.append({"model": model, "historical": "ERROR", "ssp245": "ERROR",
-                         "ssp585": "ERROR", "categoria": "error_consulta"})
+            rows.append({"model": model, **{exp: "ERROR" for exp in EXPERIMENTS},
+                         "categoria": "error_consulta"})
             continue
         status = {exp: (exp in found) for exp in EXPERIMENTS}
         cat = classify(status)
-        rows.append({
-            "model": model,
-            "historical": status["historical"], "ssp245": status["ssp245"],
-            "ssp585": status["ssp585"], "categoria": cat,
-        })
+        rows.append({"model": model, **status, "categoria": cat})
 
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
 
     csv_path = out_prefix.with_suffix(".csv")
     with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["model", "historical", "ssp245", "ssp585", "categoria"])
+        writer = csv.DictWriter(f, fieldnames=["model", *EXPERIMENTS, "categoria"])
         writer.writeheader()
         writer.writerows(rows)
     print(f"\nCSV escrito en {csv_path}", file=sys.stderr)
@@ -141,7 +153,7 @@ def main(models: list[str], out_prefix: Path) -> None:
         items = by_cat.get(cat)
         if not items:
             continue
-        label = CATEGORY_LABELS.get(cat, cat)
+        label = category_label(cat)
         lines.append(f"## {label} ({len(items)})")
         lines.append("")
         for r in sorted(items, key=lambda x: x["model"]):
@@ -161,6 +173,22 @@ def main(models: list[str], out_prefix: Path) -> None:
 if __name__ == "__main__":
     models_file = sys.argv[1] if len(sys.argv) > 1 else None
     out_prefix = Path(sys.argv[2]) if len(sys.argv) > 2 else BASE_DIR / "informe/model_availability_report"
+
+    # Idempotente, igual que el resto del pipeline (ver Convenciones del
+    # README): si el reporte ya existe, no se vuelve a consultar ESGF
+    # (son cientos de peticiones, una por modelo). Para regenerarlo hay
+    # que borrar el CSV a mano -- asi la decision de recorrer todo el
+    # universo de modelos de nuevo es explicita de quien ejecuta, no
+    # algo que run.sh haga sin avisar en cada corrida.
+    existing_csv = out_prefix.with_suffix(".csv")
+    if existing_csv.exists():
+        print(
+            f"{existing_csv} ya existe, no se vuelve a consultar ESGF.\n"
+            f"Para regenerarlo: borra ese archivo (y opcionalmente {out_prefix.with_suffix('.md')}) "
+            "y volve a correr este script.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
 
     if models_file:
         with open(models_file) as f:

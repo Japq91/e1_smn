@@ -43,6 +43,8 @@ from pathlib import Path
 
 import requests
 
+import pipeline_config
+
 # Nodos indice de busqueda de la federacion ESGF (ademas del de LLNL,
 # ya intentado por 01_query_esgf_catalog.py). Verificar cuales estan
 # activos al momento de usar este script -- la federacion cambia con
@@ -54,7 +56,7 @@ ALT_ESGF_SEARCH_URLS = [
     "https://esg-dn1.nsc.liu.se/esg-search/search",
     "https://esgf.nci.org.au/esg-search/search",
 ]
-EXPERIMENTS = ["historical", "ssp245", "ssp585"]
+EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
 TIMEOUT = 30
 
@@ -179,7 +181,7 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
         catalog_rows = [r for r in catalog_rows if r["model"] != model]
         catalog_rows.append({
             "model": model, "grid_label": "", "complete": "True",
-            "historical": "True", "ssp245": "True", "ssp585": "True",
+            **{exp: "True" for exp in EXPERIMENTS},
             "member_id": member, "fuente": "esgf_alt_node",
         })
         file_catalog[model] = found

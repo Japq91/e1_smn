@@ -30,8 +30,9 @@ Organiza la salida exactamente como 02_download_cmip6_chunks.sh
 (data/raw/cmip6/<modelo>/<experimento>/*.nc), para que 04 la procese
 sin distinguir de donde vino el dato.
 
-Orden de descarga: TODOS los historicos primero, despues TODOS los
-ssp245, despues TODOS los ssp585 -- no intercalado por modelo.
+Orden de descarga: TODOS los modelos de un experimento primero, luego
+el siguiente, en el orden de config/periods.yaml (historical, despues
+cada escenario SSP configurado) -- no intercalado por modelo.
 
 Requiere:
   - pip install cdsapi
@@ -65,18 +66,20 @@ try:
 except ImportError:
     nc = None  # el chequeo de variant_label se omite si falta netCDF4, no es critico
 
+import pipeline_config
+
 CDS_DATASET = "projections-cmip6"
 CDS_VARIABLE = "sea_surface_temperature"
+ALL_EXPERIMENTS = pipeline_config.experiments()
 # Verificado contra el archivo publico de restricciones del dataset
 # (https://cds.climate.copernicus.eu/api/catalogue/v1/collections/projections-cmip6/constraints.json,
 # sin gastar cuota de descarga): los escenarios SSP usan guion bajo
 # entre digitos, NO el mismo nombre corto que ESGF.
-CDS_EXPERIMENT_MAP = {"historical": "historical", "ssp245": "ssp2_4_5", "ssp585": "ssp5_8_5"}
-CDS_YEAR_RANGE = {
-    "historical": range(1850, 2015),
-    "ssp245": range(2015, 2101),
-    "ssp585": range(2015, 2101),
-}
+CDS_EXPERIMENT_MAP = {exp: pipeline_config.cds_experiment_name(exp) for exp in ALL_EXPERIMENTS}
+CDS_YEAR_RANGE = {}
+for _exp in ALL_EXPERIMENTS:
+    _start, _end = pipeline_config.experiment_year_range(_exp)
+    CDS_YEAR_RANGE[_exp] = range(_start, _end + 1)
 CDS_MONTHS = [f"{m:02d}" for m in range(1, 13)]
 # [Norte, Oeste, Sur, Este]: longitud completa (evita el cruce del
 # antimeridiano), latitud acotada a la ventana del proyecto (20S-20N).
@@ -196,12 +199,12 @@ def main(models_csv: str, outdir: str) -> None:
     # 'EXPERIMENTS=historical' para probar solo el periodo historico
     # antes de pedir los escenarios futuros, que pesan mas y tardan mas).
     import os
-    all_exps = ("historical", "ssp245", "ssp585")
-    exps = os.environ.get("EXPERIMENTS", "").split() or list(all_exps)
-    exps = [e for e in all_exps if e in exps]  # mantiene el orden historical->ssp245->ssp585
+    exps = os.environ.get("EXPERIMENTS", "").split() or list(ALL_EXPERIMENTS)
+    exps = [e for e in ALL_EXPERIMENTS if e in exps]  # mantiene el orden de config/periods.yaml
 
-    # Primero TODOS los historicos, despues TODOS los ssp245, despues
-    # TODOS los ssp585 -- no intercalado por modelo. Las peticiones se
+    # Primero TODOS los de un experimento, despues TODOS los del
+    # siguiente (en el orden de config/periods.yaml) -- no intercalado
+    # por modelo. Las peticiones se
     # hacen en serie (un client.retrieve(...).download() a la vez, sin
     # paralelismo) para no saturar la cola de CDS con multiples
     # solicitudes simultaneas.

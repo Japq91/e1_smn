@@ -7,8 +7,8 @@ modelos CMIP6 publicados en ESGF y los filtra segun el criterio
 acordado con el proyecto:
 
   1. Deben tener la variable 'tos' (Omon) disponible.
-  2. Deben tener datos en los tres experimentos requeridos:
-     historical, ssp245, ssp585.
+  2. Deben tener datos en los experimentos requeridos por
+     config/periods.yaml (historical + escenarios SSP configurados).
   3. De las variantes de grilla (grid_label) que publique cada modelo,
      se elige la MAS GRUESA disponible (mayor 'nominal_resolution' en
      km), ya que de todos modos el paso 04 regrilla todo a la
@@ -29,9 +29,11 @@ from pathlib import Path
 
 import requests
 
+import pipeline_config
+
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
 VARIABLE, TABLE = "tos", "Omon"
-REQUIRED_EXPERIMENTS = {"historical", "ssp245", "ssp585"}
+REQUIRED_EXPERIMENTS = set(pipeline_config.experiments())
 
 
 def _first(doc: dict, field: str):
@@ -124,7 +126,7 @@ def main(out_csv: str) -> None:
     for i, model in enumerate(sorted(models), start=1):
         docs = model_datasets(model)
         choice = pick_coarsest_grid(docs)
-        status = "seleccionado" if choice else "descartado (falta historical/ssp245/ssp585)"
+        status = "seleccionado" if choice else f"descartado (falta alguno de {sorted(REQUIRED_EXPERIMENTS)})"
         print(f"[{i}/{len(models)}] {model}: {status}"
               + (f" -> grid={choice['grid_label']} ({choice['resolution_km']} km)" if choice else ""),
               file=sys.stderr)

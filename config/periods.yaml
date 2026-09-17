@@ -2,11 +2,14 @@ referencia_historica: {inicio: 1981, fin: 2014}
 validacion:           {inicio: 1981, fin: 2014}
 proyeccion_p1:        {inicio: 2036, fin: 2065}
 proyeccion_p2:        {inicio: 2071, fin: 2100}
-escenarios: [ssp245, ssp585]
+escenarios: [ssp245, ssp370, ssp585]
 # El conjunto de modelos se amplio a todo CMIP6; el filtro acordado con
-# el proyecto es unicamente disponibilidad de tos/Omon en estos tres
-# experimentos.
-experimentos_requeridos: [historical, ssp245, ssp585]
+# el proyecto es unicamente disponibilidad de tos/Omon en estos
+# experimentos. Esta es la fuente unica de verdad de que SSPs procesa
+# el pipeline: todos los scripts leen 'escenarios' de aqui (via
+# scripts/pipeline_config.py) en vez de tener la lista fija en el
+# codigo.
+experimentos_requeridos: [historical, ssp245, ssp370, ssp585]
 variable: tos
 tabla_cmor: Omon
 # Rango temporal completo de descarga: 1850-2100

@@ -14,7 +14,9 @@ import csv
 import sys
 from pathlib import Path
 
-EXPS = ("historical", "ssp245", "ssp585")
+import pipeline_config
+
+EXPS = tuple(pipeline_config.experiments())
 
 
 def main() -> None:
@@ -67,8 +69,8 @@ def main() -> None:
         f"Descarga ya en curso en otro proceso al momento de esta corrida (no se lanzo otra): {'SI' if downloading else 'NO'}",
         "",
     ]
-    lines += section("Modelos completamente descargados (3/3 experimentos)", downloaded_full)
-    lines += section("Modelos con descarga parcial (1-2 de 3 experimentos)", downloaded_partial)
+    lines += section(f"Modelos completamente descargados ({len(EXPS)}/{len(EXPS)} experimentos)", downloaded_full)
+    lines += section(f"Modelos con descarga parcial (1-{len(EXPS) - 1} de {len(EXPS)} experimentos)", downloaded_partial)
     lines += section("Modelos descargados y ya procesados (data/processed/masked)", processed)
     lines += section("Modelos descargados pero AUN sin procesar (se procesan en el proximo 04-07)", pending_process)
     lines += section("Modelos no encontrados en ESGF (candidatos a 02b/02c en la proxima corrida)", no_encontrado)

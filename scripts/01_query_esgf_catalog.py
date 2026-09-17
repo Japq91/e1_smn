@@ -4,7 +4,7 @@ url: https://esgf-metagrid.cloud.dkrz.de/search
 Lee config/models_seed_cmip6.csv (generado por 00b_build_model_list.py,
 que ya inspecciono TODOS los modelos CMIP6 y eligio, por modelo, la
 variante de grilla (grid_label) mas gruesa disponible que cubre los
-tres experimentos requeridos: historical, ssp245, ssp585). Para cada
+experimentos requeridos (historical + escenarios SSP de config/periods.yaml). Para cada
 modelo, busca en ESGF a nivel de
 ARCHIVO los .nc de esa grilla especifica y escribe:
 
@@ -40,8 +40,8 @@ varias realizaciones del mismo modelo/experimento (r1i1p1f1, r2i1p1f1,
 serie, multiplicando los pasos de tiempo y rompiendo la continuidad del
 eje temporal (verificado: ACCESS-CM2 ssp245 traia 10 miembros unidos en
 un solo archivo de 10320 pasos en vez de los 1032 esperados). Ahora se
-determina, por modelo, el 'variant_label' disponible en los TRES
-experimentos a la vez (prefiriendo 'r1i1p1f1'), y se filtra la busqueda
+determina, por modelo, el 'variant_label' disponible en TODOS los
+experimentos requeridos a la vez (prefiriendo 'r1i1p1f1'), y se filtra la busqueda
 de archivos a ese unico miembro.
 """
 import csv
@@ -52,10 +52,12 @@ from pathlib import Path
 
 import requests
 
+import pipeline_config
+
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
 # El metodo de Szabo usado en esta propuesta estima la variabilidad
 # interna a partir de los residuos de historical+escenario.
-EXPERIMENTS = ["historical", "ssp245", "ssp585"]
+EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
 
 
@@ -65,10 +67,10 @@ def _realization_number(member: str) -> int:
 
 
 def find_common_member(model: str, variable: str, table: str) -> str | None:
-    """Devuelve el variant_label disponible en los tres experimentos
+    """Devuelve el variant_label disponible en todos los experimentos
     requeridos para este modelo (prefiere 'r1i1p1f1'; si no esta
-    disponible en los tres a la vez, usa el de menor numero que si lo
-    este). None si no hay ningun miembro comun a los tres."""
+    disponible en todos a la vez, usa el de menor numero que si lo
+    este). None si no hay ningun miembro comun a todos."""
     members_per_exp: dict[str, set[str]] = {}
     for exp in EXPERIMENTS:
         params = {

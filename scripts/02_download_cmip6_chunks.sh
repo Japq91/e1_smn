@@ -33,12 +33,15 @@ OUTDIR="data/raw/cmip6"
 FAIL_LOG="logs/download_failures.log"
 MAX_MODELS="${MAX_MODELS:-}"   # vacio = sin limite
 WGET_TIMEOUT=120
+# Experimentos a descargar: historical + escenarios SSP, leidos de
+# config/periods.yaml (fuente unica de verdad, ver scripts/pipeline_config.py).
+mapfile -t EXPERIMENTS < <(python3 scripts/pipeline_config.py experiments | tr ' ' '\n')
 
 mkdir -p "$OUTDIR" logs
 
 # Devuelve, una por linea, "filename\turl1,url2,..." para model/key
-# (key = experimento: historical, ssp245 o ssp585), leido del JSON
-# escrito por 01.
+# (key = experimento: historical o alguno de los escenarios SSP de
+# config/periods.yaml), leido del JSON escrito por 01.
 list_files_for () {
     python3 -c "
 import json, sys
@@ -83,7 +86,7 @@ download_experiment () {
 }
 
 model_count=0
-while IFS=, read -r model grid_label complete hist ssp245 ssp585; do
+while IFS=, read -r model grid_label complete _rest; do
     [ "$model" = "model" ] && continue          # saltar encabezado
     [ "$complete" != "True" ] && continue        # solo modelos completos
 
@@ -93,7 +96,7 @@ while IFS=, read -r model grid_label complete hist ssp245 ssp585; do
     fi
     model_count=$((model_count + 1))
 
-    for exp in historical ssp245 ssp585; do
+    for exp in "${EXPERIMENTS[@]}"; do
         echo "Procesando $model $exp ($model_count${MAX_MODELS:+/$MAX_MODELS}) ..."
         download_experiment "$model" "$exp"
     done

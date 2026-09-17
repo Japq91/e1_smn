@@ -6,9 +6,9 @@ cobertura temporal esperada por experimento; escribe un reporte que
 07_build_inventory_report.py usa para descartar del inventario final
 los modelos que fallan.
 
-NOTA: este chequeo verifica que historical/ssp245/ssp585 cubran
-razonablemente el periodo esperado (1850-2014 y 2015-2100, con 10% de
-tolerancia).
+NOTA: este chequeo verifica que historical y cada escenario SSP
+configurado en config/periods.yaml cubran razonablemente el periodo
+esperado (derivado de ese mismo archivo, con 10% de tolerancia).
 
 NOTA 2: para 'historical' ese chequeo por tolerancia de meses se
 reemplazo por uno mas simple: que el registro tenga datos por encima
@@ -16,7 +16,7 @@ de HISTORICAL_MIN_LAST_YEAR. IITM-ESM, por ejemplo, solo publica
 historical desde 1900 (no 1850) y aun asi es un dato valido y
 utilizable -- no hace falta descartarlo solo por no cubrir el
 historical completo, siempre que llegue razonablemente cerca del
-presente. ssp245/ssp585 mantienen el chequeo por tolerancia de meses.
+presente. Los escenarios SSP mantienen el chequeo por tolerancia de meses.
 """
 import csv
 import re
@@ -24,8 +24,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pipeline_config
+
 MIN_SST, MAX_SST = -2.0, 39.0
-EXPECTED_YEARS = {"historical": 165, "ssp245": 86, "ssp585": 86}
+EXPERIMENTS = pipeline_config.experiments()
+SCENARIO_EXPECTED_YEARS = {}
+for _exp in EXPERIMENTS:
+    if _exp == "historical":
+        continue
+    _start, _end = pipeline_config.experiment_year_range(_exp)
+    SCENARIO_EXPECTED_YEARS[_exp] = _end - _start + 1
 LENGTH_TOLERANCE = 0.9  # se acepta hasta 10% menos de lo esperado
 HISTORICAL_MIN_LAST_YEAR = 1950  # historical debe llegar por encima de este anio
 
@@ -53,7 +61,7 @@ def last_year(path: str) -> int:
 
 def split_model_experiment(stem: str) -> tuple[str, str]:
     name = stem.replace("tos_", "", 1)
-    for exp in EXPECTED_YEARS:
+    for exp in EXPERIMENTS:
         suffix = f"_{exp}"
         if name.endswith(suffix):
             return name[: -len(suffix)], exp
@@ -81,7 +89,7 @@ def main(in_dir: str, out_csv: str) -> None:
         if exp == "historical":
             ok_length = last_hist_year > HISTORICAL_MIN_LAST_YEAR
         else:
-            expected_years = EXPECTED_YEARS.get(exp)
+            expected_years = SCENARIO_EXPECTED_YEARS.get(exp)
             ok_length = (
                 True if expected_years is None
                 else ntime >= expected_years * 12 * LENGTH_TOLERANCE

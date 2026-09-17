@@ -5,3 +5,7 @@ __pycache__/
 .ipynb_checkpoints/
 logs/*.log
 logs/run_report_*.txt
+# Generado por scripts/check_model_availability.py (paso 01b de run.sh):
+# especifico de cada maquina/corrida, no se versiona (ver README).
+informe/model_availability_report.csv
+informe/model_availability_report.md

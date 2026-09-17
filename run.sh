@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Orquestador principal (entry point único).
 # Uso: ./run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]
-#   - Sin args: ejecuta 00-07 sin límite.
+#   - Sin args: ejecuta 00-07 (incluye 00b y 01b) sin límite.
 #   - Con args: rango específico (ej. 02 07 3: desde descarga, limitado a 3 modelos).
-#   - MAX_MODELS: limita a modelos completos (historical/ssp245/ssp585) según orden en models_catalog_status.csv.
+#   - MAX_MODELS: limita a modelos completos (historical + escenarios SSP de
+#     config/periods.yaml) según orden en models_catalog_status.csv.
 #
 # Rediseños implementados:
 # - Orden interno: remapeo PRIMERO, fusión temporal DESPUÉS. Pesos calculados una sola vez
@@ -12,6 +13,11 @@
 # - Gráficos bajo demanda desde: graficos_exploratorios.ipynb sobre data/processed/masked/.
 # - Idempotencia: cada paso salta el procesamiento si el archivo de salida ya existe.
 # - Nota: paso 00b_build_model_list.py se ejecuta entre 00 y 01 (sin renombrar scripts).
+# - Paso 01b (check_model_availability.py): verifica en vivo contra ESGF la
+#   disponibilidad real de cada modelo, para informe/model_availability_report.csv
+#   (lo usa graficos_exploratorios.ipynb). Idempotente: si ese CSV ya existe no
+#   vuelve a consultar ESGF -- se genera una sola vez por maquina/clone; para
+#   forzar una nueva verificación hay que borrar ese archivo a mano.
 # - Paso 02 ahora es scripts/02_download_all_sources.sh: encadena ESGF (nodo
 #   principal) -> ESGF (nodos alternativos, 02b) -> Copernicus CDS (02c, solo
 #   lista blanca config/models_copernicus_ssp245_whitelist.csv). 02b/02c ya
@@ -32,7 +38,7 @@ mkdir -p logs
 RUN_TS="$(date +%Y%m%d_%H%M%S)"
 RUN_START_HUMAN="$(date '+%Y-%m-%d %H:%M:%S')"
 
-STEP_ORDER=(00 00b 01 02 03 04 05 06 07)
+STEP_ORDER=(00 00b 01 01b 02 03 04 05 06 07)
 
 STEP_FROM="${1:-00}"
 STEP_TO="${2:-07}"
@@ -88,6 +94,7 @@ run_step () {
 run_step 00  bash    scripts/00_setup_env.sh
 run_step 00b python3 scripts/00b_build_model_list.py config/models_seed_cmip6.csv
 run_step 01  python3 scripts/01_query_esgf_catalog.py config/models_seed_cmip6.csv $CATALOG_FILE $URLS_FILE
+run_step 01b python3 scripts/check_model_availability.py
 run_step 02  bash    scripts/run_download_if_idle.sh
 run_step 03  bash    scripts/03_download_ersstv5.sh
 run_step 04  bash    scripts/04_process_to_common_grid.sh
