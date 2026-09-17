@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """Verifica en vivo, contra ESGF, que experimentos (historical + los
 escenarios SSP de config/periods.yaml) tiene publicados cada modelo
-para la variable tos/Omon (paso 01b de run.sh).
+para la variable tos/Omon.
 
-Idempotente: si informe/model_availability_report.csv ya existe, no
-se vuelve a consultar ESGF (son cientos de peticiones); solo hace
-falta la primera vez que se corre el pipeline en una maquina nueva.
-Para forzar una nueva verificacion, borrar ese CSV a mano.
+NO forma parte de la secuencia automatica de run.sh: 00b_build_model_list.py
+ya genera informe/model_availability_report.csv/.md automaticamente en
+cada corrida (reutilizando classify()/category_label()/write_report()
+de este archivo, ver mas abajo), a partir de los mismos datos que
+consulta para armar la lista de modelos -- sin peticiones adicionales.
+Este script sirve como segunda opinion manual e independiente (consulta
+ESGF por una via distinta, facetas de experiment_id en vez de listado
+de datasets), util para verificar un modelo puntual o si se sospecha
+que 00b esta mal.
 
-Se escribio porque data/interim/models_catalog_status.csv qued con
-inconsistencias (modelos marcados sin ningun SSP que en realidad si
-tienen alguno) -- en vez de depurar ese CSV, este script reconsulta el
-estado real directamente en ESGF con una sola peticion por modelo
-(facetas de experiment_id), evitando heredar el error.
+Idempotente: si informe/model_availability_report.csv ya existe (por
+ejemplo, el que genera 00b), no se vuelve a consultar ESGF. Para forzar
+una nueva verificacion, borrar ese CSV a mano.
 
 Uso:
     python3 check_model_availability.py [models.txt] [out_prefix]
@@ -29,7 +32,6 @@ Escribe:
 """
 import csv
 import sys
-import time
 from pathlib import Path
 
 import requests
@@ -42,7 +44,6 @@ VARIABLE, TABLE = "tos", "Omon"
 EXPERIMENTS = tuple(pipeline_config.experiments())
 SCENARIOS = tuple(pipeline_config.scenarios())
 TIMEOUT = 30
-MAX_RETRIES = 2
 
 
 def default_model_list() -> list[str]:
@@ -61,25 +62,22 @@ def default_model_list() -> list[str]:
 def query_experiments(model: str) -> set[str] | None:
     """Devuelve el conjunto de experiment_id con tos/Omon publicado para
     este modelo (cualquier miembro/grilla), o None si la consulta fallo
-    tras reintentar."""
+    (pipeline_config.esgf_get ya reintenta ante 429/5xx/fallos de red)."""
     params = {
         "project": "CMIP6", "source_id": model,
         "variable_id": VARIABLE, "table_id": TABLE,
         "facets": "experiment_id", "limit": 0,
         "format": "application/solr+json",
     }
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            r = requests.get(ESGF_SEARCH_URL, params=params, timeout=TIMEOUT)
-            r.raise_for_status()
-            facet = r.json()["facet_counts"]["facet_fields"].get("experiment_id", [])
-            # formato solr: [nombre1, conteo1, nombre2, conteo2, ...]
-            names, counts = facet[0::2], facet[1::2]
-            return {n for n, c in zip(names, counts) if int(c) > 0}
-        except (requests.RequestException, ValueError, KeyError) as e:
-            print(f"  {model}: intento {attempt}/{MAX_RETRIES} fallo ({e})", file=sys.stderr)
-            time.sleep(2)
-    return None
+    try:
+        r = pipeline_config.esgf_get(ESGF_SEARCH_URL, params, timeout=TIMEOUT)
+        facet = r.json()["facet_counts"]["facet_fields"].get("experiment_id", [])
+        # formato solr: [nombre1, conteo1, nombre2, conteo2, ...]
+        names, counts = facet[0::2], facet[1::2]
+        return {n for n, c in zip(names, counts) if int(c) > 0}
+    except (requests.RequestException, ValueError, KeyError) as e:
+        print(f"  {model}: fallo tras reintentar ({e})", file=sys.stderr)
+        return None
 
 
 def classify(status: dict[str, bool]) -> str:
@@ -131,7 +129,16 @@ def main(models: list[str], out_prefix: Path) -> None:
         status = {exp: (exp in found) for exp in EXPERIMENTS}
         cat = classify(status)
         rows.append({"model": model, **status, "categoria": cat})
+    write_report(rows, out_prefix, titulo="Disponibilidad de tos/Omon por modelo CMIP6 (verificado en vivo contra ESGF)")
 
+
+def write_report(rows: list[dict], out_prefix: Path, titulo: str = "Disponibilidad de tos/Omon por modelo CMIP6") -> None:
+    """Escribe <out_prefix>.csv/.md a partir de filas ya armadas
+    (model + una columna bool por experimento + categoria). Separado de
+    main() para que otros scripts (00b_build_model_list.py) puedan
+    generar el mismo reporte reutilizando classify()/category_label()
+    sin volver a consultar ESGF -- 00b ya tiene la info necesaria de su
+    propio barrido."""
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
 
     csv_path = out_prefix.with_suffix(".csv")
@@ -146,7 +153,7 @@ def main(models: list[str], out_prefix: Path) -> None:
     for r in rows:
         by_cat.setdefault(r["categoria"], []).append(r)
 
-    lines = ["# Disponibilidad de tos/Omon por modelo CMIP6 (verificado en vivo contra ESGF)", ""]
+    lines = [f"# {titulo}", ""]
     lines.append(f"Total de modelos verificados: {len(rows)}")
     lines.append("")
     for cat in CATEGORY_ORDER + sorted(set(by_cat) - set(CATEGORY_ORDER) - {"error_consulta"}):

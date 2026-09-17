@@ -18,6 +18,7 @@ Los experimentos que procesa todo el pipeline (`historical` + los escenarios SSP
 - `scenarios()` — solo los escenarios SSP.
 - `experiment_year_range(exp)` — rango de años de descarga/recorte por experimento.
 - `cds_experiment_name(exp)` — nombre de experimento en el formato de Copernicus CDS.
+- `esgf_get(url, params)` — `requests.get(...)` con reintentos ante `429`/5xx (rate limit de ESGF, verificado en la práctica contra el nodo de ORNL) y fallos de red, con backoff exponencial y respeto del header `Retry-After`. Todo script que consulte ESGF (`00b`, `01`, `02b`, `check_model_availability.py`) lo usa en vez de `requests.get(...)` directo.
 
 Para agregar o quitar un escenario SSP, alcanza con editar `escenarios` en `config/periods.yaml`; no hace falta tocar los scripts.
 
@@ -29,7 +30,6 @@ flowchart TD
     S00b["00b · Modelos candidatos"]
     S00c["00c · Verificación literatura"]
     S01["01 · Catálogo ESGF"]
-    S01b["01b · Disponibilidad real (ESGF)"]
     S02b["02b · Nodos ESGF alternativos"]
     S02c["02c · Copernicus CDS"]
     S02["02 · Descarga CMIP6"]
@@ -41,7 +41,7 @@ flowchart TD
 
     S00 --> S00b --> S01
     S00b -.-> S00c
-    S01 --> S01b --> S02
+    S01 --> S02
     S02 --> S02b --> S02c
     S02b -.->|"actualiza catálogo"| S01
     S02c -.->|"actualiza catálogo"| S01
@@ -50,10 +50,10 @@ flowchart TD
     S04 --> S05
     S05 --> S06 --> S07
     S05 -."exploración".-> NB["graficos_exploratorios.ipynb"]
-    S01b -."exploración".-> NB
+    S00b -."disponibilidad".-> NB
 ```
 
-`02 → 02b → 02c` es una cascada **automática** dentro del paso 02 de `run.sh` (`02_download_all_sources.sh`): cada fuente solo se intenta para lo que la anterior no haya resuelto. Las líneas punteadas son pasos manuales (00c) o de solo lectura para el notebook (01b), o actualizaciones que 02b/02c hacen sobre el catálogo de 01.
+`02 → 02b → 02c` es una cascada **automática** dentro del paso 02 de `run.sh` (`02_download_all_sources.sh`): cada fuente solo se intenta para lo que la anterior no haya resuelto. Las líneas punteadas son pasos manuales (00c) o de solo lectura para el notebook (00b, vía su reporte de disponibilidad), o actualizaciones que 02b/02c hacen sobre el catálogo de 01.
 
 ## Estructura de datos
 
@@ -77,18 +77,18 @@ figures/                                            # graficos_exploratorios.ipy
 Confirma la disponibilidad de CDO, Python y las librerías necesarias antes de iniciar la ejecución.
 
 ### 00b — Lista de modelos candidatos (`00b_build_model_list.py`)
-Revisa el vocabulario CMIP6 completo y selecciona, por modelo, la grilla (`grid_label`) más gruesa que cubre todos los experimentos requeridos (`config/periods.yaml`). Escribe `config/models_seed_cmip6.csv`.
+Revisa el vocabulario CMIP6 completo (nodo principal, LLNL) y para cada modelo:
+
+1. Exige `historical` publicado — requisito duro. Si LLNL no lo tiene indexado para ese modelo, prueba nodos ESGF alternativos (CEDA, DKRZ, IPSL, NSC, NCI) antes de descartarlo; para los escenarios SSP no hay ese respaldo.
+2. Exige además **todos** los escenarios SSP configurados en `config/periods.yaml`, bajo una misma grilla (`grid_label`) — la más gruesa disponible, ya que el paso 04 regrilla igual a la resolución de ERSSTv5.
+
+Los modelos que cumplen ambos puntos quedan en `config/models_seed_cmip6.csv` (lo que alimenta la descarga real, paso 01). Además, para **todos** los modelos inspeccionados (no solo los seleccionados), escribe `informe/model_availability_report.csv`/`.md` con la disponibilidad real por experimento — así se ve, por ejemplo, que un modelo tiene `historical`+`ssp245` pero le falta `ssp370`/`ssp585`, en vez de perderlo en silencio. Ese reporte **no se versiona** (está en `.gitignore`): es una foto de la disponibilidad al momento de correr 00b, no algo para sincronizar a mano en git.
 
 ### 00c — Verificación contra la literatura (`00c_check_paper_models.py`, manual)
 Compara los modelos citados en `files_MD/` contra ese catálogo. Los faltantes quedan en `config/models_missing_from_esgf.csv`, insumo manual adicional para 02b si se quiere ampliar el universo de modelos.
 
 ### 01 — Catálogo ESGF (`01_query_esgf_catalog.py`)
-Para cada modelo, determina el `variant_label` (miembro de ensamble) disponible simultáneamente en todos los experimentos requeridos (prioriza `r1i1p1f1`) y localiza los archivos de esa combinación exacta. Escribe `models_catalog_status.csv` y `esgf_file_urls.json`.
-
-### 01b — Disponibilidad real por modelo (`check_model_availability.py`)
-Reconsulta ESGF en vivo, modelo por modelo, qué experimentos tiene publicados cada uno para `tos/Omon` (union de `models_catalog_status.csv` y `config/models_missing_from_esgf.csv`, es decir un universo más amplio que el filtrado por 00b). Escribe `informe/model_availability_report.csv`/`.md`, que usa `graficos_exploratorios.ipynb` para el resumen de control de calidad.
-
-**Idempotente pero distinto al resto**: son cientos de peticiones a ESGF, así que solo corre la primera vez que se ejecuta el pipeline en una máquina (o después de borrar el CSV a mano); si `informe/model_availability_report.csv` ya existe, este paso lo detecta, avisa por consola y no vuelve a consultar nada. Ese CSV **no se versiona** (está en `.gitignore`): es una foto de la disponibilidad real al momento de correrlo, no algo para mantener sincronizado a mano en git.
+Para cada modelo, determina el `variant_label` (miembro de ensamble) disponible simultáneamente en todos los experimentos requeridos (prioriza `r1i1p1f1`; si ese no sirve para los cuatro a la vez, usa el de menor número que sí lo haga) y localiza los archivos de esa combinación exacta. Escribe `models_catalog_status.csv` y `esgf_file_urls.json`.
 
 ### 02 — Descarga CMIP6, en cascada (`02_download_all_sources.sh`)
 Encadena automáticamente 3 fuentes, cada una solo para lo que la anterior no haya resuelto:
@@ -123,7 +123,9 @@ Combina el resultado del control de calidad con la resolución real de cada mode
 ### `graficos_exploratorios.ipynb` (manual, no forma parte de `run.sh`)
 Notebook de graficado sobre `data/processed/masked/`; los PNG se guardan en `figures/`. Contiene mapas, series de caja por modelo/periodo, resumen de control de calidad y boxplots comparativos. Al igual que los scripts de `scripts/`, lee los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código.
 
-El resumen de control de calidad (`plot_qc_summary`) lee la disponibilidad real de cada modelo desde `informe/model_availability_report.csv` (paso 01b, ver arriba) en vez de una lista fija en el notebook. Si se agrega o quita un escenario SSP en `config/periods.yaml`, ese CSV queda con columnas viejas hasta que se borra y se vuelve a generar (paso 01b es idempotente, no se regenera solo):
+El resumen de control de calidad (`plot_qc_summary`) lee la disponibilidad real de cada modelo desde `informe/model_availability_report.csv` (lo escribe el paso 00b en cada corrida, ver arriba) en vez de una lista fija en el notebook.
+
+`check_model_availability.py` queda como herramienta manual opcional: re-verifica lo mismo contra ESGF por una vía independiente (útil como segunda opinión, o para un modelo puntual sin correr 00b entero). Es idempotente — si `informe/model_availability_report.csv` ya existe, avisa y no consulta nada; para forzar una nueva verificación manual hay que borrarlo primero:
 ```
 rm informe/model_availability_report.csv informe/model_availability_report.md
 python3 scripts/check_model_availability.py
@@ -131,7 +133,8 @@ python3 scripts/check_model_availability.py
 
 ## Convenciones
 
-- **Idempotencia**: todo paso que procesa datos por modelo verifica si la salida ya existe y la omite, lo que permite reanudar o ampliar `MAX_MODELS` sin repetir trabajo. El paso 01b lleva esto al extremo: si su CSV de salida existe, no hace ninguna verificación parcial ni actualización incremental, directamente no corre.
+- **Idempotencia**: todo paso que procesa datos por modelo verifica si la salida ya existe y la omite, lo que permite reanudar o ampliar `MAX_MODELS` sin repetir trabajo. `check_model_availability.py` (manual, ver notebook) lleva esto al extremo: si su CSV de salida existe, no hace ninguna verificación parcial, directamente no corre.
 - **`MODELS`** (variable de entorno, opcional): restringe el paso 04 a una lista de modelos separada por espacios.
-- **Un solo miembro de ensamble** (`variant_label`) por modelo, consistente en todos los experimentos requeridos (ver paso 01).
+- **Un solo miembro de ensamble** (`variant_label`) por modelo, consistente en todos los experimentos requeridos (ver paso 01) — puede ser `r1i1p1f1` o cualquier otro (`r2i1p1f1`, etc.); lo único que importa es que sea el mismo para `historical` y todos los SSP de ese modelo.
 - **Mallas no estructuradas**: el paso 04 detecta el `gridtype` nativo y usa `gencon` automáticamente cuando `genbil` no aplica; la salida queda en la misma grilla para todos los modelos.
+- **Rate limit de ESGF**: los nodos de la federación (verificado con el de ORNL) devuelven `429` si se los satura de peticiones seguidas. Todas las consultas a ESGF pasan por `pipeline_config.esgf_get()`, que reintenta con backoff exponencial (hasta 6 intentos) en vez de abortar la corrida.

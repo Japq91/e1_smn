@@ -50,8 +50,6 @@ import re
 import sys
 from pathlib import Path
 
-import requests
-
 import pipeline_config
 
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
@@ -79,8 +77,7 @@ def find_common_member(model: str, variable: str, table: str) -> str | None:
             "format": "application/solr+json", "limit": 0,
             "facets": "variant_label",
         }
-        r = requests.get(ESGF_SEARCH_URL, params=params, timeout=30)
-        r.raise_for_status()
+        r = pipeline_config.esgf_get(ESGF_SEARCH_URL, params, timeout=30)
         facet_field = r.json()["facet_counts"]["facet_fields"].get("variant_label", [])
         members_per_exp[exp] = set(facet_field[0::2])  # [valor, conteo, valor, conteo, ...]
 
@@ -109,8 +106,7 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
     if grid_label:
         params["grid_label"] = grid_label
 
-    r = requests.get(ESGF_SEARCH_URL, params=params, timeout=30)
-    r.raise_for_status()
+    r = pipeline_config.esgf_get(ESGF_SEARCH_URL, params, timeout=30)
     docs = r.json()["response"]["docs"]
 
     by_filename: dict[str, list[str]] = {}

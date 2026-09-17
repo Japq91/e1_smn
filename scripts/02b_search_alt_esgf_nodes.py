@@ -44,18 +44,8 @@ from pathlib import Path
 import requests
 
 import pipeline_config
+from pipeline_config import ALT_ESGF_SEARCH_URLS
 
-# Nodos indice de busqueda de la federacion ESGF (ademas del de LLNL,
-# ya intentado por 01_query_esgf_catalog.py). Verificar cuales estan
-# activos al momento de usar este script -- la federacion cambia con
-# el tiempo.
-ALT_ESGF_SEARCH_URLS = [
-    "https://esgf.ceda.ac.uk/esg-search/search",
-    "https://esgf-data.dkrz.de/esg-search/search",
-    "https://esgf-node.ipsl.upmc.fr/esg-search/search",
-    "https://esg-dn1.nsc.liu.se/esg-search/search",
-    "https://esgf.nci.org.au/esg-search/search",
-]
 EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
 TIMEOUT = 30
@@ -77,8 +67,7 @@ def find_common_member(base_url: str, model: str) -> str | None:
             "format": "application/solr+json", "limit": 0,
             "facets": "variant_label",
         }
-        r = requests.get(base_url, params=params, timeout=TIMEOUT)
-        r.raise_for_status()
+        r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT)
         facet_field = r.json()["facet_counts"]["facet_fields"].get("variant_label", [])
         members_per_exp[exp] = set(facet_field[0::2])
 
@@ -97,8 +86,7 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
         "variant_label": member,
         "format": "application/solr+json", "limit": 200,
     }
-    r = requests.get(base_url, params=params, timeout=TIMEOUT)
-    r.raise_for_status()
+    r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT)
     docs = r.json()["response"]["docs"]
 
     by_filename: dict[str, list[str]] = {}

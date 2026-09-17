@@ -6,25 +6,101 @@ necesite la lista de escenarios/experimentos debe leerla de aqui, no
 tener su propia lista fija en el codigo -- ver 'escenarios' en
 config/periods.yaml.
 
+Tambien centraliza el manejo de rate limit de ESGF (ver esgf_get() mas
+abajo): todo script que consulte ESGF via requests.get(...) deberia
+usar pc.esgf_get(...) en su lugar.
+
 Uso desde Python:
     import pipeline_config as pc
     pc.experiments()          # ['historical', 'ssp245', 'ssp370', 'ssp585']
     pc.scenarios()            # ['ssp245', 'ssp370', 'ssp585']
     pc.experiment_year_range('ssp370')  # (2015, 2100)
     pc.cds_experiment_name('ssp370')    # 'ssp3_7_0'
+    pc.esgf_get(url, params)  # requests.get(...) con reintentos ante 429/5xx
 
 Uso desde Bash:
     python3 scripts/pipeline_config.py experiments
     python3 scripts/pipeline_config.py scenarios
     python3 scripts/pipeline_config.py year_range ssp370
 """
+import random
 import re
 import sys
+import time
 from pathlib import Path
 
+import requests
 import yaml
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "periods.yaml"
+
+# Nodos indice alternativos de la federacion ESGF (ademas del principal,
+# LLNL, que cada script define con su propio ESGF_SEARCH_URL). Vive aca
+# -- no en periods.yaml -- para que 00b_build_model_list.py y
+# 02b_search_alt_esgf_nodes.py compartan una sola lista en vez de tener
+# cada uno la suya. Verificar cuales estan activos al momento de usar
+# esto -- la federacion cambia con el tiempo.
+ALT_ESGF_SEARCH_URLS = [
+    "https://esgf.ceda.ac.uk/esg-search/search",
+    "https://esgf-data.dkrz.de/esg-search/search",
+    "https://esgf-node.ipsl.upmc.fr/esg-search/search",
+    "https://esg-dn1.nsc.liu.se/esg-search/search",
+    "https://esgf.nci.org.au/esg-search/search",
+]
+
+# Reintentos ante 429 (rate limit) y errores 5xx/de red de los nodos
+# ESGF -- verificado en la practica (nodo de ORNL devolviendo 429 tras
+# una racha de peticiones seguidas). ESGF_MAX_RETRIES intentos en
+# total, con backoff exponencial con techo ESGF_BACKOFF_CAP_S entre
+# cada uno (o el valor del header 'Retry-After' si el servidor lo manda).
+ESGF_MAX_RETRIES = 6
+ESGF_BACKOFF_BASE_S = 5
+ESGF_BACKOFF_CAP_S = 120
+
+
+def _backoff_seconds(attempt: int) -> float:
+    return min(ESGF_BACKOFF_BASE_S * (2 ** (attempt - 1)), ESGF_BACKOFF_CAP_S) + random.uniform(0, 1)
+
+
+def esgf_get(url: str, params: dict, timeout: float = 60, max_retries: int = ESGF_MAX_RETRIES) -> requests.Response:
+    """GET contra un nodo ESGF con reintentos ante 429/5xx/fallos de red.
+    Usar esto en vez de requests.get(...) directo para CUALQUIER consulta
+    a ESGF (00b, 01, 02b, check_model_availability) -- centraliza el
+    manejo de rate limit en un solo lugar en vez de que cada script
+    reintente (o no) a su manera.
+
+    Un 429/5xx en el ULTIMO intento se propaga via raise_for_status()
+    (falla con un error claro); cualquier otro codigo de error (4xx que
+    no sea 429) falla de inmediato, sin reintentar -- no tiene sentido
+    reintentar un error de parametros."""
+    last_exc: requests.RequestException | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            r = requests.get(url, params=params, timeout=timeout)
+        except requests.RequestException as e:
+            last_exc = e
+            if attempt == max_retries:
+                raise
+            wait = _backoff_seconds(attempt)
+            print(f"  fallo de red contra {url} ({e}) -- reintento {attempt}/{max_retries} en {wait:.0f}s",
+                  file=sys.stderr)
+            time.sleep(wait)
+            continue
+
+        if r.status_code == 429 or r.status_code >= 500:
+            if attempt == max_retries:
+                r.raise_for_status()
+            retry_after = r.headers.get("Retry-After")
+            wait = float(retry_after) if retry_after else _backoff_seconds(attempt)
+            print(f"  ESGF respondio {r.status_code} en {url} -- reintento {attempt}/{max_retries} en {wait:.0f}s",
+                  file=sys.stderr)
+            time.sleep(wait)
+            continue
+
+        r.raise_for_status()  # 4xx que no es 429: falla ya, no tiene sentido reintentar
+        return r
+
+    raise last_exc or requests.RequestException(f"agotados los reintentos contra {url}")
 
 
 def load() -> dict:
