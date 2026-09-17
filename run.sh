@@ -6,6 +6,11 @@
 #   - MAX_MODELS: limita a modelos completos (historical + escenarios SSP de
 #     config/periods.yaml) según orden en models_catalog_status.csv.
 #
+# Ejemplo (prueba rápida, de punta a punta salvo QC/inventario):
+#   ./run.sh 00 04 2
+#   Corre desde el entorno (00) hasta el procesamiento a grilla común (04),
+#   limitado a los primeros 2 modelos "completos" del catálogo (MAX_MODELS=2).
+#
 # Rediseños implementados:
 # - Orden interno: remapeo PRIMERO, fusión temporal DESPUÉS. Pesos calculados una sola vez
 #   por modelo (gencon/genbil según malla nativa) y cacheados en data/interim/.weights/.

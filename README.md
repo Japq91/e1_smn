@@ -2,7 +2,13 @@
 
 Pipeline de datos para calcular el *Time of Emergence* (TOE) de la temperatura superficial del mar en las regiones Niño 1+2 y Niño 3.4. Cubre la adquisición de los modelos CMIP6 y del dato observado de referencia (ERSSTv5), su homogeneización y su control de calidad, hasta un producto final listo para el análisis.
 
-Se ejecuta con un único orquestador: `run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]`. El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. El pipeline **no genera gráficos**: se producen bajo demanda desde `graficos_exploratorios.ipynb`, a partir de `data/processed/masked/`.
+Se ejecuta con un único orquestador: `run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]`. Ejemplo para una prueba rápida (desde el entorno hasta la grilla común, con solo 2 modelos):
+
+```
+./run.sh 00 04 2
+```
+
+El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. El pipeline **no genera gráficos**: se producen bajo demanda desde `graficos_exploratorios.ipynb`, a partir de `data/processed/masked/`.
 
 ## Configuración global (`config/periods.yaml`)
 
