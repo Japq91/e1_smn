@@ -14,6 +14,11 @@ ARCHIVO los .nc de esa grilla especifica y escribe:
      replican -- para poder reintentar en otro mirror si el primero
      esta caido o es lento (situacion observada en la practica).
 
+Idempotente: si models_catalog_status.csv ya existe, no se vuelve a
+consultar ESGF (8+ peticiones por modelo). Para forzar un refresco hay
+que borrar ese CSV y el JSON juntos a mano -- ver el mensaje que
+imprime este script cuando eso pasa.
+
 NOTA: el bucket AWS Open Data de CMIP6 (s3://cmip6-pds/) almacena los
 datos en formato Zarr, no NetCDF, por lo que CDO no puede leerlo
 directamente ("Unsupported file type", verificado). Por eso se
@@ -128,55 +133,31 @@ CATALOG_FIELDNAMES = ["model", "grid_label", "complete", *EXPERIMENTS, "member_i
 
 
 def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
+    # Nota: esto solo corre cuando out_csv NO existe todavia (ver el
+    # gate de idempotencia en __main__ mas abajo) -- por eso arma
+    # status_rows/file_catalog desde cero, sin fusionar con una corrida
+    # anterior (no puede haber una: si existiera, no se habria llegado
+    # hasta aca). Un modelo agregado a mano por fuera de la semilla
+    # (via 00c + 02b_search_alt_esgf_nodes.py) que ya estaba resuelto
+    # se pierde del catalogo si se borra para forzar un refresco -- hay
+    # que volver a correr 02b para el.
     with open(seed_csv, newline="") as f:
         seed_rows = list(csv.DictReader(f))
 
-    # Fusiona con lo que ya exista, en vez de sobreescribir: preserva
-    # modelos que no estan en la semilla (agregados a mano via 00c/02b/
-    # 02c, ej. los 56 citados en la literatura). Se re-consulta ESGF
-    # SIEMPRE para cada modelo de la semilla (asi se detectan mejoras --
-    # ESGF publica datos nuevos con el tiempo; se confirmo en la
-    # practica con CESM2: la primera corrida solo probo 'r1i1p1f1' y no
-    # encontro ssp245/ssp585 bajo ese miembro, pero 'r4i1p1f1' si tiene
-    # los 3 experimentos). La regla para no perder trabajo previo es al
-    # ESCRIBIR el resultado, no al consultar:
-    #   - si la consulta fresca da complete=True, siempre se usa (mejora
-    #     real, sea cual sea el estado anterior)
-    #   - si NO da complete=True, se conserva el estado anterior tal
-    #     cual cuando ese estado anterior ya era 'lo mejor posible'
-    #     (complete=True por cualquier fuente, o resuelto via
-    #     copernicus_parcial/esgf_alt_node) -- para no degradar un
-    #     modelo ya resuelto solo porque esta consulta puntual al nodo
-    #     principal no lo encuentre completo
-    existing_by_model: dict[str, dict] = {}
-    if Path(out_csv).exists():
-        with open(out_csv, newline="") as f:
-            for row in csv.DictReader(f):
-                existing_by_model[row["model"]] = row
-
+    status_rows = []
     file_catalog: dict[str, dict] = {}
-    if Path(out_files_json).exists():
-        file_catalog = json.loads(Path(out_files_json).read_text())
 
     for row in seed_rows:
         model = row["model"]
         grid_label = row.get("grid_label") or None
-        existing = existing_by_model.get(model)
-        existing_is_protected = existing is not None and (
-            existing.get("complete") == "True"
-            or existing.get("fuente") in ("copernicus_parcial", "esgf_alt_node")
-        )
 
         member = find_common_member(model, VARIABLE, TABLE)
         if member is None:
-            print(f"{model}: sin variant_label comun a los 3 experimentos", file=sys.stderr)
-            if not existing_is_protected:
-                existing_by_model[model] = {
-                    "model": model, "grid_label": grid_label or "", "member_id": "", "complete": "False",
-                    **{exp: "False" for exp in EXPERIMENTS}, "fuente": "no_encontrado",
-                }
-            elif existing is not None:
-                print(f"  {model}: se conserva el estado existente ('{existing.get('fuente')}'), no se degrada", file=sys.stderr)
+            print(f"{model}: sin variant_label comun a todos los experimentos requeridos", file=sys.stderr)
+            status_rows.append({
+                "model": model, "grid_label": grid_label or "", "member_id": "", "complete": "False",
+                **{exp: "False" for exp in EXPERIMENTS}, "fuente": "no_encontrado",
+            })
             continue
 
         found = {exp: esgf_file_search(model, exp, VARIABLE, TABLE, grid_label, member) for exp in EXPERIMENTS}
@@ -185,20 +166,14 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
         print(f"{model} (grid={grid_label}, miembro={member}): completo={complete} archivos_por_experimento={n_files}",
               file=sys.stderr)
 
-        if not complete and existing_is_protected:
-            print(f"  {model}: se conserva el estado existente ('{existing.get('fuente')}'), no se degrada", file=sys.stderr)
-            continue
-
-        existing_by_model[model] = {
+        status_rows.append({
             "model": model, "grid_label": grid_label or "", "member_id": member, "complete": str(complete),
             **{exp: str(bool(found[exp])) for exp in EXPERIMENTS},
             "fuente": "esgf_principal" if complete else "no_encontrado",
-        }
+        })
 
         if complete:
             file_catalog[model] = dict(found)
-
-    status_rows = list(existing_by_model.values())
 
     Path(out_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as f:
@@ -218,4 +193,25 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         sys.exit("uso: 01_query_esgf_catalog.py <seed.csv> <out_status.csv> <out_files.json>")
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
+    seed_csv_arg, out_csv_arg, out_files_json_arg = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    # Idempotente (mismo patron que 00b_build_model_list.py): si el
+    # catalogo ya existe, no se vuelve a consultar ESGF (8+ peticiones
+    # por modelo). Esto significa que un modelo que antes fallo pero
+    # ESGF ya publico via el MISMO nodo/miembro no se va a detectar
+    # solo -- para eso hay que forzar un refresco. (02b/02c si siguen
+    # actualizando el catalogo directamente cuando resuelven un modelo
+    # por otra via, sin necesidad de correr esto de nuevo).
+    if Path(out_csv_arg).exists():
+        print(
+            f"{out_csv_arg} ya existe, no se vuelve a consultar ESGF.\n"
+            f"Para forzar un refresco (por si algun modelo se completo en ESGF desde la "
+            f"ultima vez): borra {out_csv_arg} Y {out_files_json_arg} juntos "
+            "(no uno solo, para que no queden inconsistentes entre si) y volve a correr esto. "
+            "OJO: si habias resuelto algun modelo a mano por fuera de la semilla (00c + 02b), "
+            "se pierde del catalogo y hay que correr 02b de nuevo para el.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
+
+    main(seed_csv_arg, out_csv_arg, out_files_json_arg)
