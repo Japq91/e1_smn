@@ -18,3 +18,6 @@ logs/download_timings.csv
 informe/model_availability_report.csv
 informe/model_availability_report.md
 config/models_seed_cmip6.csv
+# Paquete armado por scripts/bundle_deliverable_update.py: por
+# corrida/maquina, se re-genera solo, no se versiona.
+informe/entregable_update.tar.gz

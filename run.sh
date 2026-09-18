@@ -160,9 +160,19 @@ run_step 07  python3 scripts/07_build_inventory_report.py $QC_REPORT $MASKED_DIR
 echo "Pipeline completo." | tee -a logs/pipeline.log
 
 # Reporte de estado: siempre se genera, sin importar STEP_FROM/STEP_TO.
+# No fatal si todavia falta un artefacto que necesita (ej. el catalogo,
+# si esta corrida no llego al paso 01) -- no debe bloquear el paquete
+# de abajo, que precisamente avisa que falta.
 DOWNLOAD_FLAG_ARGS=()
 [ -f data/interim/.download_running_flag ] && DOWNLOAD_FLAG_ARGS=(--downloading)
 python3 scripts/generate_status_report.py \
     data/interim/models_catalog_status.csv data/raw/cmip6 data/interim/processed $MASKED_DIR \
     "logs/run_report_${RUN_TS}.txt" "$RUN_START_HUMAN" "$(date '+%Y-%m-%d %H:%M:%S')" \
-    "${DOWNLOAD_FLAG_ARGS[@]}"
+    "${DOWNLOAD_FLAG_ARGS[@]}" \
+    || echo "Aviso: no se pudo generar el reporte de estado todavia (probablemente falta un paso anterior)." | tee -a logs/pipeline.log
+
+# Paquete con los artefactos dispersos para actualizar el informe/presentacion
+# (config/, data/, informe/, logs/, figures/): siempre se intenta, sin
+# importar STEP_FROM/STEP_TO. Empaqueta lo que ya existe y avisa, para
+# lo que falta, que correr exactamente para generarlo.
+python3 scripts/bundle_deliverable_update.py
