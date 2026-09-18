@@ -70,6 +70,9 @@ download_experiment () {
     local dest_dir="$OUTDIR/$model/$exp"
     mkdir -p "$dest_dir"
 
+    local start_ts downloaded_any=0
+    start_ts=$(date +%s)
+
     while IFS=$'\t' read -r filename urls_csv; do
         [ -z "$filename" ] && continue
         local outfile="$dest_dir/$filename"
@@ -79,10 +82,21 @@ download_experiment () {
         fi
 
         echo "  descargando $filename"
-        if ! download_with_mirrors "$urls_csv" "$outfile"; then
+        if download_with_mirrors "$urls_csv" "$outfile"; then
+            downloaded_any=1
+        else
             echo "FALLO descarga (todos los mirrors): $model $exp $filename" >> "$FAIL_LOG"
         fi
     done < <(list_files_for "$model" "$exp")
+
+    # Tiempo real de descarga -- solo se registra si hubo algo NUEVO
+    # descargado (no cuenta si todo ya estaba en disco). Alimenta el
+    # estimado de "cuanto falta" del reporte preflight (ver
+    # scripts/pipeline_timing.py y scripts/preflight_report.py).
+    if [ "$downloaded_any" -eq 1 ]; then
+        local elapsed=$(( $(date +%s) - start_ts ))
+        python3 scripts/pipeline_timing.py record_download "$model" "$exp" "$elapsed" || true
+    fi
 }
 
 model_count=0

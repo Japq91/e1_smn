@@ -9,6 +9,10 @@ __pycache__/
 .ipynb_checkpoints/
 logs/*.log
 logs/run_report_*.txt
+# Tiempos observados por maquina (ver scripts/pipeline_timing.py):
+# alimentan el estimado del reporte preflight, no se versionan.
+logs/step_timings.csv
+logs/download_timings.csv
 # Generado por scripts/00b_build_model_list.py (paso 00b de run.sh):
 # especifico de cada maquina/corrida, no se versiona (ver README).
 informe/model_availability_report.csv

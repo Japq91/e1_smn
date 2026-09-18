@@ -124,12 +124,25 @@ QC_REPORT="data/processed/qc_report.csv"
 INVENTORY_FILE="data/processed/models_inventory_final.csv"
 LOG_FILE="logs/pipeline.log"
 
+# Reporte preflight: que falta y cuanto se estima que tarde (segun
+# corridas anteriores REALES en esta maquina), antes de correr nada.
+# Siempre se muestra, sin importar STEP_FROM/STEP_TO -- igual criterio
+# que el reporte de estado que se escribe al final (ver mas abajo).
+python3 scripts/preflight_report.py "$MAX_MODELS"
+
 run_step () {
     local name="$1"; shift
     local idx; idx=$(index_of "$name")
     if [ "$idx" -ge "$FROM_IDX" ] && [ "$idx" -le "$TO_IDX" ]; then
         echo "== Paso $name: $* ==" | tee -a $LOG_FILE
+        local step_start; step_start=$(date +%s)
         "$@" 2>&1 | tee -a $LOG_FILE
+        # Duracion real de este paso en esta maquina (logs/step_timings.csv,
+        # no versionado): alimenta el estimado del reporte preflight de la
+        # proxima corrida (ver scripts/pipeline_timing.py). Una corrida
+        # casi instantanea (paso ya hecho, idempotente) no sirve como
+        # muestra -- eso se filtra en pipeline_timing.py, no aca.
+        python3 scripts/pipeline_timing.py record_step "$name" "$(( $(date +%s) - step_start ))" || true
     fi
 }
 
