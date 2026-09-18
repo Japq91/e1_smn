@@ -13,3 +13,4 @@ logs/run_report_*.txt
 # especifico de cada maquina/corrida, no se versiona (ver README).
 informe/model_availability_report.csv
 informe/model_availability_report.md
+config/models_seed_cmip6.csv
