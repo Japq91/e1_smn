@@ -12,6 +12,14 @@ cd "$(dirname "$0")/.."
 OUTDIR="data/raw/ersstv5"
 mkdir -p "$OUTDIR"
 
+# Idempotente: si ya esta el recorte final, no se vuelve a descargar ni
+# a recortar (el 'wget -c' de por si no re-descarga un archivo completo,
+# pero el recorte con cdo se re-ejecutaba igual en cada corrida).
+if [ -f "$OUTDIR/ersstv5_region.nc" ]; then
+    echo "Ya existe $OUTDIR/ersstv5_region.nc, se omite."
+    exit 0
+fi
+
 echo "Descargando ERSSTv5 desde NOAA PSL..."
 wget -q -c --timeout=120 -P "$OUTDIR" \
     "https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/sst.mnmean.nc"

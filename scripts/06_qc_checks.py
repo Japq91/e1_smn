@@ -17,6 +17,10 @@ historical desde 1900 (no 1850) y aun asi es un dato valido y
 utilizable -- no hace falta descartarlo solo por no cubrir el
 historical completo, siempre que llegue razonablemente cerca del
 presente. Los escenarios SSP mantienen el chequeo por tolerancia de meses.
+
+Idempotente por archivo: si out_csv ya existe, reusa las filas de
+archivos ya evaluados (salvo las que dieron ERROR_CDO, que se
+reintentan) y solo corre CDO sobre los tos_*.nc nuevos.
 """
 import csv
 import re
@@ -69,8 +73,23 @@ def split_model_experiment(stem: str) -> tuple[str, str]:
 
 
 def main(in_dir: str, out_csv: str) -> None:
+    # Idempotente por archivo (igual que los pasos 04/05): si out_csv ya
+    # existe, se reusan sus filas en vez de volver a correr CDO sobre
+    # archivos ya evaluados -- solo se calculan los tos_*.nc nuevos. Las
+    # filas ERROR_CDO no se cachean: si algo fallo antes (dato corrupto,
+    # etc.), se reintenta en cada corrida hasta que se resuelva.
+    cached_rows: dict[str, dict] = {}
+    if Path(out_csv).exists():
+        with open(out_csv, newline="") as fh:
+            cached_rows = {r["file"]: r for r in csv.DictReader(fh) if r.get("status") != "ERROR_CDO"}
+
     rows = []
+    n_cached = 0
     for f in sorted(Path(in_dir).glob("tos_*.nc")):
+        if f.name in cached_rows:
+            rows.append(cached_rows[f.name])
+            n_cached += 1
+            continue
         model, exp = split_model_experiment(f.stem)
         try:
             vmin, vmax = field_minmax(str(f))
@@ -112,7 +131,8 @@ def main(in_dir: str, out_csv: str) -> None:
         writer.writerows(rows)
 
     n_fail = sum(1 for r in rows if r["status"] != "PASS")
-    print(f"QC escrito en {out_csv} ({len(rows)} archivos, {n_fail} con fallas)", file=sys.stderr)
+    print(f"QC escrito en {out_csv} ({len(rows)} archivos, {n_cached} reusados de una corrida "
+          f"anterior, {n_fail} con fallas)", file=sys.stderr)
 
 
 if __name__ == "__main__":
