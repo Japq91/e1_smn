@@ -2,6 +2,16 @@
 
 Pipeline de datos para calcular el *Time of Emergence* (TOE) de la temperatura superficial del mar en las regiones Niño 1+2 y Niño 3.4. Cubre la adquisición de los modelos CMIP6 y del dato observado de referencia (ERSSTv5), su homogeneización y su control de calidad, hasta un producto final listo para el análisis.
 
+## Instalación
+
+Una sola vez, en cualquier máquina Linux:
+
+```
+conda env create -f environment.yml
+```
+
+De ahí en más, alcanza con `./run.sh` — **no hace falta `conda activate` a mano**: `run.sh` activa el entorno `e1_smn` solo, si lo encuentra creado (ver Convenciones más abajo si igual te aparece un error de dependencias faltando).
+
 Se ejecuta con un único orquestador: `run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]`. Ejemplo para una prueba rápida (desde el entorno hasta la grilla común, con solo 2 modelos):
 
 ```
