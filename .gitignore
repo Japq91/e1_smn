@@ -1,11 +1,15 @@
 data/raw/
 data/interim/
 data/processed/masked/
+# Salidas de los pasos 06/07: por corrida/maquina, no se versionan
+# (mismo criterio que el resto de data/, ver README).
+data/processed/qc_report.csv
+data/processed/models_inventory_final.csv
 __pycache__/
 .ipynb_checkpoints/
 logs/*.log
 logs/run_report_*.txt
-# Generado por scripts/check_model_availability.py (paso 01b de run.sh):
+# Generado por scripts/00b_build_model_list.py (paso 00b de run.sh):
 # especifico de cada maquina/corrida, no se versiona (ver README).
 informe/model_availability_report.csv
 informe/model_availability_report.md
