@@ -139,6 +139,18 @@ Notebook de graficado sobre `data/processed/masked/`; los PNG se guardan en `fig
 
 El resumen de control de calidad (`plot_qc_summary`) lee la disponibilidad real de cada modelo desde `informe/model_availability_report.csv` (lo escribe el paso 00b en cada corrida, ver arriba) en vez de una lista fija en el notebook.
 
+**Alternativa para correr sin Jupyter** (ej. un cluster HPC sin interfaz gráfica): cada sección del notebook (menos la de regiones ENOS, que ya era un script aparte) tiene su equivalente en `scripts/`, pensado para terminal:
+
+| Notebook | Script equivalente |
+|---|---|
+| GRAFICO 1 — Mapas | `python3 scripts/plot_maps.py` |
+| GRAFICO 2 — Series de caja | `python3 scripts/plot_box_series.py` |
+| GRAFICO 3 — Resumen de control de calidad | `python3 scripts/plot_qc_summary.py [n_paneles]` |
+| GRAFICO 4 — Comparación boxplot vs. ERSSTv5 | `python3 scripts/plot_boxplot_comparison.py` |
+| GRAFICO 5 — Regiones ENOS (fijo, no depende de datos descargados) | `python3 scripts/plot_region_nino_orthographic.py` |
+
+Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana) vía `scripts/plot_common.py`, así que no necesitan `$DISPLAY`, y guardan todo en `figures/` con DPI 100 (livianas, pensadas para el informe). `plot_region_nino_orthographic.py` es el único que requiere `cartopy` (no está en `environment.yml` del pipeline principal, ver ese archivo para el entorno de gráficos opcional).
+
 `check_model_availability.py` queda como herramienta manual opcional: re-verifica lo mismo contra ESGF por una vía independiente (útil como segunda opinión, o para un modelo puntual sin correr 00b entero). Es idempotente — si `informe/model_availability_report.csv` ya existe, avisa y no consulta nada; para forzar una nueva verificación manual hay que borrarlo primero:
 ```
 rm informe/model_availability_report.csv informe/model_availability_report.md

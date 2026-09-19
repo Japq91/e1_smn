@@ -26,12 +26,15 @@ Uso:
 import sys
 from pathlib import Path
 
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.pyplot as plt
-import netCDF4 as nc
-import numpy as np
-import yaml
+import matplotlib
+matplotlib.use("Agg")  # sin GUI -- pensado para correr en un cluster sin interfaz grafica
+
+import cartopy.crs as ccrs  # noqa: E402
+import cartopy.feature as cfeature  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+import netCDF4 as nc  # noqa: E402
+import numpy as np  # noqa: E402
+import yaml  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MASKED_DIR = BASE_DIR / "data/processed/masked"
@@ -120,7 +123,7 @@ def main(out_path: Path) -> None:
     )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    fig.savefig(out_path, dpi=100, bbox_inches="tight")
     plt.close(fig)
     print(f"Figura guardada en {out_path}", file=sys.stderr)
 
