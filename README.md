@@ -18,7 +18,7 @@ Se ejecuta con un único orquestador: `run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]
 ./run.sh 00 04 2
 ```
 
-El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. El pipeline **no genera gráficos**: se producen bajo demanda desde `graficos_exploratorios.ipynb`, a partir de `data/processed/masked/`.
+El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. Al final de cada corrida, `run.sh` genera automáticamente las figuras principales (`scripts/plot_*.py`, idempotentes: saltan lo que ya existe) y arma un paquete `.tar.gz` con todo lo necesario para actualizar el informe. Para exploración interactiva o ad-hoc está `graficos_exploratorios.ipynb`.
 
 ## Configuración global (`config/periods.yaml`)
 
@@ -48,6 +48,8 @@ flowchart TD
     S05["05 · Máscara océano-tierra"]
     S06["06 · Control de calidad"]
     S07["07 · Inventario final"]
+    SPLOT["Gráficos (scripts/plot_*.py)"]
+    SBUNDLE["Paquete (.tar.gz)"]
 
     S00 --> S00b --> S01
     S00b -.-> S00c
@@ -59,11 +61,12 @@ flowchart TD
     S03 --> S04
     S04 --> S05
     S05 --> S06 --> S07
-    S05 -."exploración".-> NB["graficos_exploratorios.ipynb"]
+    S07 --> SPLOT --> SBUNDLE
+    SPLOT -."exploración interactiva".-> NB["graficos_exploratorios.ipynb"]
     S00b -."disponibilidad".-> NB
 ```
 
-`02 → 02b → 02c` es una cascada **automática** dentro del paso 02 de `run.sh` (`02_download_all_sources.sh`): cada fuente solo se intenta para lo que la anterior no haya resuelto. Las líneas punteadas son pasos manuales (00c) o de solo lectura para el notebook (00b, vía su reporte de disponibilidad), o actualizaciones que 02b/02c hacen sobre el catálogo de 01.
+`02 → 02b → 02c` es una cascada **automática** dentro del paso 02 de `run.sh` (`02_download_all_sources.sh`): cada fuente solo se intenta para lo que la anterior no haya resuelto. Las líneas punteadas son pasos manuales (00c), de solo lectura para el notebook (00b, vía su reporte de disponibilidad; y `scripts/plot_*.py`, que cubren lo mismo que el notebook pero sin abrir Jupyter), o actualizaciones que 02b/02c hacen sobre el catálogo de 01.
 
 ## Estructura de datos
 
@@ -79,7 +82,7 @@ data/processed/models_inventory_final.csv          # 07
 figures/                                            # graficos_exploratorios.ipynb (manual)
 ```
 
-`data/interim/processed/` es un paso intermedio (regrillado, todavía sin máscara); `data/processed/masked/` es el dato final. `run.sh` no escribe ningún PNG: todo el graficado se hace desde `graficos_exploratorios.ipynb`, que lee `data/processed/masked/` y guarda los PNG en `figures/`.
+`data/interim/processed/` es un paso intermedio (regrillado, todavía sin máscara); `data/processed/masked/` es el dato final. `run.sh` genera los PNG de `figures/` el mismo (`scripts/plot_*.py`, al final de cada corrida); `graficos_exploratorios.ipynb` cubre lo mismo de forma interactiva, para editar libremente.
 
 ## Pasos
 
@@ -134,20 +137,21 @@ Filtro de aceptación: por archivo, evalúa el rango físico de la SST (−2 a 3
 ### 07 — Inventario final (`07_build_inventory_report.py`)
 Combina el resultado del control de calidad con la resolución real de cada modelo (`cdo griddes`) en una tabla resumen con los modelos finalmente seleccionados.
 
-### `graficos_exploratorios.ipynb` (manual, no forma parte de `run.sh`)
-Notebook de graficado sobre `data/processed/masked/`; los PNG se guardan en `figures/`. Contiene mapas, series de caja por modelo/periodo, resumen de control de calidad y boxplots comparativos. Al igual que los scripts de `scripts/`, lee los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código.
+### Gráficos (`scripts/plot_*.py`, automático al final de `run.sh`)
+Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando las figuras en `figures/` -- idempotentes (saltan una figura si ya existe; para forzar un refresco, borrarla a mano) y no fatales (si a alguna le faltan datos de entrada, o falla por algo del entorno como `cartopy`, avisa y sigue con la siguiente, sin bloquear el reporte de estado ni el paquete final):
 
-El resumen de control de calidad (`plot_qc_summary`) lee la disponibilidad real de cada modelo desde `informe/model_availability_report.csv` (lo escribe el paso 00b en cada corrida, ver arriba) en vez de una lista fija en el notebook.
-
-**Alternativa para correr sin Jupyter** (ej. un cluster HPC sin interfaz gráfica): cada sección del notebook (menos la de regiones ENOS, que ya era un script aparte) tiene su equivalente en `scripts/`, pensado para terminal:
-
-| Notebook | Script equivalente |
+| Script | Contenido |
 |---|---|
-| GRAFICO 1 — Mapas | `python3 scripts/plot_maps.py` |
-| GRAFICO 2 — Series de caja | `python3 scripts/plot_box_series.py` |
-| GRAFICO 3 — Resumen de control de calidad | `python3 scripts/plot_qc_summary.py [n_paneles]` |
-| GRAFICO 4 — Comparación boxplot vs. ERSSTv5 | `python3 scripts/plot_boxplot_comparison.py` |
-| GRAFICO 5 — Regiones ENOS (fijo, no depende de datos descargados) | `python3 scripts/plot_region_nino_orthographic.py` |
+| `plot_maps.py` | Mapas: promedio temporal del campo completo, por modelo/experimento y para ERSSTv5 |
+| `plot_box_series.py` | Series de caja (Niño 3.4 / Niño 1+2) por modelo, historical + escenarios SSP superpuestos |
+| `plot_qc_summary.py [n_paneles]` | Resumen de control de calidad (PASS/FAIL) por modelo y experimento |
+| `plot_boxplot_comparison.py` | Boxplot comparativo Niño 3.4 / Niño 1+2, modelos vs. ERSSTv5, periodo histórico común |
+| `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS -- fijo, no depende de datos descargados. Requiere `cartopy` (no está en el `environment.yml` del pipeline principal) |
+
+Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código, y comparten rutas/utilidades en `scripts/plot_common.py` (que además fuerza el backend `Agg` de matplotlib, así no hace falta `$DISPLAY`). `plot_qc_summary.py` lee la disponibilidad real de cada modelo desde `informe/model_availability_report.csv` (lo escribe el paso 00b) en vez de una lista fija.
+
+### `graficos_exploratorios.ipynb` (manual, para exploración interactiva)
+El mismo contenido que los scripts de arriba, pero como notebook editable libremente celda por celda -- útil para probar variantes puntuales sin tocar código. No es necesario correrlo para tener las figuras del informe: eso ya lo cubre `run.sh`.
 
 Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana) vía `scripts/plot_common.py`, así que no necesitan `$DISPLAY`, y guardan todo en `figures/` con DPI 100 (livianas, pensadas para el informe). `plot_region_nino_orthographic.py` es el único que requiere `cartopy` (no está en `environment.yml` del pipeline principal, ver ese archivo para el entorno de gráficos opcional).
 
@@ -161,7 +165,7 @@ python3 scripts/check_model_availability.py
 
 - **Idempotencia**: todo paso que procesa datos por modelo/archivo verifica si la salida ya existe y la omite, lo que permite reanudar, ampliar `MAX_MODELS` o agregar modelos nuevos sin repetir trabajo ya hecho. Tres variantes, según qué tan cara es la operación:
   - **Todo o nada** (`00b_build_model_list.py`, `01_query_esgf_catalog.py`, `check_model_availability.py`, `03_download_ersstv5.sh`): si la salida final ya existe, no corre nada -- para forzar un refresco hay que borrar esa salida a mano. Usado donde repetir el trabajo es caro (barrido completo de ESGF) o no tiene sentido (ERSSTv5 es una referencia fija). Con esto, un modelo que ESGF completó después de la última corrida no se detecta solo -- hay que forzar el refresco a mano (o esperar a que `02b`/`02c` lo resuelvan por otra vía, que sí actualizan el catálogo directamente).
-  - **Por archivo** (`02_download_cmip6_chunks.sh`, `02c_download_copernicus_cds.py`, `04_process_to_common_grid.sh`, `05_apply_ocean_mask.py`, `06_qc_checks.py`): omite lo ya hecho pero SÍ procesa lo nuevo (un modelo agregado después, por ejemplo). `06` además reintenta automáticamente cualquier archivo que haya dado `ERROR_CDO` antes.
+  - **Por archivo** (`02_download_cmip6_chunks.sh`, `02c_download_copernicus_cds.py`, `04_process_to_common_grid.sh`, `05_apply_ocean_mask.py`, `06_qc_checks.py`, `scripts/plot_*.py`): omite lo ya hecho pero SÍ procesa lo nuevo (un modelo agregado después, por ejemplo). `06` además reintenta automáticamente cualquier archivo que haya dado `ERROR_CDO` antes.
   - **Siempre recalcula** (`07_build_inventory_report.py`): deliberado, no es un descuido. Es barato (una consulta `cdo griddes` por modelo, no por archivo) y su salida debe reflejar siempre el estado *actual* de `qc_report.csv`; cachear por modelo arriesgaría un inventario desactualizado si un modelo cambió de estado.
 - **`MODELS`** (variable de entorno, opcional): restringe el paso 04 a una lista de modelos separada por espacios.
 - **Un solo miembro de ensamble** (`variant_label`) por modelo, consistente en todos los experimentos requeridos (ver paso 01) — puede ser `r1i1p1f1` o cualquier otro (`r2i1p1f1`, etc.); lo único que importa es que sea el mismo para `historical` y todos los SSP de ese modelo.

@@ -98,6 +98,10 @@ def draw_box(ax, box: dict, label: str, color: str, *, emphasize: bool) -> None:
 
 
 def main(out_path: Path) -> None:
+    if out_path.exists():
+        print(f"{out_path} ya existe, se omite. Para regenerarlo, borralo primero.", file=sys.stderr)
+        return
+
     domains = load_domains(DOMAINS_YAML)
     central_lon, central_lat = netcdf_domain_center(MASKED_DIR)
     print(f"Centro de proyeccion (desde el dominio de los NetCDF): "

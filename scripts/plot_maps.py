@@ -23,6 +23,11 @@ import xarray as xr  # noqa: E402
 
 
 def plot_map(model: str, exp: str = "historical", ax=None) -> None:
+    out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
+    if ax is None and out_path.exists():
+        print(f"  {model}: {out_path.name} ya existe, se omite", file=sys.stderr)
+        return
+
     with nc.Dataset(pc.masked_path(model, exp)) as ds:
         varname = next(v for v in ds.variables if v not in pc.NON_DATA_NAMES)
     d = xr.open_dataset(pc.masked_path(model, exp))
@@ -36,7 +41,7 @@ def plot_map(model: str, exp: str = "historical", ax=None) -> None:
     ax.set_ylabel("latitud")
     ax.set_title(f"{model} {exp.upper()}")
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    plt.savefig(pc.FIGURES_DIR / f"sst_2d_{model}.png", dpi=pc.DPI, bbox_inches="tight")
+    plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
     if standalone:
         plt.close()
 

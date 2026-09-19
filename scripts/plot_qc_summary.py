@@ -21,6 +21,12 @@ import pandas as pd  # noqa: E402
 
 
 def plot_qc_summary(n_panels: int = 4) -> None:
+    out_path = pc.FIGURES_DIR / "sst_QD_vf.png"
+    if out_path.exists():
+        print(f"{out_path.name} ya existe, se omite. Para regenerarlo (ej. tras una nueva "
+              "descarga/QC), borralo primero.", file=sys.stderr)
+        return
+
     if not pc.QC_CSV.exists():
         sys.exit(f"Falta {pc.QC_CSV}. Se genera con run.sh (paso 06).")
     if not pc.MODEL_AVAILABILITY_CSV.exists():
@@ -145,7 +151,6 @@ def plot_qc_summary(n_panels: int = 4) -> None:
                loc="upper center", bbox_to_anchor=(0.5, .1))
 
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = pc.FIGURES_DIR / "sst_QD_vf.png"
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
     plt.close()
 

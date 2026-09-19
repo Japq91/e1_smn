@@ -27,6 +27,9 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None) -> None:
     configurado (config/periods.yaml) superpuestos en el mismo eje."""
     ofile = pc.FIGURES_DIR / f"serie_{model}_sst_{box_name.replace(' ', '')}.png"
     standalone = ax is None
+    if standalone and ofile.exists():
+        print(f"  {model} {box_name}: {ofile.name} ya existe, se omite", file=sys.stderr)
+        return
     if standalone:
         fig, ax = plt.subplots(figsize=(9, 3))
 

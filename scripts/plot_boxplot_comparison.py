@@ -23,6 +23,11 @@ import numpy as np  # noqa: E402
 
 
 def plot_box_boxplot(box: dict, box_name: str) -> None:
+    out_path = pc.FIGURES_DIR / f"boxplot_{box_name.replace(' ', '')}.png"
+    if out_path.exists():
+        print(f"  {box_name}: {out_path.name} ya existe, se omite", file=sys.stderr)
+        return
+
     sources = ["ERSSTv5"] + pc.list_available_models()
     series = {}
     for src in sources:
@@ -62,7 +67,6 @@ def plot_box_boxplot(box: dict, box_name: str) -> None:
     plt.setp(ax.get_xticklabels(), rotation=50, ha="right")
 
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = pc.FIGURES_DIR / f"boxplot_{box_name.replace(' ', '')}.png"
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
     plt.close()
     print(f"  {box_name}: {len(sources)} fuente(s), {len(common_years)} anios comunes -> {out_path}",

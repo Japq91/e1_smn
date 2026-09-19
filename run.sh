@@ -159,6 +159,19 @@ run_step 07  python3 scripts/07_build_inventory_report.py $QC_REPORT $MASKED_DIR
 
 echo "Pipeline completo." | tee -a logs/pipeline.log
 
+# Graficos (GRAFICO 1-5 de graficos_exploratorios.ipynb, ver scripts/plot_*.py):
+# siempre se intentan al final, sin importar STEP_FROM/STEP_TO -- cada uno es
+# idempotente (salta las figuras que ya existen) y avisa sin abortar el resto
+# si todavia le faltan datos de entrada (ej. si esta corrida no llego a
+# descargar/procesar nada). No fatal: una figura que no se pudo generar no
+# debe bloquear el paquete de abajo, que precisamente avisa que falta.
+for plot_script in plot_maps.py plot_box_series.py plot_qc_summary.py \
+                    plot_boxplot_comparison.py plot_region_nino_orthographic.py; do
+    echo "== Graficos: $plot_script ==" | tee -a logs/pipeline.log
+    python3 "scripts/$plot_script" 2>&1 | tee -a logs/pipeline.log \
+        || echo "  (se omitio $plot_script -- revisar el aviso arriba)" | tee -a logs/pipeline.log
+done
+
 # Reporte de estado: siempre se genera, sin importar STEP_FROM/STEP_TO.
 # No fatal si todavia falta un artefacto que necesita (ej. el catalogo,
 # si esta corrida no llego al paso 01) -- no debe bloquear el paquete
