@@ -103,6 +103,30 @@ def esgf_get(url: str, params: dict, timeout: float = 60, max_retries: int = ESG
     raise last_exc or requests.RequestException(f"agotados los reintentos contra {url}")
 
 
+def url_is_alive(url: str, timeout: float = 10) -> bool:
+    """HEAD rapido (sin bajar el archivo) para confirmar que un link de
+    descarga responde de verdad. ESGF a veces indexa un archivo cuyo
+    link ya no esta vivo (nodo reorganizado, replica caida, etc.) --
+    confiar solo en que el buscador lo devolvio no garantiza que se
+    pueda descargar. Un solo intento, sin reintentos: si este mirror no
+    responde, el llamador prueba el siguiente (ver pick_first_live_url)."""
+    try:
+        r = requests.head(url, timeout=timeout, allow_redirects=True)
+        return r.status_code < 400
+    except requests.RequestException:
+        return False
+
+
+def pick_first_live_url(urls: list[str], timeout: float = 10) -> list[str] | None:
+    """Prueba los mirrors de un archivo uno por uno (HEAD) y devuelve la
+    lista reordenada con el primero que responde al frente -- o None si
+    ninguno responde. Para en el primero vivo, no revisa el resto."""
+    for i, u in enumerate(urls):
+        if url_is_alive(u, timeout=timeout):
+            return [u] + urls[:i] + urls[i + 1:]
+    return None
+
+
 def load() -> dict:
     return yaml.safe_load(CONFIG_PATH.read_text())
 

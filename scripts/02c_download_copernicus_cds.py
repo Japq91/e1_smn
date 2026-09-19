@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Segunda opcion: descarga modelos via el Climate Data Store (CDS) de
+"""Ultimo recurso: descarga modelos via el Climate Data Store (CDS) de
 Copernicus, usando las credenciales personales del usuario (paso 02c
--- NO forma parte de la secuencia automatica de run.sh; via
-alternativa a ESGF, manual).
+-- se ejecuta automaticamente dentro de la cascada de
+02_download_all_sources.sh, solo para modelos que ESGF no resolvio y
+que ademas figuran en config/models_copernicus_available.csv; si
+faltan credenciales, se omite con un aviso).
 
 Parametros de la peticion verificados contra una descarga real exitosa
 (NorCPM1, historical, 1850-2014: 1980 pasos de tiempo = 165 anios x 12
@@ -69,6 +71,7 @@ except ImportError:
 
 import pipeline_config
 
+CATALOG_CSV = Path("data/interim/models_catalog_status.csv")
 CDS_DATASET = "projections-cmip6"
 CDS_VARIABLE = "sea_surface_temperature"
 ALL_EXPERIMENTS = pipeline_config.experiments()
@@ -188,6 +191,63 @@ def download_experiment(client: "cdsapi.Client", model: str, exp: str,
     return True
 
 
+def update_catalog(models: list[str], out_path: Path) -> None:
+    """Actualiza data/interim/models_catalog_status.csv para los
+    modelos que este script intento -- antes 02c descargaba pero nunca
+    dejaba constancia en el catalogo (a diferencia de 02b), asi que la
+    categoria 'copernicus_parcial' de generate_status_report.py nunca
+    tenia datos. Mismo patron que 02b_search_alt_esgf_nodes.py: se
+    revisa que hay REALMENTE en disco (data/raw/cmip6/<modelo>/<exp>/),
+    sin importar si vino de esta corrida o de una anterior via otra
+    fuente, y se escribe una fila con 'fuente=copernicus_parcial' solo
+    si esta descarga aporto algo nuevo (si el modelo ya estaba
+    completo por otra via, no hace falta pisar esa fila)."""
+    experiments = pipeline_config.experiments()
+
+    catalog_fieldnames = ["model", "grid_label", "complete", *experiments, "member_id", "fuente"]
+    catalog_rows: list[dict] = []
+    if CATALOG_CSV.exists():
+        with open(CATALOG_CSV, newline="") as f:
+            reader = csv.DictReader(f)
+            catalog_fieldnames = reader.fieldnames or catalog_fieldnames
+            catalog_rows = list(reader)
+    by_model = {r["model"]: r for r in catalog_rows}
+
+    updated = []
+    for model in models:
+        already_complete = by_model.get(model, {}).get("complete") == "True"
+        if already_complete:
+            continue  # ya estaba resuelto por otra via, no hace falta tocar esa fila
+
+        status = {
+            exp: (out_path / model / exp).is_dir() and any((out_path / model / exp).glob("*.nc"))
+            for exp in experiments
+        }
+        if not any(status.values()):
+            continue  # esta corrida no aporto nada nuevo para este modelo, no hay que actualizar
+
+        complete = all(status.values())
+        by_model[model] = {
+            "model": model,
+            "grid_label": by_model.get(model, {}).get("grid_label", ""),
+            "complete": str(complete),
+            **{exp: str(status[exp]) for exp in experiments},
+            "member_id": EXPECTED_MEMBER,
+            "fuente": "copernicus_parcial",
+        }
+        updated.append(model)
+
+    if not updated:
+        return
+
+    CATALOG_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(CATALOG_CSV, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=catalog_fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(by_model.values())
+    print(f"\nCatalogo actualizado ({CATALOG_CSV}) para: {updated}", file=sys.stderr)
+
+
 def main(models_csv: str, outdir: str) -> None:
     with open(models_csv, newline="") as f:
         models = [row["model"] for row in csv.DictReader(f)]
@@ -230,6 +290,7 @@ def main(models_csv: str, outdir: str) -> None:
             download_experiment(client, model, exp, out_path, tmpdir, fail_log)
 
     shutil.rmtree(tmpdir, ignore_errors=True)
+    update_catalog(models, out_path)
     print("\nRevisa logs/download_failures.log para lo que fallo.", file=sys.stderr)
 
 

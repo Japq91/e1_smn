@@ -126,7 +126,21 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
                 if url not in by_filename[filename]:
                     by_filename[filename].append(url)
 
-    return [{"filename": fn, "urls": urls} for fn, urls in sorted(by_filename.items())]
+    # Confirma que al menos un mirror responde de verdad (HEAD, sin
+    # bajar el archivo) antes de dar el archivo por encontrado -- ESGF
+    # a veces indexa un archivo cuyo link ya no esta vivo (nodo
+    # reorganizado, replica caida). Si ninguno responde, se descarta:
+    # mejor marcar el modelo incompleto ahora que descubrirlo recien en
+    # el paso 02, despues de gastar tiempo intentando la descarga real.
+    verified: dict[str, list[str]] = {}
+    for filename, urls in by_filename.items():
+        live = pipeline_config.pick_first_live_url(urls)
+        if live:
+            verified[filename] = live
+        else:
+            print(f"    {filename}: ningun mirror responde, se descarta", file=sys.stderr)
+
+    return [{"filename": fn, "urls": urls} for fn, urls in sorted(verified.items())]
 
 
 CATALOG_FIELDNAMES = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente"]
