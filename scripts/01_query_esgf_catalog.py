@@ -106,13 +106,12 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
         "project": "CMIP6", "source_id": model, "experiment_id": experiment,
         "variable_id": variable, "table_id": table, "type": "File",
         "variant_label": member,
-        "format": "application/solr+json", "limit": 200,
+        "format": "application/solr+json",
     }
     if grid_label:
         params["grid_label"] = grid_label
 
-    r = pipeline_config.esgf_get(ESGF_SEARCH_URL, params, timeout=30)
-    docs = r.json()["response"]["docs"]
+    docs = pipeline_config.esgf_get_all_docs(ESGF_SEARCH_URL, params, timeout=30)
 
     by_filename: dict[str, list[str]] = {}
     for d in docs:

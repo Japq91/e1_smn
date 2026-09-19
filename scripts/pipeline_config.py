@@ -46,6 +46,14 @@ ALT_ESGF_SEARCH_URLS = [
     "https://esgf-node.ipsl.upmc.fr/esg-search/search",
     "https://esg-dn1.nsc.liu.se/esg-search/search",
     "https://esgf.nci.org.au/esg-search/search",
+    # Frontend "Metagrid" (React) de la nueva infraestructura ESGF2 --
+    # esgf-node.llnl.gov/esg-search/search y esgf-node.ornl.gov/esg-search/search
+    # ya no sirven el JSON clasico (devuelven el HTML de la app), pero el
+    # proxy interno de metagrid si habla el mismo protocolo Solr
+    # (verificado a mano: mismos parametros, misma forma de respuesta,
+    # 'url' con el formato 'url|mime|service'). Encontrado por el usuario
+    # via la UI de busqueda en https://metagrid.esgf-west.org/search/cmip6/.
+    "https://metagrid.esgf-west.org/proxy/search",
 ]
 
 # Reintentos ante 429 (rate limit) y errores 5xx/de red de los nodos
@@ -103,6 +111,40 @@ def esgf_get(url: str, params: dict, timeout: float = 60, max_retries: int = ESG
     raise last_exc or requests.RequestException(f"agotados los reintentos contra {url}")
 
 
+def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
+                       max_retries: int = ESGF_MAX_RETRIES, page_size: int = 500) -> list[dict]:
+    """Igual que esgf_get(...).json()["response"]["docs"], pero pagina
+    (offset/limit) hasta traer TODOS los docs que matchean la consulta,
+    no solo los primeros 'page_size'. Usar esto en vez de un limit fijo
+    para cualquier busqueda de archivos (type=File) -- un archivo puede
+    estar replicado en varios nodos de datos a la vez, y ademas algunos
+    modelos publican corridas extendidas mas alla del rango que pide
+    este pipeline (ej. EC-Earth3-Veg ssp370: 458 registros repartidos en
+    3 nodos, uno de ellos con datos hasta el 2300 en vez de 2100).
+
+    BUG real encontrado en produccion: con un limit fijo de 200 (el
+    valor que tenia antes esgf_file_search), Solr devuelve un
+    subconjunto arbitrario de esos 458 registros -- ni ordenado por
+    archivo ni por fecha -- y el resultado, tras deduplicar por nombre
+    de archivo, quedaba faltando archivos de anios sueltos (no un
+    tramo contiguo al final). El sintoma no aparecia en la busqueda
+    misma (no tira error, 'se completa' con el subconjunto que le
+    toco) sino recien en 06_qc_checks.py, como una serie de tiempo mas
+    corta que la esperada (852 meses en vez de 1032 para
+    EC-Earth3-Veg/ssp370, verificado)."""
+    docs: list[dict] = []
+    offset = 0
+    while True:
+        page_params = {**params, "limit": page_size, "offset": offset}
+        r = esgf_get(url, page_params, timeout=timeout, max_retries=max_retries)
+        batch = r.json()["response"]["docs"]
+        docs.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+    return docs
+
+
 def url_is_alive(url: str, timeout: float = 10) -> bool:
     """HEAD rapido (sin bajar el archivo) para confirmar que un link de
     descarga responde de verdad. ESGF a veces indexa un archivo cuyo
@@ -140,6 +182,20 @@ def experiments() -> list[str]:
     """'historical' + escenarios, en ese orden -- lista completa de
     experimentos que el pipeline debe descargar/procesar."""
     return ["historical", *scenarios()]
+
+
+def row_is_complete(row: dict) -> bool:
+    """True solo si la fila del catalogo (models_catalog_status.csv)
+    tiene 'True' explicito para TODOS los experimentos actualmente
+    requeridos por config/periods.yaml -- no confia en la columna
+    'complete' ya escrita en el CSV, que puede haber quedado
+    desactualizada. Caso real observado: filas resueltas cuando el
+    config todavia tenia 2 escenarios SSP quedan con 'complete=True'
+    pero con la celda del escenario agregado despues (p.ej. ssp370)
+    vacia en vez de 'False' -- sin este chequeo, 02_download_cmip6_chunks.sh
+    las trataba como completas e intentaba (sin exito, en cada corrida)
+    descargar un escenario que ese modelo nunca tuvo publicado."""
+    return all(row.get(exp) == "True" for exp in experiments())
 
 
 def experiment_year_range(exp: str) -> tuple[int, int]:

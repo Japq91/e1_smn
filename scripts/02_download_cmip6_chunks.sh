@@ -23,11 +23,16 @@
 #
 # MAX_MODELS (variable de entorno, exportada por run.sh): si esta
 # definida, limita cuantos modelos "completos" del catalogo se
-# descargan en esta corrida, contando en el orden del CSV.
+# descargan en esta corrida, contando en el orden en que aparecen en
+# el catalogo.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CATALOG_CSV="data/interim/models_catalog_status.csv"
+if [ ! -f "config/models_seed_cmip6.csv" ] || [ ! -f "$CATALOG_CSV" ]; then
+    echo "Falta config/models_seed_cmip6.csv o $CATALOG_CSV -- correr antes los pasos 00b y 01." >&2
+    exit 1
+fi
 FILES_JSON="data/interim/esgf_file_urls.json"
 OUTDIR="data/raw/cmip6"
 INTERIM_PROCESSED_DIR="data/interim/processed"
@@ -40,6 +45,33 @@ WGET_TIMEOUT=120
 mapfile -t EXPERIMENTS < <(python3 scripts/pipeline_config.py experiments | tr ' ' '\n')
 
 mkdir -p "$OUTDIR" logs
+
+# Modelos aptos para descarga: deben estar en config/models_seed_cmip6.csv
+# (00b ya inspecciono el universo completo de 102 modelos bajo el
+# criterio ACTUAL de config/periods.yaml y solo incluye ahi a los que
+# de verdad tienen los 3 SSP + historical) Y tener, en el catalogo,
+# 'True' explicito para CADA experimento actualmente configurado (ver
+# pipeline_config.row_is_complete). No basta con la columna 'complete'
+# del catalogo: una fila resuelta cuando el config tenia menos
+# escenarios queda con 'complete=True' pero con la celda del escenario
+# agregado despues vacia -- verificado en la practica con modelos como
+# CIESM/GFDL-CM4 (les falta ssp370 segun el propio reporte de 00b) que
+# sin este doble chequeo se reintentaban en cada corrida sin ninguna
+# posibilidad real de completarse.
+mapfile -t READY_MODELS < <(python3 -c "
+import csv
+import sys
+sys.path.insert(0, 'scripts')
+import pipeline_config as pc
+
+with open('config/models_seed_cmip6.csv', newline='') as f:
+    seed = {row['model'] for row in csv.DictReader(f)}
+
+with open('$CATALOG_CSV', newline='') as f:
+    for row in csv.DictReader(f):
+        if row['model'] in seed and pc.row_is_complete(row):
+            print(row['model'])
+")
 
 # Devuelve, una por linea, "filename\turl1,url2,..." para model/key
 # (key = experimento: historical o alguno de los escenarios SSP de
@@ -111,10 +143,7 @@ download_experiment () {
 }
 
 model_count=0
-while IFS=, read -r model grid_label complete _rest; do
-    [ "$model" = "model" ] && continue          # saltar encabezado
-    [ "$complete" != "True" ] && continue        # solo modelos completos
-
+for model in "${READY_MODELS[@]}"; do
     if [ -n "$MAX_MODELS" ] && [ "$model_count" -ge "$MAX_MODELS" ]; then
         echo "Limite MAX_MODELS=$MAX_MODELS alcanzado, se omiten los modelos restantes."
         break
@@ -135,4 +164,4 @@ while IFS=, read -r model grid_label complete _rest; do
         echo "Procesando $model $exp ($model_count${MAX_MODELS:+/$MAX_MODELS}) ..."
         download_experiment "$model" "$exp"
     done
-done < "$CATALOG_CSV"
+done

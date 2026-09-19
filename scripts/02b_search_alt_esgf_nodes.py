@@ -89,10 +89,9 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
         "project": "CMIP6", "source_id": model, "experiment_id": experiment,
         "variable_id": VARIABLE, "table_id": TABLE, "type": "File",
         "variant_label": member,
-        "format": "application/solr+json", "limit": 200,
+        "format": "application/solr+json",
     }
-    r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
-    docs = r.json()["response"]["docs"]
+    docs = pipeline_config.esgf_get_all_docs(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
 
     by_filename: dict[str, list[str]] = {}
     for d in docs:
