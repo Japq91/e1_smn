@@ -21,3 +21,7 @@ config/models_seed_cmip6.csv
 # Paquete armado por scripts/bundle_deliverable_update.py: por
 # corrida/maquina, se re-genera solo, no se versiona.
 informe/entregable_update.tar.gz
+# Salidas de graficos_exploratorios.ipynb / scripts/plot_*.py: se
+# regeneran solas por maquina, no se versionan (se incluyen en el
+# paquete de bundle_deliverable_update.py para transferirlas).
+figures/
