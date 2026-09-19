@@ -35,17 +35,22 @@ EXPECTED_FILES = [
     ("data/processed/models_inventory_final.csv",
      "run.sh (paso 07) -- necesita 06 ya corrido"),
     ("figures/sst_QD_vf.png",
-     "graficos_exploratorios.ipynb, celda 'Resumen de control de calidad' -- manual, no es parte de run.sh"),
+     "python3 scripts/plot_qc_summary.py (ya se corre solo al final de run.sh)"),
     ("figures/sst_2d_ERSSTv5.png",
-     "graficos_exploratorios.ipynb, celda 'Mapas' -- manual"),
+     "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
+     "necesita data/processed/masked/ersstv5_region.nc (pasos 03-05)"),
     ("figures/sst_2d_ACCESS-CM2.png",
-     "graficos_exploratorios.ipynb, celda 'Mapas' -- manual"),
+     "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
+     "necesita que ACCESS-CM2 este descargado y procesado (pasos 02-05)"),
     ("figures/sst_2d_GFDL-CM4.png",
-     "graficos_exploratorios.ipynb, celda 'Mapas' -- manual"),
+     "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
+     "necesita que GFDL-CM4 este descargado y procesado (pasos 02-05); si GFDL-CM4 "
+     "no tiene los 4 experimentos requeridos, no va a estar en el inventario y esta "
+     "figura no se puede generar para ese modelo"),
     ("figures/boxplot_Nino3.4.png",
-     "graficos_exploratorios.ipynb, celda 'Boxplot' -- manual"),
+     "python3 scripts/plot_boxplot_comparison.py (ya se corre solo al final de run.sh)"),
     ("figures/boxplot_Nino1+2.png",
-     "graficos_exploratorios.ipynb, celda 'Boxplot' -- manual"),
+     "python3 scripts/plot_boxplot_comparison.py (ya se corre solo al final de run.sh)"),
 ]
 
 
