@@ -30,7 +30,7 @@
 #   de segunda opinion (ya no es necesario correrla aparte).
 # - Paso 02 ahora es scripts/02_download_all_sources.sh: encadena ESGF (nodo
 #   principal) -> ESGF (nodos alternativos, 02b) -> Copernicus CDS (02c, solo
-#   lista blanca config/models_copernicus_ssp245_whitelist.csv). 02b/02c ya
+#   lista blanca config/models_copernicus_available.csv). 02b/02c ya
 #   NO son pasos manuales -- un clone nuevo + run.sh los ejecuta solo.
 # - Paso 02 se invoca via scripts/run_download_if_idle.sh: si YA hay una
 #   descarga corriendo en otro proceso, no lanza otra (se puede correr

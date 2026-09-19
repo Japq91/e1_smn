@@ -3,7 +3,7 @@
 # cascada: ESGF (nodo principal, 02_download_cmip6_chunks.sh) -> ESGF
 # (nodos alternativos, 02b_search_alt_esgf_nodes.py) -> Copernicus CDS
 # (02c_download_copernicus_cds.py, solo para los modelos de la lista
-# blanca config/models_copernicus_ssp245_whitelist.csv).
+# blanca config/models_copernicus_available.csv).
 #
 # A diferencia de versiones anteriores del pipeline, 02b y 02c ya NO
 # son pasos manuales: este script los ejecuta automaticamente como
@@ -20,15 +20,21 @@
 # La lista blanca de Copernicus existe porque CDS no espeja el
 # catalogo completo de ESGF: para muchos modelos "de cola larga" el
 # job falla con RoocsValueError (el dataset no esta replicado ahi).
-# La lista se construyo verificando a mano, en el sitio de Copernicus,
-# que modelo+ssp245 si existe -- evita gastar cuota/tiempo en jobs que
-# sabemos que van a fallar.
+# config/models_copernicus_available.csv es el listado de modelos que
+# ofrece el selector del dataset 'projections-cmip6' en el sitio de
+# Copernicus (confirma que el MODELO existe ahi, no que tenga
+# necesariamente todos los experimentos requeridos -- eso lo resuelve
+# 02c intentando la descarga real) -- evita gastar cuota/tiempo en
+# modelos que sabemos que ni siquiera aparecen en CDS. Reemplaza a
+# config/models_copernicus_ssp245_whitelist.csv (mas acotada, verificada
+# a mano solo para ssp245; se conserva sin usar, como referencia
+# historica del Entregable 1 -- ver informe/).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
 CATALOG_CSV="data/interim/models_catalog_status.csv"
 FILES_JSON="data/interim/esgf_file_urls.json"
-COPERNICUS_WHITELIST="config/models_copernicus_ssp245_whitelist.csv"
+COPERNICUS_WHITELIST="config/models_copernicus_available.csv"
 
 # Imprime (stdout) los modelos de CATALOG_CSV cuyo 'fuente' sea
 # exactamente el valor pasado como argumento.
