@@ -50,6 +50,7 @@ import csv
 import re
 import shutil
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -85,6 +86,11 @@ CDS_MONTHS = [f"{m:02d}" for m in range(1, 13)]
 # antimeridiano), latitud acotada a la ventana del proyecto (20S-20N).
 CDS_AREA = [20, -180, -20, 180]
 EXPECTED_MEMBER = "r1i1p1f1"
+# Reintentos ante un fallo puntual de la API de CDS (cola, timeout de
+# red, etc.) -- antes no habia ninguno, un solo error tiraba el modelo
+# directo a fail_log sin una segunda oportunidad.
+CDS_MAX_RETRIES = 2
+CDS_RETRY_WAIT_S = 30
 
 # Variantes de alta resolucion (sufijos -HR, -HR4, -VHR4, -XR, -MR1,
 # -HH/-HM/-MH, etc.) se omiten por defecto: confirmado que CMCC-CM2-HR4
@@ -138,11 +144,21 @@ def download_experiment(client: "cdsapi.Client", model: str, exp: str,
         "area": CDS_AREA,
     }
 
-    try:
-        client.retrieve(CDS_DATASET, request).download(str(zip_path))
-    except Exception as e:  # cdsapi levanta excepciones genericas de la API remota
+    last_error = None
+    for attempt in range(1, CDS_MAX_RETRIES + 1):
+        try:
+            client.retrieve(CDS_DATASET, request).download(str(zip_path))
+            last_error = None
+            break
+        except Exception as e:  # cdsapi levanta excepciones genericas de la API remota
+            last_error = e
+            if attempt < CDS_MAX_RETRIES:
+                print(f"  {model} {exp}: fallo CDS ({e}) -- reintento {attempt}/{CDS_MAX_RETRIES} "
+                      f"en {CDS_RETRY_WAIT_S}s", file=sys.stderr)
+                time.sleep(CDS_RETRY_WAIT_S)
+    if last_error is not None:
         with open(fail_log, "a") as f:
-            f.write(f"FALLO CDS: {model} {exp} ({cds_model}): {e}\n")
+            f.write(f"FALLO CDS: {model} {exp} ({cds_model}): {last_error}\n")
         return False
 
     extract_dir = tmpdir / f"{model}_{exp}_extracted"

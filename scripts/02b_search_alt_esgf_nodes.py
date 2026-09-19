@@ -49,6 +49,11 @@ from pipeline_config import ALT_ESGF_SEARCH_URLS
 EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
 TIMEOUT = 30
+# Menos reintentos que el default de esgf_get (6): acá hay 5 nodos para
+# probar en cascada, asi que conviene fallar rapido en uno que esta
+# realmente caido y pasar al siguiente, en vez de esperar minutos por
+# cada experimento en un solo nodo problematico.
+ALT_NODE_MAX_RETRIES = 2
 
 
 def _realization_number(member: str) -> int:
@@ -67,7 +72,7 @@ def find_common_member(base_url: str, model: str) -> str | None:
             "format": "application/solr+json", "limit": 0,
             "facets": "variant_label",
         }
-        r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT)
+        r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
         facet_field = r.json()["facet_counts"]["facet_fields"].get("variant_label", [])
         members_per_exp[exp] = set(facet_field[0::2])
 
@@ -86,7 +91,7 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
         "variant_label": member,
         "format": "application/solr+json", "limit": 200,
     }
-    r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT)
+    r = pipeline_config.esgf_get(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
     docs = r.json()["response"]["docs"]
 
     by_filename: dict[str, list[str]] = {}
