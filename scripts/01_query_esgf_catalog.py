@@ -112,11 +112,19 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
         params["grid_label"] = grid_label
 
     docs = pipeline_config.esgf_get_all_docs(ESGF_SEARCH_URL, params, timeout=30)
+    year_start, year_end = pipeline_config.experiment_year_range(experiment)
 
     by_filename: dict[str, list[str]] = {}
     for d in docs:
         filename = d.get("title")
         if not filename:
+            continue
+        # Descarta de entrada archivos fuera del rango de anios que
+        # este pipeline necesita (ver file_overlaps_range) -- algunos
+        # modelos publican corridas extendidas mas alla de 2100 en
+        # algun nodo, y no tiene sentido verificar/imprimir nada sobre
+        # archivos que de todas formas nunca se van a descargar.
+        if not pipeline_config.file_overlaps_range(filename, year_start, year_end):
             continue
         for u in d.get("url", []):
             url, mime, service = (u.split("|") + ["", "", ""])[:3]

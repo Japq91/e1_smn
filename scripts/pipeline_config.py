@@ -145,6 +145,30 @@ def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
     return docs
 
 
+_FILE_YEAR_RANGE_RE = re.compile(r"_(\d{4})\d{2}-(\d{4})\d{2}\.nc$")
+
+
+def file_overlaps_range(filename: str, year_start: int, year_end: int) -> bool:
+    """True si el archivo (por su nombre, convencion CMOR de CMIP6:
+    '..._YYYYMM-YYYYMM.nc') cae al menos parcialmente dentro del rango
+    de anios que este pipeline necesita para ese experimento (ver
+    experiment_year_range). Si el nombre no trae un rango de fechas
+    reconocible, se conserva (mejor no descartarlo a ciegas).
+
+    Filtra de entrada corridas extendidas mas alla de lo pedido (caso
+    real: EC-Earth3-Veg publica ssp370/ssp245/ssp585 hasta el anio 2300
+    en el nodo esgf-data04.diasjp.net, pero el pipeline solo usa hasta
+    2100) -- sin este filtro, esgf_file_search igual encontraba esos
+    archivos, gastaba una verificacion HEAD por cada uno y imprimia un
+    aviso 'se descarta' para los que ya no tenian mirror vivo, aunque
+    de todas formas nunca se iban a descargar."""
+    m = _FILE_YEAR_RANGE_RE.search(filename)
+    if not m:
+        return True
+    f_start, f_end = int(m.group(1)), int(m.group(2))
+    return f_start <= year_end and f_end >= year_start
+
+
 def url_is_alive(url: str, timeout: float = 10) -> bool:
     """HEAD rapido (sin bajar el archivo) para confirmar que un link de
     descarga responde de verdad. ESGF a veces indexa un archivo cuyo

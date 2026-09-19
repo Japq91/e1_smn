@@ -92,11 +92,14 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
         "format": "application/solr+json",
     }
     docs = pipeline_config.esgf_get_all_docs(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
+    year_start, year_end = pipeline_config.experiment_year_range(experiment)
 
     by_filename: dict[str, list[str]] = {}
     for d in docs:
         filename = d.get("title")
         if not filename:
+            continue
+        if not pipeline_config.file_overlaps_range(filename, year_start, year_end):
             continue
         for u in d.get("url", []):
             url, mime, service = (u.split("|") + ["", "", ""])[:3]
