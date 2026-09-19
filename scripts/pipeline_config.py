@@ -169,18 +169,35 @@ def file_overlaps_range(filename: str, year_start: int, year_end: int) -> bool:
     return f_start <= year_end and f_end >= year_start
 
 
-def url_is_alive(url: str, timeout: float = 10) -> bool:
+def url_is_alive(url: str, timeout: float = 10, attempts: int = 3) -> bool:
     """HEAD rapido (sin bajar el archivo) para confirmar que un link de
     descarga responde de verdad. ESGF a veces indexa un archivo cuyo
     link ya no esta vivo (nodo reorganizado, replica caida, etc.) --
     confiar solo en que el buscador lo devolvio no garantiza que se
-    pueda descargar. Un solo intento, sin reintentos: si este mirror no
-    responde, el llamador prueba el siguiente (ver pick_first_live_url)."""
-    try:
-        r = requests.head(url, timeout=timeout, allow_redirects=True)
-        return r.status_code < 400
-    except requests.RequestException:
-        return False
+    pueda descargar.
+
+    Reintenta (hasta 'attempts' veces, con una pausa corta) solo ante
+    fallos que pueden ser transitorios: timeout, error de conexion, 429
+    o 5xx. Un 4xx real (404, 403, ...) se da por muerto de inmediato,
+    sin reintentar -- eso si es una respuesta definitiva del servidor,
+    no un hipo de red. BUG evitado: antes esto era un solo intento sin
+    reintento, asi que un timeout puntual (nodo lento, no caido) bastaba
+    para descartar un archivo -- y de ahi, si le pasaba a la mayoria de
+    los archivos de un modelo, el modelo entero quedaba marcado como no
+    disponible por una falla momentanea, no por falta real de datos."""
+    for attempt in range(attempts):
+        try:
+            r = requests.head(url, timeout=timeout, allow_redirects=True)
+        except requests.RequestException:
+            pass
+        else:
+            if r.status_code < 400:
+                return True
+            if r.status_code != 429 and r.status_code < 500:
+                return False  # 4xx real (404, 403, ...): no reintenta
+        if attempt < attempts - 1:
+            time.sleep(2 * (attempt + 1))
+    return False
 
 
 def pick_first_live_url(urls: list[str], timeout: float = 10) -> list[str] | None:

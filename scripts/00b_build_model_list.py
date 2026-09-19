@@ -84,13 +84,19 @@ def list_all_models() -> list[str]:
 
 def model_datasets(model: str, base_url: str = ESGF_SEARCH_URL) -> list[dict]:
     """Todos los datasets (cualquier experimento/grilla) de tos/Omon para un
-    modelo, contra el nodo indicado (por defecto, el principal)."""
+    modelo, contra el nodo indicado (por defecto, el principal). Pagina
+    con esgf_get_all_docs en vez de un limit fijo -- un dataset es mucho
+    mas grueso que un archivo (agrupa todos los timesteps de un
+    modelo/experimento/variante/grilla en un solo registro), asi que en
+    la practica nunca se acercaba al limit=500 anterior, pero es el
+    mismo patron de riesgo que causo el bug real de
+    esgf_file_search (ver pipeline_config.esgf_get_all_docs) -- mejor
+    no dejarlo con un techo fijo tampoco aca."""
     params = {
         "project": "CMIP6", "source_id": model, "variable_id": VARIABLE, "table_id": TABLE,
-        "type": "Dataset", "format": "application/solr+json", "limit": 500,
+        "type": "Dataset", "format": "application/solr+json",
     }
-    r = pipeline_config.esgf_get(base_url, params, timeout=60)
-    return r.json()["response"]["docs"]
+    return pipeline_config.esgf_get_all_docs(base_url, params, timeout=60)
 
 
 def experiments_present(docs: list[dict]) -> set[str]:
