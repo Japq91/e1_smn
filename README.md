@@ -110,7 +110,7 @@ Para cada modelo, determina el `variant_label` (miembro de ensamble) disponible 
 ### 02 — Descarga CMIP6, en cascada (`02_download_all_sources.sh`)
 Encadena automáticamente 3 fuentes, cada una solo para lo que la anterior no haya resuelto:
 
-1. **`02_download_cmip6_chunks.sh`**: descarga cada archivo tal como lo entrega ESGF (nodo principal), sin fusionar ni recortar, en `data/raw/cmip6/<modelo>/<experimento>/`. `MAX_MODELS` limita cuántos modelos completos se descargan.
+1. **`02_download_cmip6_chunks.sh`**: descarga cada archivo tal como lo entrega ESGF (nodo principal), sin fusionar ni recortar, en `data/raw/cmip6/<modelo>/<experimento>/`. `MAX_MODELS` limita cuántos modelos completos se descargan. Si un modelo+experimento ya tiene su resultado intermedio (paso 04) o final (paso 05), no vuelve a tocar los crudos en absoluto -- útil si se borraron a mano para liberar espacio después de procesar. Imprime progreso (`archivo N/M`) porque algunos modelos publican un experimento en decenas de chunks sueltos (ej. un archivo por año individual, no contiguo).
 2. **`02b_search_alt_esgf_nodes.py`**: para los modelos `no_encontrado`, repite la búsqueda de 01 contra nodos ESGF alternativos (CEDA, DKRZ, IPSL, NSC, NCI) y actualiza el catálogo.
 3. **`02c_download_copernicus_cds.py`**: último recurso, vía Copernicus CDS, **solo para modelos que además están en `config/models_copernicus_ssp245_whitelist.csv`**. Esa lista blanca se verificó a mano contra Copernicus únicamente para `ssp245` — al agregar un escenario SSP nuevo, la disponibilidad de ese escenario en Copernicus para esos modelos no está garantizada y debería revisarse aparte. Requiere `~/.cdsapirc`; si no está disponible, el paso se omite sin abortar el resto del pipeline.
 

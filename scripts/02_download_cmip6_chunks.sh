@@ -30,6 +30,8 @@ cd "$(dirname "$0")/.."
 CATALOG_CSV="data/interim/models_catalog_status.csv"
 FILES_JSON="data/interim/esgf_file_urls.json"
 OUTDIR="data/raw/cmip6"
+INTERIM_PROCESSED_DIR="data/interim/processed"
+MASKED_DIR="data/processed/masked"
 FAIL_LOG="logs/download_failures.log"
 MAX_MODELS="${MAX_MODELS:-}"   # vacio = sin limite
 WGET_TIMEOUT=120
@@ -73,21 +75,30 @@ download_experiment () {
     local start_ts downloaded_any=0
     start_ts=$(date +%s)
 
+    # Contador de progreso (algunos modelos publican historical/ssp* en
+    # decenas de archivos sueltos, ej. un chunk por anio individual y no
+    # contiguo -- sin esto, avanzar por una lista larga parece "colgado"
+    # aunque este funcionando bien).
+    local file_list total i=0
+    file_list=$(list_files_for "$model" "$exp")
+    total=$(printf '%s\n' "$file_list" | grep -c .)
+
     while IFS=$'\t' read -r filename urls_csv; do
         [ -z "$filename" ] && continue
+        i=$((i + 1))
         local outfile="$dest_dir/$filename"
 
         if [ -s "$outfile" ]; then
             continue   # idempotente: no re-descargar este chunk (-s: existe y no esta vacio)
         fi
 
-        echo "  descargando $filename"
+        echo "  descargando archivo $i/$total: $filename"
         if download_with_mirrors "$urls_csv" "$outfile"; then
             downloaded_any=1
         else
             echo "FALLO descarga (todos los mirrors): $model $exp $filename" >> "$FAIL_LOG"
         fi
-    done < <(list_files_for "$model" "$exp")
+    done <<< "$file_list"
 
     # Tiempo real de descarga -- solo se registra si hubo algo NUEVO
     # descargado (no cuenta si todo ya estaba en disco). Alimenta el
@@ -111,6 +122,16 @@ while IFS=, read -r model grid_label complete _rest; do
     model_count=$((model_count + 1))
 
     for exp in "${EXPERIMENTS[@]}"; do
+        # Si este modelo+experimento ya llego al resultado intermedio
+        # (paso 04) o final (paso 05), no hace falta ni siquiera revisar
+        # los crudos -- se re-descargarian sin necesidad si, por ejemplo,
+        # se borraron a mano para liberar espacio despues de procesar.
+        if [ -f "$INTERIM_PROCESSED_DIR/tos_${model}_${exp}.nc" ] || \
+           [ -f "$MASKED_DIR/tos_${model}_${exp}.nc" ]; then
+            echo "$model $exp: ya procesado (paso 04/05), se omite la descarga de crudos"
+            continue
+        fi
+
         echo "Procesando $model $exp ($model_count${MAX_MODELS:+/$MAX_MODELS}) ..."
         download_experiment "$model" "$exp"
     done
