@@ -173,6 +173,32 @@ def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
     return docs
 
 
+HISTORICAL_EQUIVALENTS = {"historical", "hist-1950"}
+# 'historical' es el experimento DECK estandar (1850-2014). 'hist-1950'
+# es el equivalente de HighResMIP (1950-2014, arranca de un spinup
+# propio, no del piControl estandar) -- decision explicita del usuario:
+# no hace falta que arranque en 1850, 1950 en adelante sirve igual para
+# el periodo de referencia de este proyecto (1981-2014). OJO: los
+# modelos que solo tienen hist-1950 (no historical) nunca tienen
+# ningun SSP publicado (corren 'highres-future' en su lugar, protocolo
+# HighResMIP) -- verificado en la practica, no es cuestion de buscar
+# mas. Esto solo afecta si "tiene historical" para fines de
+# clasificacion/reporte (informe/model_availability_report.*); NO
+# cambia que grilla elige 00b para el seed (pick_coarsest_grid sigue
+# exigiendo 'historical' literal + los 3 SSP bajo la misma grilla para
+# seleccionar un modelo -- y estos modelos igual no calificarian, por
+# no tener ningun SSP).
+
+
+def has_historical(experiments: set[str]) -> str | None:
+    """Devuelve cual de HISTORICAL_EQUIVALENTS esta presente (prefiere
+    'historical' si estan ambos), o None si no hay ninguno."""
+    found = experiments & HISTORICAL_EQUIVALENTS
+    if not found:
+        return None
+    return "historical" if "historical" in found else sorted(found)[0]
+
+
 _FILE_YEAR_RANGE_RE = re.compile(r"_(\d{4})\d{2}-(\d{4})\d{2}\.nc$")
 
 

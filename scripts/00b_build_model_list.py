@@ -82,7 +82,14 @@ def list_all_models() -> list[str]:
     return facet[0::2]
 
 
-def model_datasets(model: str, base_url: str = ESGF_SEARCH_URL) -> list[dict]:
+ALT_NODE_MAX_RETRIES = 2  # igual que 02b_search_alt_esgf_nodes.py: hay 8 nodos
+# de respaldo para probar en cascada, asi que conviene fallar rapido en uno
+# que esta realmente caido y pasar al siguiente, en vez de esperar ~160s
+# (6 reintentos con backoff) por cada nodo problematico y por cada modelo
+# que necesita este fallback.
+
+
+def model_datasets(model: str, base_url: str = ESGF_SEARCH_URL, max_retries: int = pipeline_config.ESGF_MAX_RETRIES) -> list[dict]:
     """Todos los datasets (cualquier experimento/grilla) de tos/Omon para un
     modelo, contra el nodo indicado (por defecto, el principal). Pagina
     con esgf_get_all_docs en vez de un limit fijo -- un dataset es mucho
@@ -96,7 +103,7 @@ def model_datasets(model: str, base_url: str = ESGF_SEARCH_URL) -> list[dict]:
         "project": "CMIP6", "source_id": model, "variable_id": VARIABLE, "table_id": TABLE,
         "type": "Dataset", "format": "application/solr+json",
     }
-    return pipeline_config.esgf_get_all_docs(base_url, params, timeout=60)
+    return pipeline_config.esgf_get_all_docs(base_url, params, timeout=60, max_retries=max_retries)
 
 
 def experiments_present(docs: list[dict]) -> set[str]:
@@ -120,7 +127,7 @@ def fetch_model_docs(model: str) -> tuple[list[dict], str]:
 
     for alt_url in pipeline_config.ALT_ESGF_SEARCH_URLS:
         try:
-            alt_docs = model_datasets(model, base_url=alt_url)
+            alt_docs = model_datasets(model, base_url=alt_url, max_retries=ALT_NODE_MAX_RETRIES)
         except requests.RequestException:
             continue
         if "historical" in experiments_present(alt_docs):
@@ -209,6 +216,7 @@ def main(out_csv: str, report_prefix: Path = DEFAULT_REPORT_PREFIX) -> None:
         docs, fuente_hist = fetch_model_docs(model)
         present = experiments_present(docs)
         status = {exp: (exp in present) for exp in REQUIRED_EXPERIMENTS}
+        status["historical"] = bool(pipeline_config.has_historical(present))
         cat = classify(status)
         avail_rows.append({"model": model, **status, "categoria": cat})
 

@@ -100,9 +100,12 @@ def category_label(cat: str) -> str:
     if cat == "completo":
         return f"Completos (historical + {' + '.join(SCENARIOS)}, con tos/Omon)"
     if cat == "sin_tos":
-        return "Sin tos/Omon publicado en ningun experimento (no encontrado)"
+        return ("Sin historical (ni hist-1950) ni ningun SSP -- pueden tener tos/Omon "
+                "publicado igual, pero bajo otros experimentos (omip, PMIP, HighResMIP "
+                "sin hist-1950, DCPP, etc.) que este pipeline no usa; ver columna de "
+                "experimentos encontrados")
     if cat == "solo_historical":
-        return "Solo tienen historical (les faltan todos los SSP)"
+        return "Solo tienen historical (o hist-1950) -- les faltan todos los SSP"
     if cat == "sin_historical_pero_con_algun_ssp":
         return "Tienen algun SSP pero no historical"
     if cat.startswith("falta_"):
@@ -127,6 +130,7 @@ def main(models: list[str], out_prefix: Path) -> None:
                          "categoria": "error_consulta"})
             continue
         status = {exp: (exp in found) for exp in EXPERIMENTS}
+        status["historical"] = bool(pipeline_config.has_historical(found))
         cat = classify(status)
         rows.append({"model": model, **status, "categoria": cat})
     write_report(rows, out_prefix, titulo="Disponibilidad de tos/Omon por modelo CMIP6 (verificado en vivo contra ESGF)")
