@@ -26,7 +26,7 @@ plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
 BASE_DIR = Path(__file__).resolve().parent.parent
 MASKED_DIR = BASE_DIR / "data/processed/masked"
 QC_CSV = BASE_DIR / "data/processed/qc_report.csv"
-MODEL_AVAILABILITY_CSV = BASE_DIR / "informe/model_availability_report.csv"
+MODEL_AVAILABILITY_CSV = BASE_DIR / "informe/model_availability_priority.csv"
 FIGURES_DIR = BASE_DIR / "figures"
 
 # Todas las figuras se guardan livianas (DPI 100) -- pensado para que

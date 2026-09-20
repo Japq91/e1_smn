@@ -40,15 +40,26 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     df["status_simple"] = df["status"].replace({"ERROR_CDO": "FAIL"})
 
     avail_df = pd.read_csv(pc.MODEL_AVAILABILITY_CSV, dtype=str)
-    experiments = [e for e in pc.EXPERIMENTS if e in avail_df.columns]
-    missing_cols = [e for e in pc.EXPERIMENTS if e not in avail_df.columns]
+
+    def avail_col(exp: str) -> str:
+        return "tiene_hist" if exp == "historical" else f"tiene_{exp}"
+
+    experiments = [e for e in pc.EXPERIMENTS if avail_col(e) in avail_df.columns]
+    missing_cols = [e for e in pc.EXPERIMENTS if avail_col(e) not in avail_df.columns]
     if missing_cols:
-        print(f"AVISO: {pc.MODEL_AVAILABILITY_CSV.name} no tiene columna(s) {missing_cols} "
+        print(f"AVISO: {pc.MODEL_AVAILABILITY_CSV.name} no tiene columna(s) para {missing_cols} "
               "-- regeneralo (borrar y correr de nuevo el paso 00b) para incluir "
               "los escenarios SSP mas recientes de config/periods.yaml", file=sys.stderr)
 
+    # 'historical'/'hist' aca es solo si tiene el experimento que este
+    # pipeline usa (historical o hist-1950) -- ver
+    # pipeline_config.has_historical. NO es lo mismo que "tiene tos":
+    # todos los modelos de este CSV tienen tos/Omon publicado en algun
+    # lado (ver columna tiene_tos y experimentos_encontrados), solo que
+    # algunos lo tienen bajo experimentos que este pipeline no usa
+    # (omip, PMIP, DCPP, HighResMIP sin hist-1950, etc.).
     availability = {
-        row["model"]: {exp for exp in experiments if row[exp] == "True"}
+        row["model"]: {exp for exp in experiments if row[avail_col(exp)] == "1"}
         for _, row in avail_df.iterrows()
     }
     all_models = sorted(availability)
@@ -76,15 +87,23 @@ def plot_qc_summary(n_panels: int = 4) -> None:
                 else:
                     final_status.loc[model, exp] = "UNAVAILABLE"
 
-    tos_available = {
-        model: ("TOS_YES" if len(availability[model]) > 0 else "TOS_NO")
+    # OJO: esto es "tiene historical o hist-1950" (lo que este pipeline
+    # puede usar), NO "tiene tos en algun lado" -- todos los modelos de
+    # informe/model_availability_priority.csv tienen tos publicado en
+    # algun experimento (ver columna tiene_tos, siempre 1 en la
+    # practica), solo que algunos lo tienen bajo protocolos que este
+    # pipeline no usa (omip, PMIP, DCPP, etc.) -- antes esta figura
+    # llamaba a eso "TOS_NO", lo cual era enganoso (bug real,
+    # encontrado por el usuario).
+    hist_available = {
+        model: ("HIST_YES" if "historical" in availability[model] else "HIST_NO")
         for model in all_models
     }
 
     model_order = sorted(
         all_models,
         key=lambda m: (
-            -(1 if tos_available[m] == "TOS_YES" else 0),
+            -(1 if hist_available[m] == "HIST_YES" else 0),
             -sum(final_status.loc[m, e] == "PASS" for e in experiments),
             m,
         ),
@@ -95,15 +114,15 @@ def plot_qc_summary(n_panels: int = 4) -> None:
 
     color_map = {
         "PASS": "tab:green", "FAIL": "tab:red", "FAIL_DESCARGA": "darkred",
-        "UNAVAILABLE": "lightgrey", "TOS_YES": "tab:green", "TOS_NO": "lightgrey",
+        "UNAVAILABLE": "lightgrey", "HIST_YES": "tab:green", "HIST_NO": "lightgrey",
     }
     marker_map = {
         "PASS": "o", "FAIL": "X", "FAIL_DESCARGA": "v",
-        "UNAVAILABLE": "s", "TOS_YES": "o", "TOS_NO": "s",
+        "UNAVAILABLE": "s", "HIST_YES": "o", "HIST_NO": "s",
     }
     size_map = {
         "PASS": 30, "FAIL": 30, "FAIL_DESCARGA": 30,
-        "UNAVAILABLE": 15, "TOS_YES": 30, "TOS_NO": 15,
+        "UNAVAILABLE": 15, "HIST_YES": 30, "HIST_NO": 15,
     }
 
     fig, axes = plt.subplots(1, n_panels, figsize=(n_panels * 2.4, panel_size * 0.12 + .4),
@@ -111,10 +130,10 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     for idx, ax in enumerate(axes):
         chunk = panels[idx]
         for i, model in enumerate(chunk):
-            tos_status = tos_available[model]
-            ax.scatter(0, i, marker=marker_map[tos_status], s=size_map[tos_status],
-                       c=color_map[tos_status],
-                       edgecolors="none" if tos_status != "TOS_NO" else "white",
+            hist_status = hist_available[model]
+            ax.scatter(0, i, marker=marker_map[hist_status], s=size_map[hist_status],
+                       c=color_map[hist_status],
+                       edgecolors="none" if hist_status != "HIST_NO" else "white",
                        linewidth=0.5, alpha=0.9)
             for j, exp in enumerate(experiments):
                 status = final_status.loc[model, exp]
@@ -124,7 +143,7 @@ def plot_qc_summary(n_panels: int = 4) -> None:
                            edgecolors="none" if status != "UNAVAILABLE" else "white",
                            linewidth=0.5, alpha=0.9)
 
-        all_cols = ["tos"] + experiments
+        all_cols = ["hist"] + experiments
         ax.set_xticks(range(len(all_cols)))
         ax.set_xticklabels(all_cols, rotation=45, ha="left", fontsize=8)
         ax.set_yticks(range(len(chunk)))
@@ -139,13 +158,14 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], marker="o", color="w", markerfacecolor="tab:green",
-               markersize=8, label="PASS / TOS disponible"),
+               markersize=8, label="PASS / historical o hist-1950 disponible"),
         Line2D([0], [0], marker="X", color="w", markerfacecolor="tab:red",
                markersize=8, label="FAIL (QC/CDO, sobre archivo descargado)"),
         Line2D([0], [0], marker="v", color="w", markerfacecolor="darkred",
                markersize=8, label="FAIL descarga (nunca se obtuvo el archivo)"),
         Line2D([0], [0], marker="s", color="w", markerfacecolor="lightgrey",
-               markersize=8, label="No disponible en CMIP6"),
+               markersize=8, label="Columna 'hist': sin historical/hist-1950 -- "
+                                   "columnas SSP: sin ese escenario (puede igual tener tos, ver CSV)"),
     ]
     fig.legend(handles=legend_elements, ncol=2, frameon=False, fontsize=8,
                loc="upper center", bbox_to_anchor=(0.5, .1))

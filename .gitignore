@@ -15,9 +15,12 @@ logs/step_timings.csv
 logs/download_timings.csv
 # Generado por scripts/00b_build_model_list.py (paso 00b de run.sh):
 # especifico de cada maquina/corrida, no se versiona (ver README).
+informe/model_availability_priority.csv
+config/models_seed_cmip6.csv
+# Generados por scripts/check_model_availability.py (herramienta manual
+# de segunda opinion, independiente de 00b): mismo criterio, no se versionan.
 informe/model_availability_report.csv
 informe/model_availability_report.md
-config/models_seed_cmip6.csv
 # Paquete armado por scripts/bundle_deliverable_update.py: por
 # corrida/maquina, se re-genera solo, no se versiona.
 informe/entregable_update.tar.gz
