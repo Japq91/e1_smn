@@ -129,13 +129,33 @@ def fetch_model_docs(model: str) -> tuple[list[dict], str]:
     return docs, "sin_historical"
 
 
+KM_PER_DEGREE = 111.0  # aprox. en el ecuador; suficiente como proxy de resolucion
+
+
 def parse_resolution_km(res_str: str):
-    """La 'nominal_resolution' de CMIP6 usa bins fijos en km (p.ej. '100 km');
-    se extrae el primer numero como proxy de resolucion (mayor = mas grueso)."""
+    """La 'nominal_resolution' de CMIP6 casi siempre usa bins fijos en km
+    (p.ej. '100 km'), pero algunas grillas regrilladas la reportan en
+    grados (p.ej. '1x1 degree') -- se extrae el primer numero y, si la
+    unidad es 'degree', se convierte a km aproximados (1 grado ~111 km)
+    antes de devolverlo, para no comparar numeros en unidades distintas.
+
+    BUG real evitado: antes se tomaba el numero crudo sin mirar la
+    unidad -- '1x1 degree' se leia como '1 km', mucho mas fino que los
+    '100 km' de la otra grilla, cuando en realidad 1 grado son ~111 km
+    (bastante MAS grueso). Verificado con CESM2: eso hacia que 00b
+    eligiera la grilla 'gn' (100 km reales) en vez de 'gr' (~111 km
+    reales, la efectivamente mas gruesa) -- y 'gn' resulto no tener
+    publicado el miembro r1i1p1f1 para los escenarios SSP (solo
+    r4i1p1f1), mientras que 'gr' si lo tenia."""
     if not res_str:
         return None
     m = re.search(r"(\d+(?:\.\d+)?)", res_str)
-    return float(m.group(1)) if m else None
+    if not m:
+        return None
+    value = float(m.group(1))
+    if "degree" in res_str.lower():
+        value *= KM_PER_DEGREE
+    return value
 
 
 def pick_coarsest_grid(docs: list[dict]) -> dict | None:

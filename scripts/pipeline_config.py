@@ -46,14 +46,25 @@ ALT_ESGF_SEARCH_URLS = [
     "https://esgf-node.ipsl.upmc.fr/esg-search/search",
     "https://esg-dn1.nsc.liu.se/esg-search/search",
     "https://esgf.nci.org.au/esg-search/search",
-    # Frontend "Metagrid" (React) de la nueva infraestructura ESGF2 --
-    # esgf-node.llnl.gov/esg-search/search y esgf-node.ornl.gov/esg-search/search
-    # ya no sirven el JSON clasico (devuelven el HTML de la app), pero el
-    # proxy interno de metagrid si habla el mismo protocolo Solr
-    # (verificado a mano: mismos parametros, misma forma de respuesta,
-    # 'url' con el formato 'url|mime|service'). Encontrado por el usuario
-    # via la UI de busqueda en https://metagrid.esgf-west.org/search/cmip6/.
+    # Nodos que migraron su frontend a "Metagrid" (React): su endpoint
+    # clasico '/esg-search/search' devuelve el HTML de la app en vez del
+    # JSON de Solr, pero exponen el mismo protocolo Solr clasico bajo
+    # '/proxy/search' (verificado a mano: mismos parametros, misma forma
+    # de respuesta, 'url' con el formato 'url|mime|service'). OJO: esto
+    # es especifico de cada nodo -- no asumir que todo nodo Metagrid usa
+    # '/proxy/search', hay que probarlo (esgf-node.llnl.gov, el nodo
+    # principal, en cambio SI sigue sirviendo JSON en su endpoint clasico,
+    # verificado -- no todos migraron igual ni al mismo tiempo).
+    #   - metagrid.esgf-west.org: encontrado por el usuario via la UI de
+    #     busqueda en https://metagrid.esgf-west.org/search/cmip6/.
+    #   - esgf-node.ornl.gov y esgf-metagrid.cloud.dkrz.de: encontrados
+    #     al revisar si el mismo patron aplicaba a otros nodos conocidos
+    #     de la federacion, a raiz de que el usuario pregunto por que no
+    #     se usaba ORNL (aparecia seguido como data_node en los archivos
+    #     encontrados, pero nunca se habia consultado como indice).
     "https://metagrid.esgf-west.org/proxy/search",
+    "https://esgf-node.ornl.gov/proxy/search",
+    "https://esgf-metagrid.cloud.dkrz.de/proxy/search",
 ]
 
 # Reintentos ante 429 (rate limit) y errores 5xx/de red de los nodos
@@ -131,12 +142,29 @@ def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
     misma (no tira error, 'se completa' con el subconjunto que le
     toco) sino recien en 06_qc_checks.py, como una serie de tiempo mas
     corta que la esperada (852 meses en vez de 1032 para
-    EC-Earth3-Veg/ssp370, verificado)."""
+    EC-Earth3-Veg/ssp370, verificado).
+
+    Algunos modelos publican TANTOS registros (ej. CanESM5: miles de
+    datasets entre todos sus miembros/experimentos/MIPs) que la
+    paginacion misma choca con un limite de "paginacion profunda" del
+    lado del servidor (verificado: esgf-node.llnl.gov, a partir de
+    offset=10000, responde 422 Unprocessable Content en vez de la
+    pagina siguiente). Si eso pasa, se corta la paginacion ahi y se
+    devuelve lo juntado hasta ese punto (con un aviso) en vez de
+    propagar el error y tirar abajo el script que llamo a esto -- para
+    una consulta de existencia/disponibilidad, los primeros miles de
+    registros ya alcanzan de sobra para cubrir los experimentos que
+    este pipeline necesita."""
     docs: list[dict] = []
     offset = 0
     while True:
         page_params = {**params, "limit": page_size, "offset": offset}
-        r = esgf_get(url, page_params, timeout=timeout, max_retries=max_retries)
+        try:
+            r = esgf_get(url, page_params, timeout=timeout, max_retries=max_retries)
+        except requests.HTTPError as e:
+            print(f"  {url}: parando la paginacion en offset={offset} ({e}) -- "
+                  f"se sigue con los {len(docs)} registros ya juntados", file=sys.stderr)
+            break
         batch = r.json()["response"]["docs"]
         docs.extend(batch)
         if len(batch) < page_size:
@@ -167,6 +195,60 @@ def file_overlaps_range(filename: str, year_start: int, year_end: int) -> bool:
         return True
     f_start, f_end = int(m.group(1)), int(m.group(2))
     return f_start <= year_end and f_end >= year_start
+
+
+def _file_year_span(filename: str) -> tuple[int, int] | None:
+    m = _FILE_YEAR_RANGE_RE.search(filename)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def verify_files_by_boundary_sample(by_filename: dict[str, list[str]], experiment: str,
+                                     year_start: int, year_end: int, timeout: float = 10) -> dict[str, list[str]]:
+    """Decision explicita del usuario (no verificar cada chunk uno por
+    uno, es demasiado lento para modelos con muchos archivos por
+    experimento -- ver EC-Earth3-Veg, 165 archivos solo de historical):
+    en vez de hacer un HEAD por archivo, verifica UN SOLO archivo -- el
+    que cubre el anio de empalme entre historical y los SSP (el ultimo
+    anio de historical, o el primer anio de cada SSP) -- y si ese
+    responde, confia en que el resto de archivos del mismo
+    experimento/publicacion tambien va a responder, sin verificarlos.
+
+    Riesgo aceptado conscientemente: si un proveedor retracto solo
+    ALGUNOS anios (no el archivo de empalme), esto no lo detecta aca --
+    recien se veria como serie corta en 06_qc_checks.py, igual que
+    antes de que existiera esta verificacion de link vivo. Si el
+    archivo de empalme no responde, el experimento entero se da por no
+    encontrado (no se reintenta verificando todo uno por uno)."""
+    if not by_filename:
+        return {}
+
+    boundary_year = year_end if experiment == "historical" else year_start
+
+    covering = [fn for fn in by_filename if (span := _file_year_span(fn)) and span[0] <= boundary_year <= span[1]]
+    if covering:
+        boundary_filename = covering[0]
+    else:
+        def _distance(fn: str) -> float:
+            span = _file_year_span(fn)
+            if span is None:
+                return float("inf")
+            f_start, f_end = span
+            if boundary_year < f_start:
+                return f_start - boundary_year
+            if boundary_year > f_end:
+                return boundary_year - f_end
+            return 0
+        boundary_filename = min(by_filename, key=_distance)
+
+    live = pick_first_live_url(by_filename[boundary_filename], timeout=timeout)
+    if not live:
+        return {}
+
+    verified = {boundary_filename: live}
+    for fn, urls in by_filename.items():
+        if fn != boundary_filename:
+            verified[fn] = urls  # sin verificar -- ver docstring
+    return verified
 
 
 def url_is_alive(url: str, timeout: float = 10, attempts: int = 3) -> bool:

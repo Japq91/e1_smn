@@ -48,6 +48,7 @@ from pipeline_config import ALT_ESGF_SEARCH_URLS
 
 EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
+SEED_CSV = Path(__file__).resolve().parent.parent / "config" / "models_seed_cmip6.csv"
 TIMEOUT = 30
 # Menos reintentos que el default de esgf_get (6): acá hay 5 nodos para
 # probar en cascada, asi que conviene fallar rapido en uno que esta
@@ -59,6 +60,22 @@ ALT_NODE_MAX_RETRIES = 2
 def _realization_number(member: str) -> int:
     m = re.match(r"r(\d+)", member)
     return int(m.group(1)) if m else 10**9
+
+
+def load_seed_grid_labels() -> dict[str, str]:
+    """model -> grid_label ya decidido por 00b_build_model_list.py para
+    los modelos que estan en la semilla. BUG real evitado: sin esto,
+    esgf_file_search no filtraba por grilla, y un modelo publicado en
+    mas de una grilla (ej. CESM2 historical: la misma ventana de fechas
+    en 'gn' Y 'gr') traia AMBOS archivos como si fueran independientes
+    -- 02_download_cmip6_chunks.sh los descargaba juntos y 04 los
+    fusionaba con cdo mergetime como si fueran continuos, duplicando
+    cada mes (verificado: CESM2 historical con 3960 meses en vez de los
+    1980 esperados)."""
+    if not SEED_CSV.exists():
+        return {}
+    with open(SEED_CSV, newline="") as f:
+        return {row["model"]: row["grid_label"] for row in csv.DictReader(f) if row.get("grid_label")}
 
 
 def find_common_member(base_url: str, model: str) -> str | None:
@@ -84,13 +101,15 @@ def find_common_member(base_url: str, model: str) -> str | None:
     return sorted(common, key=_realization_number)[0]
 
 
-def esgf_file_search(base_url: str, model: str, experiment: str, member: str) -> list[dict]:
+def esgf_file_search(base_url: str, model: str, experiment: str, member: str, grid_label: str | None) -> list[dict]:
     params = {
         "project": "CMIP6", "source_id": model, "experiment_id": experiment,
         "variable_id": VARIABLE, "table_id": TABLE, "type": "File",
         "variant_label": member,
         "format": "application/solr+json",
     }
+    if grid_label:
+        params["grid_label"] = grid_label
     docs = pipeline_config.esgf_get_all_docs(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
     year_start, year_end = pipeline_config.experiment_year_range(experiment)
 
@@ -108,41 +127,63 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str) ->
                 if url not in by_filename[filename]:
                     by_filename[filename].append(url)
 
-    # Igual que en 01_query_esgf_catalog.py: confirma con un HEAD que al
-    # menos un mirror responde antes de dar el archivo por encontrado.
-    verified: dict[str, list[str]] = {}
-    for filename, urls in by_filename.items():
-        live = pipeline_config.pick_first_live_url(urls)
-        if live:
-            verified[filename] = live
-        else:
-            print(f"    {filename}: ningun mirror responde, se descarta", file=sys.stderr)
+    # Igual que en 01_query_esgf_catalog.py: verifica un solo archivo por
+    # experimento (el del empalme historical/SSP) en vez de uno por
+    # chunk -- ver pipeline_config.verify_files_by_boundary_sample.
+    verified = pipeline_config.verify_files_by_boundary_sample(by_filename, experiment, year_start, year_end)
+    if by_filename and not verified:
+        print(f"    {experiment}: el archivo de empalme no responde, se descarta todo el experimento",
+              file=sys.stderr)
 
     return [{"filename": fn, "urls": urls} for fn, urls in sorted(verified.items())]
 
 
-def search_model_all_nodes(model: str) -> tuple[dict[str, list[dict]], str, str] | None:
-    """Prueba cada nodo alternativo hasta encontrar los 3 experimentos
-    completos para el modelo. Devuelve (archivos, member_id, nodo) o
-    None si ninguno lo logra."""
+def search_model_all_nodes(model: str, grid_label: str | None) -> tuple[dict[str, list[dict]], str, str] | None:
+    """Prueba TODOS los nodos alternativos (no se detiene en el primero
+    que resuelve completo) y, de los que sí resuelven los 4 experimentos
+    en la misma grilla, elige el de mejor miembro: prefiere r1i1p1f1: si
+    ningun nodo lo tiene, el de menor numero de realizacion. Devuelve
+    (archivos, member_id, nodo) o None si ningun nodo resuelve completo.
+
+    BUG evitado: antes esto paraba en el PRIMER nodo que resolvia
+    completo, sin importar que miembro trajera. Verificado con CESM2: el
+    primer nodo de la lista (esgf.ceda.ac.uk) resuelve completo con
+    r4i1p1f1, pero metagrid.esgf-west.org (mas atras en la lista) SI
+    tiene r1i1p1f1 comun a los 4 experimentos -- con la logica de
+    'primero que responda' nunca se llegaba a comparar y se elegia el
+    miembro menos deseable aunque el mejor estuviera disponible."""
+    if grid_label is None:
+        print(f"  AVISO: {model} no esta en config/models_seed_cmip6.csv, no hay grid_label "
+              f"conocido -- se busca sin filtrar por grilla (riesgo de mezclar grillas distintas "
+              f"del mismo periodo, revisar a mano el resultado).", file=sys.stderr)
+
+    candidates: list[tuple[dict[str, list[dict]], str, str]] = []
     for base_url in ALT_ESGF_SEARCH_URLS:
         try:
             member = find_common_member(base_url, model)
             if member is None:
                 print(f"  {base_url}: sin variant_label comun a los 3 experimentos", file=sys.stderr)
                 continue
-            found = {exp: esgf_file_search(base_url, model, exp, member) for exp in EXPERIMENTS}
+            found = {exp: esgf_file_search(base_url, model, exp, member, grid_label) for exp in EXPERIMENTS}
         except (requests.RequestException, ValueError) as e:
             print(f"  {base_url}: fallo ({e})", file=sys.stderr)
             continue
 
         if all(found[exp] for exp in EXPERIMENTS):
-            print(f"  encontrado completo en {base_url} (miembro {member})", file=sys.stderr)
-            return found, member, base_url
+            print(f"  {base_url}: completo (miembro {member})", file=sys.stderr)
+            candidates.append((found, member, base_url))
         else:
             n_files = {exp: len(found[exp]) for exp in EXPERIMENTS}
             print(f"  {base_url}: incompleto {n_files}", file=sys.stderr)
-    return None
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda c: (c[1] != "r1i1p1f1", _realization_number(c[1])))
+    found, member, base_url = candidates[0]
+    print(f"  elegido: {base_url} (miembro {member}, de {len(candidates)} nodo(s) que resolvieron completo)",
+          file=sys.stderr)
+    return found, member, base_url
 
 
 def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
@@ -167,6 +208,8 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
     if Path(files_json).exists():
         file_catalog = json.loads(Path(files_json).read_text())
 
+    seed_grid_labels = load_seed_grid_labels()
+
     resolved, still_missing = [], []
     for model in missing_models:
         if model in already:
@@ -174,7 +217,7 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
             continue
 
         print(f"Buscando {model} en nodos alternativos ...", file=sys.stderr)
-        result = search_model_all_nodes(model)
+        result = search_model_all_nodes(model, seed_grid_labels.get(model))
         if result is None:
             still_missing.append(model)
             continue
@@ -185,7 +228,7 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
         # no la duplica.
         catalog_rows = [r for r in catalog_rows if r["model"] != model]
         catalog_rows.append({
-            "model": model, "grid_label": "", "complete": "True",
+            "model": model, "grid_label": seed_grid_labels.get(model, ""), "complete": "True",
             **{exp: "True" for exp in EXPERIMENTS},
             "member_id": member, "fuente": "esgf_alt_node",
         })

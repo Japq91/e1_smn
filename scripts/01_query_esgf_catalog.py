@@ -133,19 +133,18 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
                 if url not in by_filename[filename]:
                     by_filename[filename].append(url)
 
-    # Confirma que al menos un mirror responde de verdad (HEAD, sin
-    # bajar el archivo) antes de dar el archivo por encontrado -- ESGF
-    # a veces indexa un archivo cuyo link ya no esta vivo (nodo
-    # reorganizado, replica caida). Si ninguno responde, se descarta:
-    # mejor marcar el modelo incompleto ahora que descubrirlo recien en
-    # el paso 02, despues de gastar tiempo intentando la descarga real.
-    verified: dict[str, list[str]] = {}
-    for filename, urls in by_filename.items():
-        live = pipeline_config.pick_first_live_url(urls)
-        if live:
-            verified[filename] = live
-        else:
-            print(f"    {filename}: ningun mirror responde, se descarta", file=sys.stderr)
+    # Verifica UN SOLO archivo por experimento (el que cubre el anio de
+    # empalme historical/SSP) en vez de un HEAD por cada chunk -- decision
+    # explicita del usuario para modelos con muchos archivos por
+    # experimento (ver EC-Earth3-Veg: 165 solo de historical). Si ese
+    # archivo responde, se confia en el resto sin verificarlos; si no
+    # responde, el experimento entero se da por no encontrado. Ver
+    # pipeline_config.verify_files_by_boundary_sample para el detalle y
+    # el riesgo aceptado.
+    verified = pipeline_config.verify_files_by_boundary_sample(by_filename, experiment, year_start, year_end)
+    if by_filename and not verified:
+        print(f"    {experiment}: el archivo de empalme no responde, se descarta todo el experimento",
+              file=sys.stderr)
 
     return [{"filename": fn, "urls": urls} for fn, urls in sorted(verified.items())]
 
