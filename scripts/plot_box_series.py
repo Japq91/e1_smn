@@ -37,7 +37,12 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None) -> None:
         if not os.path.exists(pc.masked_path(model, exp)):
             continue
         years, values = pc.box_mean(model, exp, **box)
-        ax.plot(years, values, label=exp, **estilo)
+        # Linea fina (antes 1.5, el default de matplotlib, se veia muy
+        # gruesa) + marcador de punto en cada dato real -- asi un hueco
+        # real (anios sin dato, ej. un chunk que nunca se descargo)
+        # sigue siendo visible como corte en la linea/ausencia de
+        # puntos, sin perder la referencia visual de la serie completa.
+        ax.plot(years, values, label=exp, linewidth=0.5, marker=".", markersize=2, **estilo)
 
     ax.set_xlabel("anio")
     ax.set_ylabel("SST (degC)")
