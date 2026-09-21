@@ -25,8 +25,7 @@ import numpy as np  # noqa: E402
 
 def plot_box_boxplot(box: dict, box_name: str) -> None:
     out_path = pc.FIGURES_DIR / f"boxplot_{box_name.replace(' ', '')}.png"
-    if out_path.exists():
-        print(f"  {box_name}: {out_path.name} ya existe, se omite", file=sys.stderr)
+    if not pc.should_regenerate(out_path, label=f"{box_name}: {out_path.name}"):
         return
 
     sources = ["ERSSTv5"] + pc.list_available_models()

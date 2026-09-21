@@ -20,11 +20,12 @@ Nino 1+2) mas la ventana de descarga real (config/domains.yaml,
 'download_window') como rectangulo relleno -- Nino 3.4 y Nino 1+2 (las
 que efectivamente usa este proyecto) se resaltan con doble borde.
 
-A diferencia del resto de scripts/plot_*.py, esta figura SIEMPRE se
-regenera (no es idempotente): es barata (no depende de datos
-descargados, solo del centro fijo y config/domains.yaml) y su
-contenido puede cambiar si domains.yaml cambia, asi que no tiene
-sentido dejarla "pegada" a una corrida vieja.
+Igual que el resto de scripts/plot_*.py: si la figura no existe
+todavia, se genera sin preguntar; si ya existe, pregunta (15s, por
+defecto NO) si se quiere regenerar -- ver should_regenerate() mas
+abajo (duplicada de plot_common.should_regenerate en vez de importar
+ese modulo, a proposito: este script se mantiene independiente del
+resto, no depende de datos descargados ni del resto del pipeline).
 
 Requiere cartopy -- SI forma parte de environment.yml (agregado ahi,
 ver ese archivo).
@@ -55,6 +56,25 @@ DEFAULT_OUT = BASE_DIR / "figures/region_nino_proj.png"
 # contexto): no estan en config/domains.yaml a proposito.
 NINO4 = dict(lon_min=160.0, lon_max=210.0, lat_min=-5.0, lat_max=5.0)
 NINO3 = dict(lon_min=210.0, lon_max=270.0, lat_min=-5.0, lat_max=5.0)
+
+
+def should_regenerate(out_path: Path) -> bool:
+    """Ver plot_common.should_regenerate -- misma logica, duplicada aca
+    para no acoplar este script (deliberadamente independiente) al
+    resto del pipeline."""
+    if not out_path.exists():
+        return True
+    if not sys.stdin.isatty():
+        print(f"{out_path.name} ya existe, se omite (sin terminal interactiva para preguntar).", file=sys.stderr)
+        return False
+    import select
+    print(f"{out_path.name} ya existe. Regenerar? [s/N, 15s, por defecto N] ", end="", file=sys.stderr, flush=True)
+    rlist, _, _ = select.select([sys.stdin], [], [], 15)
+    if not rlist:
+        print("", file=sys.stderr)
+        print("(sin respuesta en 15s, se mantiene la figura existente)", file=sys.stderr)
+        return False
+    return sys.stdin.readline().strip().lower().startswith("s")
 
 
 def load_domains(path: Path) -> dict:
@@ -109,6 +129,8 @@ def draw_download_window(ax, domains: dict, color: str) -> None:
 
 
 def main(out_path: Path) -> None:
+    if not should_regenerate(out_path):
+        return
     domains = load_domains(DOMAINS_YAML)
     central_lon, central_lat = nino34_center(domains)
     print(f"Centro de proyeccion (Niño 3.4): lon={central_lon:.1f}, lat={central_lat:.1f}", file=sys.stderr)

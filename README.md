@@ -139,7 +139,7 @@ Filtro de aceptación: por archivo, evalúa el rango físico de la SST (−2 a 3
 Combina el resultado del control de calidad con la resolución real de cada modelo (`cdo griddes`) en una tabla resumen con los modelos finalmente seleccionados.
 
 ### Gráficos (`scripts/plot_*.py`, automático al final de `run.sh`)
-Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando las figuras en `figures/` -- idempotentes (saltan una figura si ya existe; para forzar un refresco, borrarla a mano) y no fatales (si a alguna le faltan datos de entrada, o falla por algo del entorno como `cartopy`, avisa y sigue con la siguiente, sin bloquear el reporte de estado ni el paquete final):
+Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando las figuras en `figures/`: si una figura no existe todavía, se genera sin preguntar; si ya existe, pregunta (15s, por defecto NO) si se quiere regenerar -- en una corrida no interactiva (sin terminal, ej. cron/sbatch) directamente se mantiene la existente sin preguntar. No fatales (si a alguna le faltan datos de entrada, o falla por algo del entorno como `cartopy`, avisa y sigue con la siguiente, sin bloquear el reporte de estado ni el paquete final):
 
 | Script | Contenido |
 |---|---|
@@ -147,7 +147,7 @@ Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando 
 | `plot_box_series.py` | Series de caja (Niño 3.4 / Niño 1+2) por modelo, historical + escenarios SSP superpuestos |
 | `plot_qc_summary.py [n_paneles]` | Resumen de control de calidad (PASS/FAIL) por modelo y experimento -- filas identificadas como `M001..M102` (orden alfabético), no por nombre; el cruce número↔modelo real está en `informe/model_registry.csv` |
 | `plot_boxplot_comparison.py` | Boxplot comparativo Niño 3.4 / Niño 1+2, modelos vs. ERSSTv5, periodo histórico común |
-| `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS + ventana real de descarga, proyección Robinson -- no depende de datos descargados, se regenera siempre (no es idempotente). Requiere `cartopy` (sí está en `environment.yml`) |
+| `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS + ventana real de descarga, proyección Robinson -- no depende de datos descargados. Requiere `cartopy` (sí está en `environment.yml`) |
 
 Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código, y comparten rutas/utilidades en `scripts/plot_common.py` (que además fuerza el backend `Agg` de matplotlib, así no hace falta `$DISPLAY`). `plot_qc_summary.py` lee la disponibilidad real de cada modelo desde `informe/model_availability_priority.csv` (lo escribe el paso 00b) en vez de una lista fija.
 
@@ -156,7 +156,7 @@ Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py
 ### `graficos_exploratorios.ipynb` (manual, para exploración interactiva)
 El mismo contenido que los scripts de arriba, pero como notebook editable libremente celda por celda -- útil para probar variantes puntuales sin tocar código. No es necesario correrlo para tener las figuras del informe: eso ya lo cubre `run.sh`.
 
-Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana) vía `scripts/plot_common.py`, así que no necesitan `$DISPLAY`, y guardan todo en `figures/` con DPI 100 (livianas, pensadas para el informe). `plot_region_nino_orthographic.py` es el único que requiere `cartopy` (incluido en `environment.yml`) y el único que se regenera siempre en vez de ser idempotente.
+Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana), así que no necesitan `$DISPLAY` -- los cuatro primeros vía `scripts/plot_common.py` (que tambien centraliza `should_regenerate()`, la logica de pregunta-antes-de-regenerar); `plot_region_nino_orthographic.py` lo hace por su cuenta (deliberadamente independiente del resto, con su propia copia de `should_regenerate()`) y es el único que requiere `cartopy` (incluido en `environment.yml`). Todos guardan en `figures/` con DPI 100 (livianas, pensadas para el informe).
 
 `check_model_availability.py` queda como herramienta manual opcional: re-verifica lo mismo contra ESGF por una vía independiente (útil como segunda opinión, o para un modelo puntual sin correr 00b entero). Es idempotente — si `informe/model_availability_report.csv` ya existe, avisa y no consulta nada; para forzar una nueva verificación manual hay que borrarlo primero:
 ```

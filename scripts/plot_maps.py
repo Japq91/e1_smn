@@ -24,8 +24,7 @@ import xarray as xr  # noqa: E402
 
 def plot_map(model: str, exp: str = "historical", ax=None) -> None:
     out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
-    if ax is None and out_path.exists():
-        print(f"  {model}: {out_path.name} ya existe, se omite", file=sys.stderr)
+    if ax is None and not pc.should_regenerate(out_path, label=f"{model}: {out_path.name}"):
         return
 
     with nc.Dataset(pc.masked_path(model, exp)) as ds:
