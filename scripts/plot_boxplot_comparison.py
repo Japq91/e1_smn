@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import plot_common as pc  # noqa: E402 (fuerza el backend Agg antes de pyplot)
 
+import matplotlib.colors as mcolors  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
@@ -48,18 +49,35 @@ def plot_box_boxplot(box: dict, box_name: str) -> None:
         data_for_box.append(np.ma.compressed(values[mask]))
         labels.append(src)
 
-    # Renombrar modelos a M1, M2, ... conservando solo ERSSTv5
-    model_labels = [labels[0]] + [f"M{i}" for i in range(1, len(labels))]
+    # Nombres reales de modelo en el eje (no M1, M2, ...) -- version
+    # anterior de este mismo grafico (encontrada por el usuario en
+    # figures/boxplot_3.4.png, de una version mas vieja del notebook
+    # que ya no existe en el repo).
+    model_labels = labels
 
-    obs_median = np.median(data_for_box[0])
-    boxprops = dict(facecolor="grey", alpha=0.5)
+    # Color de cada caja segun el sesgo de su mediana respecto a la
+    # mediana observada (ERSSTv5): mapa divergente rojo-azul,
+    # normalizado simetricamente alrededor de sesgo=0 -- mas rojo cuanto
+    # mas caliente que lo observado, mas azul cuanto mas frio. ERSSTv5
+    # tiene sesgo 0 consigo misma, sale neutro (blanco/rosado palido).
+    medians = [np.median(d) for d in data_for_box]
+    obs_median = medians[0]
+    biases = [m - obs_median for m in medians]
+    max_abs_bias = max((abs(b) for b in biases), default=1.0) or 1.0
+    norm = mcolors.TwoSlopeNorm(vmin=-max_abs_bias, vcenter=0.0, vmax=max_abs_bias)
+    cmap = plt.get_cmap("RdBu_r")
+    box_colors = [cmap(norm(b)) for b in biases]
+
     medianprops = dict(color="black", linewidth=1.2)
-    flierprops = dict(marker=".", alpha=0.8, markersize=4)
+    flierprops = dict(marker="x", color="gray", alpha=0.6, markersize=4)
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.boxplot(data_for_box, tick_labels=model_labels, patch_artist=True,
-               boxprops=boxprops, medianprops=medianprops, flierprops=flierprops)
-    ax.axhline(y=obs_median, color="red", linewidth=0.9)
+    bp = ax.boxplot(data_for_box, tick_labels=model_labels, patch_artist=True,
+                     medianprops=medianprops, flierprops=flierprops)
+    for patch, color in zip(bp["boxes"], box_colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.85)
+    ax.axhline(y=obs_median, color="red", linewidth=0.9, linestyle="--")
 
     ax.set_ylabel(f"SST {box_name} (degC)")
     ax.set_title(f"{box_name} -- periodo historico ({len(common_years)} anios comunes: "
