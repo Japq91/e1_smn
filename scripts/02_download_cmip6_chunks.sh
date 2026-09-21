@@ -87,14 +87,30 @@ for e in entries:
 }
 
 # Descarga un archivo probando cada URL candidata hasta que una funcione.
+# Cada URL se reintenta DOWNLOAD_RETRIES veces (con una pausa corta entre
+# intentos) antes de pasar a la siguiente -- antes esto era --tries=1 sin
+# ningun reintento, asi que un solo corte de red transitorio (timeout,
+# 5xx, conexion resetada) marcaba el chunk como "FALLO" para siempre en
+# logs/download_failures.log aunque el archivo siguiera perfectamente
+# disponible. Con modelos que publican un archivo por anio (ej.
+# EC-Earth3-CC/Veg/Veg-LR: ~165 requests solo para historical) la
+# probabilidad de al menos un corte transitorio en todo el lote es alta,
+# y cada uno deja un hueco real en el mergetime de 04 (sintoma visto
+# recien en plot_maps.py: "se esperaba un campo 2D... shape=(0, ...)").
+DOWNLOAD_RETRIES=3
 download_with_mirrors () {
     local urls_csv="$1" outfile="$2"
     IFS=',' read -ra urls <<< "$urls_csv"
     for url in "${urls[@]}"; do
-        if wget -q --timeout="$WGET_TIMEOUT" --tries=1 -O "$outfile" "$url"; then
-            [ -s "$outfile" ] && return 0
-        fi
-        rm -f "$outfile"
+        local attempt=1
+        while [ "$attempt" -le "$DOWNLOAD_RETRIES" ]; do
+            if wget -q --timeout="$WGET_TIMEOUT" --tries=1 -O "$outfile" "$url"; then
+                [ -s "$outfile" ] && return 0
+            fi
+            rm -f "$outfile"
+            attempt=$((attempt + 1))
+            [ "$attempt" -le "$DOWNLOAD_RETRIES" ] && sleep 3
+        done
     done
     return 1
 }

@@ -113,8 +113,19 @@ def main() -> None:
     for f in sorted(IN_DIR.glob("tos_*.nc")):
         outfile = OUT_DIR / f.name
         if outfile.exists():
-            print(f"Ya procesado, se omite: {f.name}", file=sys.stderr)
-            continue
+            # No basta con que exista: si el paso 04 lo reproceso porque
+            # detecto un merge incompleto (ver expected_months() en
+            # 04_process_to_common_grid.sh), esta salida enmascarada
+            # queda vieja/incompleta y una comparacion solo por
+            # existencia la dejaria asi para siempre.
+            with nc.Dataset(f) as d_in, nc.Dataset(outfile) as d_out:
+                n_in = d_in.dimensions["time"].size
+                n_out = d_out.dimensions["time"].size
+            if n_in == n_out:
+                print(f"Ya procesado, se omite: {f.name}", file=sys.stderr)
+                continue
+            print(f"  {f.name}: la salida enmascarada tenia {n_out} meses, "
+                  f"la entrada ahora tiene {n_in} -- se reprocesa", file=sys.stderr)
         apply_mask(f, outfile, ocean_mask)
 
     out_ersst = OUT_DIR / "ersstv5_region.nc"

@@ -54,7 +54,8 @@ OUT_DIR="data/interim/processed"
 TMPDIR="data/interim/.tmp_process"
 WEIGHTS_DIR="data/interim/.weights"
 CATALOG_CSV="data/interim/models_catalog_status.csv"
-mkdir -p "$OUT_DIR" "$TMPDIR" "$WEIGHTS_DIR"
+INCOMPLETE_LOG="logs/incomplete_merge.log"
+mkdir -p "$OUT_DIR" "$TMPDIR" "$WEIGHTS_DIR" logs
 
 # Experimentos a procesar y su rango de anios de recorte: leidos de
 # config/periods.yaml (fuente unica de verdad, ver scripts/pipeline_config.py),
@@ -191,13 +192,35 @@ ensure_period_weights () {
     echo "$weights_file"
 }
 
+# Meses esperados para un experimento (rango inclusive de YEAR_START/
+# YEAR_END, ya cargados de config/periods.yaml via pipeline_config.py).
+# Sirve para detectar, con precision exacta y sin importar la grilla
+# nativa del modelo (que hace que el tamano en bytes no sea comparable
+# entre modelos), un merge con huecos: un chunk crudo que fallo la
+# descarga en TODOS los mirrors (ver 02_download_cmip6_chunks.sh) no
+# tira un error ahi -- solo deja faltando ese mes en el mergetime de
+# aca, y sin este chequeo el .nc incompleto quedaba como si fuera el
+# resultado final (el hueco recien se notaba al graficar, ej.
+# plot_maps.py fallando al pedir el mes de muestra 1950-12).
+expected_months () {
+    local exp="$1"
+    echo $(( (${YEAR_END[$exp]} - ${YEAR_START[$exp]} + 1) * 12 ))
+}
+
 process_experiment () {
     local model="$1" exp="$2" weights_file="$3"
     local outfile="$OUT_DIR/tos_${model}_${exp}.nc"
+    local expected; expected=$(expected_months "$exp")
 
     if [ -f "$outfile" ]; then
-        echo "Ya procesado, se omite: $(basename "$outfile")"
-        return
+        local n_actual; n_actual=$(cdo -s ntime "$outfile" 2>/dev/null || echo 0)
+        if [ "$n_actual" -eq "$expected" ]; then
+            echo "Ya procesado, se omite: $(basename "$outfile")"
+            return
+        fi
+        echo "  $model $exp: $(basename "$outfile") existe pero incompleto ($n_actual/$expected meses) -- se descarta y se reprocesa" >&2
+        echo "$(date -Iseconds) $model $exp: $n_actual/$expected meses (salida existente, descartada)" >> "$INCOMPLETE_LOG"
+        rm -f "$outfile"
     fi
 
     local chunk_dir="$RAW_DIR/$model/$exp"
@@ -242,6 +265,14 @@ process_experiment () {
     local cal_ok="$TMPDIR/cal_ok.nc"
     fix_calendar "$cropped" "$cal_ok"
     fix_units "$cal_ok" "$outfile"
+
+    local n_final; n_final=$(cdo -s ntime "$outfile" 2>/dev/null || echo 0)
+    if [ "$n_final" -ne "$expected" ]; then
+        echo "  aviso: $model $exp quedo incompleto tras procesar ($n_final/$expected meses) -- " \
+             "faltan chunks crudos (ver logs/download_failures.log), se descarta el resultado" >&2
+        echo "$(date -Iseconds) $model $exp: $n_final/$expected meses (recien generado, descartado)" >> "$INCOMPLETE_LOG"
+        rm -f "$outfile"
+    fi
 
     rm -rf "${TMPDIR:?}"/*
 }
