@@ -135,14 +135,14 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         for model in all_models
     }
 
-    model_order = sorted(
-        all_models,
-        key=lambda m: (
-            -(1 if hist_available[m] == "HIST_YES" else 0),
-            -sum(final_status.loc[m, e] == "PASS" for e in experiments),
-            m,
-        ),
-    )
+    # Orden alfabetico simple (no por PASS/disponibilidad) -- asi el
+    # numero M001..M102 que se muestra en el eje queda en secuencia,
+    # sin saltos. El cruce numero <-> nombre real de modelo queda en
+    # informe/model_registry.csv (build_model_registry.py, misma
+    # numeracion: alfabetico sobre el mismo universo de 102 modelos).
+    model_order = sorted(all_models)
+    width = max(3, len(str(len(model_order))))
+    model_number = {m: f"M{i:0{width}d}" for i, m in enumerate(model_order, start=1)}
 
     panel_size = int(np.ceil(len(model_order) / n_panels))
     panels = [model_order[i * panel_size: (i + 1) * panel_size] for i in range(n_panels)]
@@ -205,7 +205,7 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         ax.set_xticks(range(len(all_cols)))
         ax.set_xticklabels(all_cols, rotation=45, ha="left", fontsize=8)
         ax.set_yticks(range(len(chunk)))
-        ax.set_yticklabels(chunk, fontsize=6.5)
+        ax.set_yticklabels([model_number[m] for m in chunk], fontsize=6.5)
         ax.set_ylim(-0.5, len(chunk) - 0.5)
         ax.invert_yaxis()
         ax.set_xlim(-0.6, len(all_cols) - 1 + 0.6)

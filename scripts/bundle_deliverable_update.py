@@ -28,6 +28,9 @@ EXPECTED_FILES = [
      "run.sh (paso 01)"),
     ("informe/model_availability_priority.csv",
      "run.sh (paso 00b) -- se genera junto con models_seed_cmip6.csv"),
+    ("informe/model_registry.csv",
+     "python3 scripts/build_model_registry.py (ya se corre solo al final de run.sh) -- "
+     "numero M001..M102 por modelo, cruzado con el eje de figures/sst_QD_vf.png"),
     ("data/processed/qc_report.csv",
      "run.sh (paso 06) -- necesita 02-05 ya corridos (datos descargados y procesados)"),
     ("data/processed/models_inventory_final.csv",

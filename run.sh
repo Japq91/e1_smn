@@ -159,6 +159,14 @@ run_step 07  python3 scripts/07_build_inventory_report.py $QC_REPORT $MASKED_DIR
 
 echo "Pipeline completo." | tee -a logs/pipeline.log
 
+# Registro de modelos (numero M001..M102 + institucion/realizacion/
+# resolucion/disponibilidad en un solo CSV): siempre se intenta al
+# final, igual que los graficos de abajo -- no fatal, usa lo que haya
+# disponible de 00b/01 en ese momento.
+echo "== Registro de modelos ==" | tee -a logs/pipeline.log
+python3 scripts/build_model_registry.py 2>&1 | tee -a logs/pipeline.log \
+    || echo "  (se omitio build_model_registry.py -- revisar el aviso arriba)" | tee -a logs/pipeline.log
+
 # Graficos (GRAFICO 1-5 de graficos_exploratorios.ipynb, ver scripts/plot_*.py):
 # siempre se intentan al final, sin importar STEP_FROM/STEP_TO -- cada uno es
 # idempotente (salta las figuras que ya existen) y avisa sin abortar el resto

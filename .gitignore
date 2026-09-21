@@ -17,6 +17,9 @@ logs/download_timings.csv
 # especifico de cada maquina/corrida, no se versiona (ver README).
 informe/model_availability_priority.csv
 config/models_seed_cmip6.csv
+# Generado por scripts/build_model_registry.py: junta datos de 00b/01,
+# especifico de cada maquina/corrida, no se versiona.
+informe/model_registry.csv
 # Generados por scripts/check_model_availability.py (herramienta manual
 # de segunda opinion, independiente de 00b): mismo criterio, no se versionan.
 informe/model_availability_report.csv

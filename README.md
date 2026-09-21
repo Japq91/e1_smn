@@ -145,11 +145,13 @@ Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando 
 |---|---|
 | `plot_maps.py` | Mapas: promedio temporal del campo completo, por modelo/experimento y para ERSSTv5 |
 | `plot_box_series.py` | Series de caja (Niño 3.4 / Niño 1+2) por modelo, historical + escenarios SSP superpuestos |
-| `plot_qc_summary.py [n_paneles]` | Resumen de control de calidad (PASS/FAIL) por modelo y experimento |
+| `plot_qc_summary.py [n_paneles]` | Resumen de control de calidad (PASS/FAIL) por modelo y experimento -- filas identificadas como `M001..M102` (orden alfabético), no por nombre; el cruce número↔modelo real está en `informe/model_registry.csv` |
 | `plot_boxplot_comparison.py` | Boxplot comparativo Niño 3.4 / Niño 1+2, modelos vs. ERSSTv5, periodo histórico común |
 | `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS + ventana real de descarga, proyección Robinson -- no depende de datos descargados, se regenera siempre (no es idempotente). Requiere `cartopy` (sí está en `environment.yml`) |
 
 Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código, y comparten rutas/utilidades en `scripts/plot_common.py` (que además fuerza el backend `Agg` de matplotlib, así no hace falta `$DISPLAY`). `plot_qc_summary.py` lee la disponibilidad real de cada modelo desde `informe/model_availability_priority.csv` (lo escribe el paso 00b) en vez de una lista fija.
+
+`scripts/build_model_registry.py` (se corre solo al final de `run.sh`, junto con los gráficos): arma `informe/model_registry.csv` -- un identificador numérico estable `M001..M102` (orden alfabético, mismo universo que `plot_qc_summary.py`) más institución, realización (`member_id`) y resolución horizontal (solo para los modelos que llegaron a ser seed) y un `1`/`0` por experimento (`tiene_hist`/`tiene_sspXXX`) que indica si existe en ESGF **en absoluto** -- no si ya se descargó.
 
 ### `graficos_exploratorios.ipynb` (manual, para exploración interactiva)
 El mismo contenido que los scripts de arriba, pero como notebook editable libremente celda por celda -- útil para probar variantes puntuales sin tocar código. No es necesario correrlo para tener las figuras del informe: eso ya lo cubre `run.sh`.
