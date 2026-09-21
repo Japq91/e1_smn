@@ -35,25 +35,57 @@ cd "$(dirname "$0")/.."
 CATALOG_CSV="data/interim/models_catalog_status.csv"
 FILES_JSON="data/interim/esgf_file_urls.json"
 COPERNICUS_WHITELIST="config/models_copernicus_available.csv"
+# Tope de veces que se reintenta un modelo "no_encontrado" en corridas
+# SUCESIVAS de run.sh (columna 'intentos_busqueda' del catalogo, un
+# acumulado que persiste entre corridas). Al llegar al tope, se deja de
+# intentar (02b/02c) para ese modelo -- ya se agoto en la practica (ver
+# MIROC-ES2H: ESGF completo + Copernicus, sin exito). Para reintentarlo
+# de nuevo hay que borrar $CATALOG_CSV a mano (arranca todo de cero).
+MAX_SEARCH_ATTEMPTS=3
 
 # Imprime (stdout) los modelos de CATALOG_CSV cuyo 'fuente' sea
-# exactamente el valor pasado como argumento.
-models_with_status () {
+# exactamente el valor pasado como argumento Y que todavia no llegaron
+# al tope de intentos.
+models_pendientes () {
     python3 -c "
 import csv, sys
 with open('$CATALOG_CSV') as f:
     rows = list(csv.DictReader(f))
 for r in rows:
-    if r.get('fuente') == sys.argv[1]:
+    if r.get('fuente') != sys.argv[1]:
+        continue
+    intentos = int(r.get('intentos_busqueda') or 0)
+    if intentos < $MAX_SEARCH_ATTEMPTS:
         print(r['model'])
 " "$1"
 }
+
+# Modelos 'no_encontrado' que YA llegaron al tope -- solo para avisar.
+modelos_en_limite () {
+    python3 -c "
+with open('$CATALOG_CSV') as f:
+    import csv
+    rows = list(csv.DictReader(f))
+for r in rows:
+    if r.get('fuente') != 'no_encontrado':
+        continue
+    intentos = int(r.get('intentos_busqueda') or 0)
+    if intentos >= $MAX_SEARCH_ATTEMPTS:
+        print(f\"  - {r['model']} ({intentos} intentos)\")
+"
+}
+
+en_limite="$(modelos_en_limite)"
+if [ -n "$en_limite" ]; then
+    echo "Modelos que ya agotaron $MAX_SEARCH_ATTEMPTS intentos de busqueda en corridas anteriores -- no se vuelven a intentar (borrar $CATALOG_CSV para reintentar de cero):"
+    echo "$en_limite"
+fi
 
 echo "== 02a: descarga CMIP6 via ESGF (nodo principal) =="
 bash scripts/02_download_cmip6_chunks.sh
 
 no_encontrado_csv="data/interim/.no_encontrado_tmp.csv"
-{ echo "model"; models_with_status no_encontrado; } > "$no_encontrado_csv"
+{ echo "model"; models_pendientes no_encontrado; } > "$no_encontrado_csv"
 n_missing=$(($(wc -l < "$no_encontrado_csv") - 1))
 
 if [ "$n_missing" -gt 0 ]; then
@@ -66,7 +98,7 @@ else
     echo "== 02b: nada pendiente, se omite =="
 fi
 
-{ echo "model"; models_with_status no_encontrado; } > "$no_encontrado_csv"
+{ echo "model"; models_pendientes no_encontrado; } > "$no_encontrado_csv"
 n_still_missing=$(($(wc -l < "$no_encontrado_csv") - 1))
 
 if [ "$n_still_missing" -gt 0 ] && [ -f "$HOME/.cdsapirc" ] && python3 -c "import cdsapi" 2>/dev/null; then
@@ -99,6 +131,35 @@ else
     else
         echo "== 02c: nada pendiente, se omite =="
     fi
+fi
+
+{ echo "model"; models_pendientes no_encontrado; } > "$no_encontrado_csv"
+n_final_missing=$(($(wc -l < "$no_encontrado_csv") - 1))
+if [ "$n_final_missing" -gt 0 ]; then
+    python3 -c "
+import csv, sys
+
+with open('$CATALOG_CSV', newline='') as f:
+    reader = csv.DictReader(f)
+    fieldnames = list(reader.fieldnames or [])
+    rows = list(reader)
+if 'intentos_busqueda' not in fieldnames:
+    fieldnames.append('intentos_busqueda')
+
+with open('$no_encontrado_csv', newline='') as f:
+    intentados = {row['model'] for row in csv.DictReader(f)}
+
+for r in rows:
+    if r['model'] in intentados:
+        r['intentos_busqueda'] = str(int(r.get('intentos_busqueda') or 0) + 1)
+
+with open('$CATALOG_CSV', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+    w.writeheader()
+    w.writerows(rows)
+print(f'{len(intentados)} modelo(s) siguen sin resolverse -- intentos_busqueda incrementado '
+      f'(tope: $MAX_SEARCH_ATTEMPTS, borrar $CATALOG_CSV para reintentar de cero)', file=sys.stderr)
+"
 fi
 
 rm -f "$no_encontrado_csv"

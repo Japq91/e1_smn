@@ -149,7 +149,7 @@ def esgf_file_search(model: str, experiment: str, variable: str, table: str, gri
     return [{"filename": fn, "urls": urls} for fn, urls in sorted(verified.items())]
 
 
-CATALOG_FIELDNAMES = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente"]
+CATALOG_FIELDNAMES = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente", "intentos_busqueda"]
 
 
 def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
@@ -177,6 +177,7 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
             status_rows.append({
                 "model": model, "grid_label": grid_label or "", "member_id": "", "complete": "False",
                 **{exp: "False" for exp in EXPERIMENTS}, "fuente": "no_encontrado",
+                "intentos_busqueda": "0",
             })
             continue
 
@@ -190,6 +191,7 @@ def main(seed_csv: str, out_csv: str, out_files_json: str) -> None:
             "model": model, "grid_label": grid_label or "", "member_id": member, "complete": str(complete),
             **{exp: str(bool(found[exp])) for exp in EXPERIMENTS},
             "fuente": "esgf_principal" if complete else "no_encontrado",
+            "intentos_busqueda": "0",
         })
 
         if complete:

@@ -192,7 +192,7 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
 
     # Cargar catalogo existente (si ya corrio 01 antes) para no perderlo.
     catalog_rows = []
-    catalog_fieldnames = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente"]
+    catalog_fieldnames = ["model", "grid_label", "complete", *EXPERIMENTS, "member_id", "fuente", "intentos_busqueda"]
     if Path(catalog_csv).exists():
         with open(catalog_csv, newline="") as f:
             reader = csv.DictReader(f)
@@ -230,7 +230,7 @@ def main(missing_csv: str, catalog_csv: str, files_json: str) -> None:
         catalog_rows.append({
             "model": model, "grid_label": seed_grid_labels.get(model, ""), "complete": "True",
             **{exp: "True" for exp in EXPERIMENTS},
-            "member_id": member, "fuente": "esgf_alt_node",
+            "member_id": member, "fuente": "esgf_alt_node", "intentos_busqueda": "0",
         })
         file_catalog[model] = found
         print(f"  nodo usado: {node_url}", file=sys.stderr)
