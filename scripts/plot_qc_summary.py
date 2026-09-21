@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""GRAFICO 3: resumen de control de calidad -- matriz PASS/FAIL/no
-disponible por modelo y experimento, a partir de data/processed/qc_report.csv
-(paso 06) y la disponibilidad real que escribe el paso 00b
-(informe/model_availability_report.csv). Extraido de
+"""GRAFICO 3: resumen de control de calidad -- matriz PASS/FAIL/DESCARGADO/
+NO_DESCARGADO/UNAVAILABLE por modelo y experimento, a partir de
+data/processed/qc_report.csv (paso 06), la disponibilidad real que
+escribe el paso 00b (informe/model_availability_priority.csv) y el
+contenido de data/raw/cmip6/ (para distinguir "nunca se descargo" de
+"se descargo pero no llego al QC"). Extraido de
 graficos_exploratorios.ipynb para poder correrlo desde terminal sin
 Jupyter (ej. un cluster HPC sin interfaz grafica).
 
@@ -72,29 +74,62 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         if model in status_matrix.index and exp in experiments:
             status_matrix.loc[model, exp] = row["status_simple"]
 
-    # Estado final honesto:
-    #  - fila en el CSV -> PASS o FAIL (fallo QC/CDO sobre un archivo que si se bajo)
-    #  - catalogo dice que existe pero sin fila en el CSV -> FAIL_DESCARGA
-    #  - catalogo dice que no existe -> UNAVAILABLE
+    # data/interim/models_catalog_status.csv (paso 01): dice, por
+    # modelo/experimento, si se encontro un link de descarga real que
+    # respondio (no solo si el experimento existe segun 00b -- eso es
+    # informe/model_availability_priority.csv, una capa mas superficial).
+    catalog_df = None
+    if pc.CATALOG_CSV.exists():
+        catalog_df = pd.read_csv(pc.CATALOG_CSV, dtype=str).set_index("model")
+
+    avail_by_model = avail_df.set_index("model")
+
+    def link_found(model: str, exp: str) -> bool:
+        if catalog_df is None or model not in catalog_df.index or exp not in catalog_df.columns:
+            return False
+        return catalog_df.loc[model, exp] == "True"
+
+    # Estado final honesto, en 6 niveles:
+    #  - fila en el CSV -> PASS o FAIL (QC/CDO sobre un archivo ya descargado)
+    #  - sin fila, pero 01 encontro un link que respondio -> PENDIENTE
+    #    (ya sea que falte descargar o que falte procesar/QC -- ambos
+    #    casos son "en camino a ser PASS", no hace falta distinguirlos
+    #    visualmente)
+    #  - columna 'historical' especificamente, cuando lo unico que hay
+    #    es hist-1950 (HighResMIP) -- el modelo nunca llega a 01 (no
+    #    tiene SSP, no califica como seed) asi que nunca se busco un
+    #    link de 'historical' en si -> SOLO_HIST1950 (distinto de
+    #    SIN_LINK: aca no se busco y fallo, directamente no aplica)
+    #  - sin fila, el experimento existe segun 00b pero 01 NO encontro
+    #    un link que funcione -> SIN_LINK (existe el dato en alguna
+    #    parte, pero no lo pudimos ubicar nosotros)
+    #  - el experimento no existe en absoluto segun 00b -> UNAVAILABLE
     final_status = status_matrix.copy()
-    missing_download = []
+    pendientes = {"PENDIENTE": [], "SIN_LINK": []}
     for model in all_models:
         for exp in experiments:
-            if final_status.loc[model, exp] == "":
-                if exp in availability[model]:
-                    final_status.loc[model, exp] = "FAIL_DESCARGA"
-                    missing_download.append((model, exp))
-                else:
-                    final_status.loc[model, exp] = "UNAVAILABLE"
+            if final_status.loc[model, exp] != "":
+                continue
+            if exp not in availability[model]:
+                final_status.loc[model, exp] = "UNAVAILABLE"
+            elif link_found(model, exp):
+                final_status.loc[model, exp] = "PENDIENTE"
+                pendientes["PENDIENTE"].append((model, exp))
+            elif exp == "historical" and avail_by_model.loc[model, "cual_historical"] == "hist-1950":
+                final_status.loc[model, exp] = "SOLO_HIST1950"
+            else:
+                final_status.loc[model, exp] = "SIN_LINK"
+                pendientes["SIN_LINK"].append((model, exp))
 
-    # OJO: esto es "tiene historical o hist-1950" (lo que este pipeline
-    # puede usar), NO "tiene tos en algun lado" -- todos los modelos de
-    # informe/model_availability_priority.csv tienen tos publicado en
-    # algun experimento (ver columna tiene_tos, siempre 1 en la
-    # practica), solo que algunos lo tienen bajo protocolos que este
-    # pipeline no usa (omip, PMIP, DCPP, etc.) -- antes esta figura
-    # llamaba a eso "TOS_NO", lo cual era enganoso (bug real,
-    # encontrado por el usuario).
+    # 'tos' es la unica columna aparte de los experimentos -- tiene_tos
+    # tal cual (en la practica casi siempre 1, ver
+    # informe/model_availability_priority.csv). La distincion
+    # historical/hist-1950 ya no es una columna aparte: queda fundida
+    # en el estado SOLO_HIST1950 de la columna 'historical' (ver arriba).
+    tos_available = {
+        model: ("TOS_YES" if avail_by_model.loc[model, "tiene_tos"] == "1" else "TOS_NO")
+        for model in all_models
+    }
     hist_available = {
         model: ("HIST_YES" if "historical" in availability[model] else "HIST_NO")
         for model in all_models
@@ -112,38 +147,61 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     panel_size = int(np.ceil(len(model_order) / n_panels))
     panels = [model_order[i * panel_size: (i + 1) * panel_size] for i in range(n_panels)]
 
+    # Logica de forma/relleno/color, consistente en las 5 columnas:
+    #   circulo  = hay (o puede haber) un archivo real de por medio --
+    #              relleno = confirmado (ya paso QC); hueco = pendiente
+    #   cuadrado = no existe estructuralmente (siempre rojo)
+    #   X        = existe y se descargo, pero fallo el QC (siempre rojo)
+    # Color dentro de la familia "circulo": verde = buen camino (hay
+    # link vivo), gris = camino trabado (existe pero no encontramos
+    # ningun link que funcione).
     color_map = {
-        "PASS": "tab:green", "FAIL": "tab:red", "FAIL_DESCARGA": "darkred",
-        "UNAVAILABLE": "lightgrey", "HIST_YES": "tab:green", "HIST_NO": "lightgrey",
+        "PASS": "tab:green", "FAIL": "tab:red", "PENDIENTE": "tab:green",
+        "SIN_LINK": "gray", "SOLO_HIST1950": "tab:orange", "UNAVAILABLE": "tab:red",
+        "HIST_YES": "tab:green", "HIST_NO": "tab:red",
+        "TOS_YES": "tab:green", "TOS_NO": "tab:red",
     }
     marker_map = {
-        "PASS": "o", "FAIL": "X", "FAIL_DESCARGA": "v",
-        "UNAVAILABLE": "s", "HIST_YES": "o", "HIST_NO": "s",
+        "PASS": "o", "FAIL": "X", "PENDIENTE": "o",
+        "SIN_LINK": "o", "SOLO_HIST1950": "o", "UNAVAILABLE": "s",
+        "HIST_YES": "o", "HIST_NO": "s",
+        "TOS_YES": "o", "TOS_NO": "s",
     }
     size_map = {
-        "PASS": 30, "FAIL": 30, "FAIL_DESCARGA": 30,
-        "UNAVAILABLE": 15, "HIST_YES": 30, "HIST_NO": 15,
+        "PASS": 30, "FAIL": 30, "PENDIENTE": 30,
+        "SIN_LINK": 30, "SOLO_HIST1950": 30, "UNAVAILABLE": 22,
+        "HIST_YES": 30, "HIST_NO": 22,
+        "TOS_YES": 30, "TOS_NO": 22,
     }
+    # PENDIENTE (verde), SIN_LINK (gris) y SOLO_HIST1950 (naranja) van
+    # huecos -- todavia no se confirmaron con un PASS real. PASS es el
+    # unico circulo relleno.
+    HOLLOW = {"PENDIENTE", "SIN_LINK", "SOLO_HIST1950"}
 
     fig, axes = plt.subplots(1, n_panels, figsize=(n_panels * 2.4, panel_size * 0.12 + .4),
                               sharey=False, gridspec_kw={"wspace": 1.4, "hspace": 0.2})
     for idx, ax in enumerate(axes):
         chunk = panels[idx]
         for i, model in enumerate(chunk):
-            hist_status = hist_available[model]
-            ax.scatter(0, i, marker=marker_map[hist_status], s=size_map[hist_status],
-                       c=color_map[hist_status],
-                       edgecolors="none" if hist_status != "HIST_NO" else "white",
+            tos_status = tos_available[model]
+            ax.scatter(0, i, marker=marker_map[tos_status], s=size_map[tos_status],
+                       c=color_map[tos_status],
+                       edgecolors="none" if tos_status != "TOS_NO" else "white",
                        linewidth=0.5, alpha=0.9)
             for j, exp in enumerate(experiments):
                 status = final_status.loc[model, exp]
                 col = j + 1
-                ax.scatter(col, i, marker=marker_map[status], s=size_map[status],
-                           c=color_map[status],
-                           edgecolors="none" if status != "UNAVAILABLE" else "white",
-                           linewidth=0.5, alpha=0.9)
+                if status in HOLLOW:
+                    ax.scatter(col, i, marker=marker_map[status], s=size_map[status],
+                               facecolors="none", edgecolors=color_map[status],
+                               linewidth=0.8, alpha=0.9)
+                else:
+                    ax.scatter(col, i, marker=marker_map[status], s=size_map[status],
+                               c=color_map[status],
+                               edgecolors="none" if status != "UNAVAILABLE" else "white",
+                               linewidth=0.5, alpha=0.9)
 
-        all_cols = ["hist"] + experiments
+        all_cols = ["tos"] + experiments
         ax.set_xticks(range(len(all_cols)))
         ax.set_xticklabels(all_cols, rotation=45, ha="left", fontsize=8)
         ax.set_yticks(range(len(chunk)))
@@ -158,14 +216,19 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], marker="o", color="w", markerfacecolor="tab:green",
-               markersize=8, label="PASS / historical o hist-1950 disponible"),
+               markersize=8, label="PASS"),
         Line2D([0], [0], marker="X", color="w", markerfacecolor="tab:red",
                markersize=8, label="FAIL (QC/CDO, sobre archivo descargado)"),
-        Line2D([0], [0], marker="v", color="w", markerfacecolor="darkred",
-               markersize=8, label="FAIL descarga (nunca se obtuvo el archivo)"),
-        Line2D([0], [0], marker="s", color="w", markerfacecolor="lightgrey",
-               markersize=8, label="Columna 'hist': sin historical/hist-1950 -- "
-                                   "columnas SSP: sin ese escenario (puede igual tener tos, ver CSV)"),
+        Line2D([0], [0], marker="o", color="tab:green", markerfacecolor="none",
+               markersize=8, label="Link vivo encontrado, falta descargar y/o procesar"),
+        Line2D([0], [0], marker="o", color="gray", markerfacecolor="none",
+               markersize=8, label="Existe segun 00b, pero 01 no encontro ningun link vivo"),
+        Line2D([0], [0], marker="o", color="tab:orange", markerfacecolor="none",
+               markersize=8, label="Columna 'historical': solo tiene hist-1950 (HighResMIP), "
+                                   "no se busco link (no califica como seed)"),
+        Line2D([0], [0], marker="s", color="w", markerfacecolor="tab:red",
+               markersize=8, label="No existe en absoluto (columna 'tos') / sin ese "
+                                   "experimento en ningun lado (columnas historical/SSP)"),
     ]
     fig.legend(handles=legend_elements, ncol=2, frameon=False, fontsize=8,
                loc="upper center", bbox_to_anchor=(0.5, .1))
@@ -174,10 +237,15 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
     plt.close()
 
-    if missing_download:
-        print(f"\n{len(missing_download)} caso(s) marcados como FAIL_DESCARGA "
-              "(catalogo dice disponible, sin fila en qc_report.csv):", file=sys.stderr)
-        for model, exp in missing_download:
+    if pendientes["PENDIENTE"]:
+        print(f"\n{len(pendientes['PENDIENTE'])} caso(s) PENDIENTE (link vivo encontrado, "
+              "falta descargar y/o procesar):", file=sys.stderr)
+        for model, exp in pendientes["PENDIENTE"]:
+            print(f"   - {model} / {exp}", file=sys.stderr)
+    if pendientes["SIN_LINK"]:
+        print(f"\n{len(pendientes['SIN_LINK'])} caso(s) SIN_LINK (existe segun 00b, pero 01 "
+              "no encontro ningun link vivo):", file=sys.stderr)
+        for model, exp in pendientes["SIN_LINK"]:
             print(f"   - {model} / {exp}", file=sys.stderr)
 
     print(f"\nListo: {len(df)} filas de QC procesadas, figura en {out_path}", file=sys.stderr)

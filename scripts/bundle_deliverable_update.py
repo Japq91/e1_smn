@@ -49,6 +49,9 @@ EXPECTED_FILES = [
      "python3 scripts/plot_boxplot_comparison.py (ya se corre solo al final de run.sh)"),
     ("figures/boxplot_Nino1+2.png",
      "python3 scripts/plot_boxplot_comparison.py (ya se corre solo al final de run.sh)"),
+    ("figures/region_nino_proj.png",
+     "python3 scripts/plot_region_nino_orthographic.py (ya se corre solo al final de run.sh) -- "
+     "no depende de datos descargados, requiere cartopy (esta en environment.yml)"),
 ]
 
 

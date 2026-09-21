@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
-"""Mapa de contexto de las cajas Nino, en proyeccion Ortografica
-(complementario a informe/region_nino.png, que usa PlateCarree).
+"""Mapa de contexto: cajas Nino + ventana real de descarga, en
+proyeccion Robinson centrada en el Pacifico (central_longitude=-165).
 
-A diferencia de ese mapa, el centro de la proyeccion no es un valor
-fijo: se calcula a partir del propio dominio espacial de los NetCDF ya
-homogeneizados en data/processed/masked/ (mismo dominio para los 48
-modelos y ERSSTv5, ya que el paso 04 regrilla todo a esa misma grilla,
-ver scripts/04_process_to_common_grid.sh), tomando el punto medio de
-sus coordenadas lat/lon. Esto evita que el centro de la proyeccion y el
-dominio realmente descargado/procesado queden desincronizados si
-config/domains.yaml cambia en el futuro.
+Reescrito para que coincida con graficos_exploratorios.ipynb (GRAFICO
+5) -- la version anterior de este script usaba una proyeccion
+Ortografica con centro calculado a partir del dominio de los NetCDF, no
+dibujaba la ventana de descarga, y guardaba en
+figures/region_nino_orthographic.png, un nombre que ningun informe
+referencia. informe/informe_e1_smn(v2).tex esperan
+figuras/region_nino_proj.png -- este script ahora escribe
+figures/region_nino_proj.png (misma convencion de carpeta que el resto
+de scripts/plot_*.py; la carpeta "figuras/" del .tex es responsabilidad
+de quien arma el PDF, no de este pipeline).
 
 Dibuja las cuatro cajas clasicas del ENOS (Nino 4, Nino 3, Nino 3.4,
-Nino 1+2); Nino 3.4 y Nino 1+2 -las dos que config/domains.yaml define
-y que efectivamente usa este proyecto- se resaltan con borde solido
-grueso, mientras que Nino 4 y Nino 3 (no usadas en este proyecto, solo
-de referencia geografica) se dibujan con borde punteado mas fino.
+Nino 1+2) mas la ventana de descarga real (config/domains.yaml,
+'download_window') como rectangulo relleno -- Nino 3.4 y Nino 1+2 (las
+que efectivamente usa este proyecto) se resaltan con doble borde.
 
-Requiere cartopy (no forma parte de environment.yml del pipeline
-principal; ver environment.yml para el entorno de graficos opcional).
+A diferencia del resto de scripts/plot_*.py, esta figura SIEMPRE se
+regenera (no es idempotente): es barata (no depende de datos
+descargados, solo del centro fijo y config/domains.yaml) y su
+contenido puede cambiar si domains.yaml cambia, asi que no tiene
+sentido dejarla "pegada" a una corrida vieja.
+
+Requiere cartopy -- SI forma parte de environment.yml (agregado ahi,
+ver ese archivo).
 
 Uso:
     python3 plot_region_nino_orthographic.py [archivo_salida.png]
@@ -32,19 +39,19 @@ matplotlib.use("Agg")  # sin GUI -- pensado para correr en un cluster sin interf
 import cartopy.crs as ccrs  # noqa: E402
 import cartopy.feature as cfeature  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-import netCDF4 as nc  # noqa: E402
-import numpy as np  # noqa: E402
 import yaml  # noqa: E402
+from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
+from matplotlib.ticker import MultipleLocator  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-MASKED_DIR = BASE_DIR / "data/processed/masked"
 DOMAINS_YAML = BASE_DIR / "config/domains.yaml"
-DEFAULT_OUT = BASE_DIR / "figures/region_nino_orthographic.png"
+DEFAULT_OUT = BASE_DIR / "figures/region_nino_proj.png"
+CENTRAL_LON, CENTRAL_LAT = -165.0, 0.0  # fijo, igual que el notebook (no se calcula del dato)
 
-# Cajas clasicas del ENOS, longitud en 0-360 (mismo formato que
-# config/domains.yaml). Nino 4 y Nino 3 no estan en domains.yaml (este
-# proyecto no las usa) y se definen aqui solo para dar contexto
-# geografico, igual que en informe/region_nino.png.
+# Cajas de referencia geografica (no usadas por el proyecto, solo dan
+# contexto): no estan en config/domains.yaml a proposito.
 NINO4 = dict(lon_min=160.0, lon_max=210.0, lat_min=-5.0, lat_max=5.0)
 NINO3 = dict(lon_min=210.0, lon_max=270.0, lat_min=-5.0, lat_max=5.0)
 
@@ -54,77 +61,77 @@ def load_domains(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def netcdf_domain_center(masked_dir: Path) -> tuple[float, float]:
-    """Punto medio (lon, lat) del dominio de los NetCDF ya procesados,
-    en convencion -180/180 (la que espera cartopy en central_longitude)."""
-    ersstv5 = masked_dir / "ersstv5_region.nc"
-    if not ersstv5.exists():
-        sys.exit(f"FALTA {ersstv5} -- corre antes el pipeline (pasos 03-05).")
-
-    with nc.Dataset(ersstv5) as ds:
-        lat = ds.variables["lat"][:]
-        lon = ds.variables["lon"][:]
-
-    lon_center_0_360 = float(lon.min() + lon.max()) / 2.0
-    lat_center = float(lat.min() + lat.max()) / 2.0
-    # 0-360 -> -180/180
-    lon_center = ((lon_center_0_360 + 180.0) % 360.0) - 180.0
-    return lon_center, lat_center
-
-
-def draw_box(ax, box: dict, label: str, color: str, *, emphasize: bool) -> None:
+def draw_box(ax, box: dict, color: str, *, double_border: bool = False) -> None:
     lon1, lon2 = box["lon_min"], box["lon_max"]
     lat1, lat2 = box["lat_min"], box["lat_max"]
     lons = [lon1, lon2, lon2, lon1, lon1]
     lats = [lat1, lat1, lat2, lat2, lat1]
-    ax.plot(
-        lons, lats,
-        transform=ccrs.PlateCarree(),
-        color=color,
-        linewidth=2.2 if emphasize else 1.3,
-        linestyle="-" if emphasize else "--",
-        zorder=5,
-    )
-    lon_mid = (lon1 + lon2) / 2.0
-    lat_mid = (lat1 + lat2) / 2.0
-    ax.text(
-        lon_mid, lat_mid, label,
-        transform=ccrs.PlateCarree(),
-        ha="center", va="center", fontsize=9,
-        fontweight="bold" if emphasize else "normal",
-        color=color, zorder=6,
-        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.75, edgecolor="none"),
-    )
+    ax.plot(lons, lats, transform=ccrs.PlateCarree(), color=color,
+             linewidth=1.4 if double_border else 1.0, zorder=5)
+    if double_border:
+        ax.plot(lons, lats, transform=ccrs.PlateCarree(), color="k",
+                 linewidth=0.5, alpha=0.6, zorder=6)
+
+
+def draw_rect(ax, lon_a: float, lon_b: float, lat_a: float, lat_b: float,
+              alpha: float = 0.4, color: str = "green") -> None:
+    lons = [lon_a, lon_b, lon_b, lon_a, lon_a]
+    lats = [lat_a, lat_a, lat_b, lat_b, lat_a]
+    ax.fill(lons, lats, transform=ccrs.PlateCarree(), color=color, alpha=alpha,
+             zorder=4, edgecolor="none")
+
+
+def draw_download_window(ax, domains: dict, color: str) -> None:
+    """Ventana real de descarga (config/domains.yaml, download_window),
+    en convencion -180/180. Maneja el cruce del antimeridiano
+    partiendo el rectangulo en dos si hace falta."""
+    dw = domains["download_window"]
+    lon1 = dw["lon_min"]
+    lon2 = dw["lon_max"] - 360.0
+    lat1, lat2 = dw["lat_min"], dw["lat_max"]
+    if lon1 > lon2:
+        draw_rect(ax, lon1, 180.0, lat1, lat2, alpha=0.35, color=color)
+        draw_rect(ax, -180.0, lon2, lat1, lat2, alpha=0.35, color=color)
+    else:
+        draw_rect(ax, lon1, lon2, lat1, lat2, alpha=0.35, color=color)
 
 
 def main(out_path: Path) -> None:
-    if out_path.exists():
-        print(f"{out_path} ya existe, se omite. Para regenerarlo, borralo primero.", file=sys.stderr)
-        return
-
     domains = load_domains(DOMAINS_YAML)
-    central_lon, central_lat = netcdf_domain_center(MASKED_DIR)
-    print(f"Centro de proyeccion (desde el dominio de los NetCDF): "
-          f"lon={central_lon:.1f}, lat={central_lat:.1f}", file=sys.stderr)
 
-    proj = ccrs.Orthographic(central_longitude=central_lon, central_latitude=central_lat)
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"projection": proj})
-    ax.set_global()
-    ax.add_feature(cfeature.LAND, facecolor="0.85", zorder=1)
-    ax.add_feature(cfeature.OCEAN, facecolor="#eaf3fb", zorder=0)
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.6, zorder=2)
-    gl = ax.gridlines(draw_labels=False, linewidth=0.4, color="gray", alpha=0.5, zorder=3)
+    proj = ccrs.Robinson(central_longitude=CENTRAL_LON)
+    fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={"projection": proj})
+    ax.add_feature(cfeature.LAND, facecolor="0.1", alpha=0.8, zorder=1)
+    ax.add_feature(cfeature.OCEAN, alpha=0.5, zorder=0)
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.9, edgecolor="0.95", zorder=2)
 
-    draw_box(ax, NINO4, "Niño 4", "tab:blue", emphasize=False)
-    draw_box(ax, NINO3, "Niño 3", "tab:orange", emphasize=False)
-    draw_box(ax, domains["nino34"], "Niño 3.4", "tab:red", emphasize=True)
-    draw_box(ax, domains["nino12"], "Niño 1+2", "tab:purple", emphasize=True)
+    gl = ax.gridlines(draw_labels=True, linewidth=0.4, color="0.5", alpha=0.5, zorder=3,
+                       xlocs=MultipleLocator(20), ylocs=MultipleLocator(10))
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
 
-    ax.set_title(
-        "Regiones Niño -- proyección Ortográfica\n"
-        "(centrada en el dominio de los NetCDF de data/processed/masked)",
-        fontsize=11,
-    )
+    download_color = "tab:green"
+    draw_download_window(ax, domains, download_color)
+    draw_box(ax, NINO4, "tab:blue")
+    draw_box(ax, NINO3, "tab:purple")
+    draw_box(ax, domains["nino34"], "tab:red", double_border=True)
+    draw_box(ax, domains["nino12"], "tab:red", double_border=True)
+
+    # Leyenda consolidada en un solo bloque, en vez de un texto flotante
+    # por caja sobre el mapa (asi era antes: 5 etiquetas sueltas
+    # compitiendo con la costa/grilla por espacio).
+    legend_elements = [
+        Line2D([0], [0], color="tab:blue", lw=1.4, label="Niño 4 (referencia, no usada)"),
+        Line2D([0], [0], color="tab:purple", lw=1.4, label="Niño 3 (referencia, no usada)"),
+        Line2D([0], [0], color="tab:red", lw=1.4, label="Niño 3.4 y Niño 1+2 (usadas en este proyecto)"),
+        Patch(facecolor=download_color, alpha=0.3, edgecolor="none", label="Ventana de descarga real"),
+    ]
+    ax.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.32),
+               ncol=2, frameon=False, fontsize=8)
+
+    ax.set_title("Regiones Niño y ventana de descarga -- proyección Robinson", fontsize=11)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=100, bbox_inches="tight")

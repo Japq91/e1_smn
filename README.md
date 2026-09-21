@@ -147,14 +147,14 @@ Cada corrida de `run.sh`, sin importar `STEP_FROM`/`STEP_TO`, termina generando 
 | `plot_box_series.py` | Series de caja (Niño 3.4 / Niño 1+2) por modelo, historical + escenarios SSP superpuestos |
 | `plot_qc_summary.py [n_paneles]` | Resumen de control de calidad (PASS/FAIL) por modelo y experimento |
 | `plot_boxplot_comparison.py` | Boxplot comparativo Niño 3.4 / Niño 1+2, modelos vs. ERSSTv5, periodo histórico común |
-| `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS -- fijo, no depende de datos descargados. Requiere `cartopy` (no está en el `environment.yml` del pipeline principal) |
+| `plot_region_nino_orthographic.py` | Mapa de contexto de las cajas ENOS + ventana real de descarga, proyección Robinson -- no depende de datos descargados, se regenera siempre (no es idempotente). Requiere `cartopy` (sí está en `environment.yml`) |
 
 Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py`) en vez de tenerlos fijos en el código, y comparten rutas/utilidades en `scripts/plot_common.py` (que además fuerza el backend `Agg` de matplotlib, así no hace falta `$DISPLAY`). `plot_qc_summary.py` lee la disponibilidad real de cada modelo desde `informe/model_availability_priority.csv` (lo escribe el paso 00b) en vez de una lista fija.
 
 ### `graficos_exploratorios.ipynb` (manual, para exploración interactiva)
 El mismo contenido que los scripts de arriba, pero como notebook editable libremente celda por celda -- útil para probar variantes puntuales sin tocar código. No es necesario correrlo para tener las figuras del informe: eso ya lo cubre `run.sh`.
 
-Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana) vía `scripts/plot_common.py`, así que no necesitan `$DISPLAY`, y guardan todo en `figures/` con DPI 100 (livianas, pensadas para el informe). `plot_region_nino_orthographic.py` es el único que requiere `cartopy` (no está en `environment.yml` del pipeline principal, ver ese archivo para el entorno de gráficos opcional).
+Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana) vía `scripts/plot_common.py`, así que no necesitan `$DISPLAY`, y guardan todo en `figures/` con DPI 100 (livianas, pensadas para el informe). `plot_region_nino_orthographic.py` es el único que requiere `cartopy` (incluido en `environment.yml`) y el único que se regenera siempre en vez de ser idempotente.
 
 `check_model_availability.py` queda como herramienta manual opcional: re-verifica lo mismo contra ESGF por una vía independiente (útil como segunda opinión, o para un modelo puntual sin correr 00b entero). Es idempotente — si `informe/model_availability_report.csv` ya existe, avisa y no consulta nada; para forzar una nueva verificación manual hay que borrarlo primero:
 ```
