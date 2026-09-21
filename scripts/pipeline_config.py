@@ -256,12 +256,25 @@ def _file_year_span(filename: str) -> tuple[int, int] | None:
 _FILE_YEARMONTH_RANGE_RE = re.compile(r"_(\d{6})-(\d{6})\.nc$")
 
 
-def expected_months_from_chunks(chunk_dir, year_start: int, year_end: int) -> set[int]:
+def expected_months_from_chunks(chunk_dir, year_start: int, year_end: int,
+                                 grid_label: str | None = None) -> set[int]:
     """Meses (como entero YYYYMM) que DEBERIAN quedar en el merge+recorte
     de 04_process_to_common_grid.sh, derivados de los rangos de fecha en
     los nombres de los chunks CRUDOS que 01/02b ya encontraron y 02 ya
     descargo (fuente de verdad: lo que hay en disco), recortados al
     rango configurado (year_start/year_end) igual que 'cdo selyear'.
+
+    grid_label (si se pasa) filtra el glob a solo los archivos de esa
+    grilla ('*_<grid_label>_*.nc') -- debe ser LA MISMA grilla que
+    selecciono 00b_build_model_list.py para ese modelo (ver
+    config/models_seed_cmip6.csv / la columna grid_label del catalogo),
+    para que "lo que se espera" coincida con lo que 04 realmente va a
+    mergear (ver GRID_LABEL_BY_MODEL en 04_process_to_common_grid.sh).
+    Sin este filtro, un chunk de una grilla vieja que quedo en disco de
+    una descarga anterior (ej. CESM2: un archivo 'gn' y uno 'gr' del
+    mismo periodo completo, de antes de que 02b filtrara por grid_label)
+    se cuenta igual para "lo esperado", aunque nunca deberia haberse
+    mergeado con el resto.
 
     A proposito esto NO es un conteo ideal fijo de config/periods.yaml:
     un modelo puede publicar de verdad menos de lo que este pipeline
@@ -270,13 +283,14 @@ def expected_months_from_chunks(chunk_dir, year_start: int, year_end: int) -> se
     tal cual, no excluirlo) y esa limitacion es real, no un hueco para
     reintentar. Lo unico que debe fallar la verificacion de 04 es que
     el propio merge/recorte no reproduzca fielmente lo que los chunks
-    ya descargados prometen (un mes perdido o duplicado por el proceso
-    de mergetime/selyear/regrid -- ver el caso real de CESM2 con
-    chunks 'gn' y 'gr' duplicando cada mes). Que la busqueda (01/02b)
-    haya encontrado TODOS los archivos que existen de verdad en ESGF es
-    responsabilidad de esa etapa (ver esgf_get_all_docs), no de esta."""
+    ya descargados (de la grilla correcta) prometen -- un mes perdido o
+    duplicado por el proceso de mergetime/selyear/regrid. Que la
+    busqueda (01/02b) haya encontrado TODOS los archivos que existen de
+    verdad en ESGF es responsabilidad de esa etapa (ver
+    esgf_get_all_docs), no de esta."""
+    pattern = f"*_{grid_label}_*.nc" if grid_label else "*.nc"
     months: set[int] = set()
-    for f in sorted(Path(chunk_dir).glob("*.nc")):
+    for f in sorted(Path(chunk_dir).glob(pattern)):
         m = _FILE_YEARMONTH_RANGE_RE.search(f.name)
         if not m:
             continue
@@ -453,9 +467,10 @@ if __name__ == "__main__":
         start, end = experiment_year_range(sys.argv[2])
         print(f"{start} {end}")
     elif cmd == "expected_months":
-        if len(sys.argv) != 5:
-            sys.exit("uso: pipeline_config.py expected_months <chunk_dir> <year_start> <year_end>")
-        months = expected_months_from_chunks(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+        if len(sys.argv) not in (5, 6):
+            sys.exit("uso: pipeline_config.py expected_months <chunk_dir> <year_start> <year_end> [grid_label]")
+        grid_label = sys.argv[5] if len(sys.argv) == 6 else None
+        months = expected_months_from_chunks(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), grid_label)
         print(" ".join(str(m) for m in sorted(months)))
     else:
         sys.exit(f"comando desconocido: {cmd!r}")
