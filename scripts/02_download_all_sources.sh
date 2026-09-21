@@ -88,12 +88,35 @@ no_encontrado_csv="data/interim/.no_encontrado_tmp.csv"
 { echo "model"; models_pendientes no_encontrado; } > "$no_encontrado_csv"
 n_missing=$(($(wc -l < "$no_encontrado_csv") - 1))
 
-if [ "$n_missing" -gt 0 ]; then
+# Confirmacion explicita antes de entrar a la cascada de fuentes
+# alternativas (02b + 02c): a diferencia del nodo principal (02a, ya
+# esperado en cualquier corrida), buscar en nodos alternativos y en
+# Copernicus CDS puede tardar bastante para un lote grande de modelos
+# no encontrados. Decision del usuario: preguntar, pero con un limite
+# de 15s -- si no hay respuesta (corrida no interactiva, o el usuario
+# se alejo), se continua igual que si hubiera dicho que si (nunca se
+# bloquea una corrida desatendida por falta de respuesta).
+TRY_ALT_SOURCES=1
+if [ "$n_missing" -gt 0 ] && [ -t 0 ]; then
+    echo "$n_missing modelo(s) no se encontraron en el nodo principal de ESGF."
+    if read -r -t 15 -p "Buscar en nodos alternativos de ESGF (02b) y Copernicus CDS (02c)? [S/n, 15s, por defecto S] " respuesta; then
+        case "$respuesta" in
+            [nN]*) TRY_ALT_SOURCES=0 ;;
+        esac
+    else
+        echo
+        echo "(sin respuesta en 15s, se continua como si hubieras dicho que si)"
+    fi
+fi
+
+if [ "$n_missing" -gt 0 ] && [ "$TRY_ALT_SOURCES" -eq 1 ]; then
     echo "== 02b: $n_missing modelos no encontrados en el nodo principal -- probando nodos alternativos de ESGF =="
     python3 scripts/02b_search_alt_esgf_nodes.py "$no_encontrado_csv" "$CATALOG_CSV" "$FILES_JSON" || true
 
     echo "== 02a (reintento): descarga lo que 02b haya resuelto =="
     bash scripts/02_download_cmip6_chunks.sh
+elif [ "$n_missing" -gt 0 ]; then
+    echo "== 02b: omitido por decision del usuario =="
 else
     echo "== 02b: nada pendiente, se omite =="
 fi
@@ -101,7 +124,9 @@ fi
 { echo "model"; models_pendientes no_encontrado; } > "$no_encontrado_csv"
 n_still_missing=$(($(wc -l < "$no_encontrado_csv") - 1))
 
-if [ "$n_still_missing" -gt 0 ] && [ -f "$HOME/.cdsapirc" ] && python3 -c "import cdsapi" 2>/dev/null; then
+if [ "$n_still_missing" -gt 0 ] && [ "$TRY_ALT_SOURCES" -eq 0 ]; then
+    echo "== 02c: omitido por decision del usuario (misma respuesta que 02b) =="
+elif [ "$n_still_missing" -gt 0 ] && [ -f "$HOME/.cdsapirc" ] && python3 -c "import cdsapi" 2>/dev/null; then
     copernicus_csv="data/interim/.copernicus_tmp.csv"
     python3 -c "
 import csv, sys
