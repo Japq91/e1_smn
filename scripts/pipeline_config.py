@@ -123,7 +123,8 @@ def esgf_get(url: str, params: dict, timeout: float = 60, max_retries: int = ESG
 
 
 def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
-                       max_retries: int = ESGF_MAX_RETRIES, page_size: int = 500) -> list[dict]:
+                       max_retries: int = ESGF_MAX_RETRIES, page_size: int = 500,
+                       retry_full_on_truncate: int = 0) -> list[dict]:
     """Igual que esgf_get(...).json()["response"]["docs"], pero pagina
     (offset/limit) hasta traer TODOS los docs que matchean la consulta,
     no solo los primeros 'page_size'. Usar esto en vez de un limit fijo
@@ -154,22 +155,46 @@ def esgf_get_all_docs(url: str, params: dict, timeout: float = 60,
     propagar el error y tirar abajo el script que llamo a esto -- para
     una consulta de existencia/disponibilidad, los primeros miles de
     registros ya alcanzan de sobra para cubrir los experimentos que
-    este pipeline necesita."""
-    docs: list[dict] = []
-    offset = 0
-    while True:
-        page_params = {**params, "limit": page_size, "offset": offset}
-        try:
-            r = esgf_get(url, page_params, timeout=timeout, max_retries=max_retries)
-        except requests.HTTPError as e:
-            print(f"  {url}: parando la paginacion en offset={offset} ({e}) -- "
-                  f"se sigue con los {len(docs)} registros ya juntados", file=sys.stderr)
-            break
-        batch = r.json()["response"]["docs"]
-        docs.extend(batch)
-        if len(batch) < page_size:
-            break
-        offset += page_size
+    este pipeline necesita.
+
+    BUG real encontrado en produccion (2026-09): para busquedas a nivel
+    de ARCHIVO (01_query_esgf_catalog.py/02b_search_alt_esgf_nodes.py,
+    donde la lista completa si importa -- a diferencia del caso de
+    arriba), un corte de red transitorio a mitad de la paginacion
+    (agotando ya los max_retries de esa sola pagina) se aceptaba en
+    silencio como 'la lista completa de archivos', marcando el modelo
+    como 'completo=True' con un merge que iba a quedar con un hueco real
+    (verificado: EC-Earth3 historical encontro 107, 121 o 165 archivos
+    -- el total real -- segun la corrida, sin ningun error visible).
+    retry_full_on_truncate (>0 para busquedas de archivo, 0 -- default,
+    sin cambio de comportamiento -- para las de solo-existencia como
+    00b_build_model_list.py) reintenta la PAGINACION COMPLETA desde
+    offset=0 esa cantidad de veces si la anterior se corto por error,
+    ya que el corte es transitorio (una repeticion inmediata suele
+    encontrar la red sana de nuevo) y no un limite real del servidor."""
+    for attempt in range(retry_full_on_truncate + 1):
+        docs: list[dict] = []
+        offset = 0
+        truncated = False
+        while True:
+            page_params = {**params, "limit": page_size, "offset": offset}
+            try:
+                r = esgf_get(url, page_params, timeout=timeout, max_retries=max_retries)
+            except requests.HTTPError as e:
+                print(f"  {url}: parando la paginacion en offset={offset} ({e}) -- "
+                      f"se sigue con los {len(docs)} registros ya juntados", file=sys.stderr)
+                truncated = True
+                break
+            batch = r.json()["response"]["docs"]
+            docs.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        if not truncated or attempt == retry_full_on_truncate:
+            return docs
+        print(f"  {url}: paginacion incompleta, reintentando la busqueda completa "
+              f"desde offset=0 (intento {attempt + 2}/{retry_full_on_truncate + 1}) ...",
+              file=sys.stderr)
     return docs
 
 

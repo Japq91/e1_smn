@@ -111,7 +111,8 @@ def esgf_file_search(base_url: str, model: str, experiment: str, member: str, gr
     }
     if grid_label:
         params["grid_label"] = grid_label
-    docs = pipeline_config.esgf_get_all_docs(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES)
+    docs = pipeline_config.esgf_get_all_docs(base_url, params, timeout=TIMEOUT, max_retries=ALT_NODE_MAX_RETRIES,
+                                              retry_full_on_truncate=2)
     year_start, year_end = pipeline_config.experiment_year_range(experiment)
 
     by_filename: dict[str, list[str]] = {}
