@@ -204,7 +204,7 @@ def update_catalog(models: list[str], out_path: Path) -> None:
     completo por otra via, no hace falta pisar esa fila)."""
     experiments = pipeline_config.experiments()
 
-    catalog_fieldnames = ["model", "grid_label", "complete", *experiments, "member_id", "fuente"]
+    catalog_fieldnames = ["model", "grid_label", "complete", *experiments, "member_id", "fuente", "intentos_busqueda"]
     catalog_rows: list[dict] = []
     if CATALOG_CSV.exists():
         with open(CATALOG_CSV, newline="") as f:
@@ -234,6 +234,7 @@ def update_catalog(models: list[str], out_path: Path) -> None:
             **{exp: str(status[exp]) for exp in experiments},
             "member_id": EXPECTED_MEMBER,
             "fuente": "copernicus_parcial",
+            "intentos_busqueda": by_model.get(model, {}).get("intentos_busqueda", "0"),
         }
         updated.append(model)
 

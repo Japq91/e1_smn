@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Segunda opcion (1/2): busca los modelos faltantes en otros nodos
 indice de la federacion ESGF, no solo el de LLNL usado por
-01_query_esgf_catalog.py (paso 02b -- NO forma parte de
-la secuencia automatica de run.sh; se corre a mano cuando
-00c_check_paper_models.py reporta modelos citados en los papers que no
-aparecieron en la busqueda principal).
+01_query_esgf_catalog.py (paso 02b -- se invoca automaticamente desde
+02_download_all_sources.sh para los modelos que 02a no encontro en el
+nodo principal; no hace falta correrlo a mano en el flujo normal).
 
 ESGF es una federacion de nodos que replican (parcial o totalmente)
 el mismo indice de datos; un modelo puede no aparecer en la busqueda
@@ -29,9 +28,11 @@ como si fueran un solo archivo continuo. Ahora se determina, por nodo y
 modelo, el variant_label comun a los tres experimentos (prefiriendo
 r1i1p1f1) antes de buscar los archivos.
 
-Uso:
+Uso (el primer argumento es cualquier CSV con columna 'model'; en
+produccion es un CSV temporal armado por 02_download_all_sources.sh con
+los modelos no encontrados en el nodo principal):
     python3 02b_search_alt_esgf_nodes.py \
-        config/models_missing_from_esgf.csv \
+        data/interim/.no_encontrado_tmp.csv \
         data/interim/models_catalog_status.csv \
         data/interim/esgf_file_urls.json
 """

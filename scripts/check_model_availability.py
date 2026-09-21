@@ -4,14 +4,15 @@ escenarios SSP de config/periods.yaml) tiene publicados cada modelo
 para la variable tos/Omon.
 
 NO forma parte de la secuencia automatica de run.sh: 00b_build_model_list.py
-ya genera informe/model_availability_report.csv/.md automaticamente en
-cada corrida (reutilizando classify()/category_label()/write_report()
-de este archivo, ver mas abajo), a partir de los mismos datos que
-consulta para armar la lista de modelos -- sin peticiones adicionales.
-Este script sirve como segunda opinion manual e independiente (consulta
-ESGF por una via distinta, facetas de experiment_id en vez de listado
-de datasets), util para verificar un modelo puntual o si se sospecha
-que 00b esta mal.
+ya genera automaticamente en cada corrida su propio reporte de
+disponibilidad (informe/model_availability_priority.csv, columnas 0/1
+por experimento + prioridad de busqueda manual), a partir de los mismos
+datos que consulta para armar la lista de modelos -- sin peticiones
+adicionales. Este script sirve como segunda opinion manual e
+independiente (consulta ESGF por una via distinta, facetas de
+experiment_id en vez de listado de datasets; y escribe su propio
+.csv/.md con classify()/category_label()/write_report() de aqui abajo),
+util para verificar un modelo puntual o si se sospecha que 00b esta mal.
 
 Idempotente: si informe/model_availability_report.csv ya existe (por
 ejemplo, el que genera 00b), no se vuelve a consultar ESGF. Para forzar

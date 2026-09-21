@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Consolida el catalogo de archivos a descargar (paso 01).
-url: https://esgf-metagrid.cloud.dkrz.de/search
+
 Lee config/models_seed_cmip6.csv (generado por 00b_build_model_list.py,
 que ya inspecciono TODOS los modelos CMIP6 y eligio, por modelo, la
 variante de grilla (grid_label) mas gruesa disponible que cubre los
@@ -58,8 +58,6 @@ from pathlib import Path
 import pipeline_config
 
 ESGF_SEARCH_URL = "https://esgf-node.llnl.gov/esg-search/search"
-# El metodo de Szabo usado en esta propuesta estima la variabilidad
-# interna a partir de los residuos de historical+escenario.
 EXPERIMENTS = pipeline_config.experiments()
 VARIABLE, TABLE = "tos", "Omon"
 

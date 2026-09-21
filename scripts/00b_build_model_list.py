@@ -72,7 +72,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ESGF_SEARCH_URL = "https://esgf-node.ornl.gov/proxy/search"
 VARIABLE, TABLE = "tos", "Omon"
 REQUIRED_EXPERIMENTS = set(pipeline_config.experiments())
-DEFAULT_REPORT_PREFIX = BASE_DIR / "informe/model_availability_report"
 PRIORITY_REPORT_CSV = BASE_DIR / "informe/model_availability_priority.csv"
 
 

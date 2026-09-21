@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""GRAFICO 3: resumen de control de calidad -- matriz PASS/FAIL/DESCARGADO/
-NO_DESCARGADO/UNAVAILABLE por modelo y experimento, a partir de
+"""GRAFICO 3: resumen de control de calidad -- matriz PASS/FAIL/PENDIENTE/
+SIN_LINK/UNAVAILABLE (mas el caso especial SOLO_HIST1950) por modelo y
+experimento, a partir de
 data/processed/qc_report.csv (paso 06), la disponibilidad real que
 escribe el paso 00b (informe/model_availability_priority.csv) y el
 contenido de data/raw/cmip6/ (para distinguir "nunca se descargo" de
@@ -130,10 +131,6 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         model: ("TOS_YES" if avail_by_model.loc[model, "tiene_tos"] == "1" else "TOS_NO")
         for model in all_models
     }
-    hist_available = {
-        model: ("HIST_YES" if "historical" in availability[model] else "HIST_NO")
-        for model in all_models
-    }
 
     # Orden alfabetico simple (no por PASS/disponibilidad) -- asi el
     # numero M001..M102 que se muestra en el eje queda en secuencia,
@@ -158,19 +155,16 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     color_map = {
         "PASS": "tab:green", "FAIL": "tab:red", "PENDIENTE": "tab:green",
         "SIN_LINK": "gray", "SOLO_HIST1950": "tab:orange", "UNAVAILABLE": "tab:red",
-        "HIST_YES": "tab:green", "HIST_NO": "tab:red",
         "TOS_YES": "tab:green", "TOS_NO": "tab:red",
     }
     marker_map = {
         "PASS": "o", "FAIL": "X", "PENDIENTE": "o",
         "SIN_LINK": "o", "SOLO_HIST1950": "o", "UNAVAILABLE": "s",
-        "HIST_YES": "o", "HIST_NO": "s",
         "TOS_YES": "o", "TOS_NO": "s",
     }
     size_map = {
         "PASS": 30, "FAIL": 30, "PENDIENTE": 30,
         "SIN_LINK": 30, "SOLO_HIST1950": 30, "UNAVAILABLE": 22,
-        "HIST_YES": 30, "HIST_NO": 22,
         "TOS_YES": 30, "TOS_NO": 22,
     }
     # PENDIENTE (verde), SIN_LINK (gris) y SOLO_HIST1950 (naranja) van
