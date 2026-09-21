@@ -253,6 +253,45 @@ def _file_year_span(filename: str) -> tuple[int, int] | None:
     return (int(m.group(1)), int(m.group(2))) if m else None
 
 
+_FILE_YEARMONTH_RANGE_RE = re.compile(r"_(\d{6})-(\d{6})\.nc$")
+
+
+def expected_months_from_chunks(chunk_dir, year_start: int, year_end: int) -> set[int]:
+    """Meses (como entero YYYYMM) que DEBERIAN quedar en el merge+recorte
+    de 04_process_to_common_grid.sh, derivados de los rangos de fecha en
+    los nombres de los chunks CRUDOS que 01/02b ya encontraron y 02 ya
+    descargo (fuente de verdad: lo que hay en disco), recortados al
+    rango configurado (year_start/year_end) igual que 'cdo selyear'.
+
+    A proposito esto NO es un conteo ideal fijo de config/periods.yaml:
+    un modelo puede publicar de verdad menos de lo que este pipeline
+    pide (ej. CAMS-CSM1-0: sus escenarios SSP terminan en 2099, ESGF
+    nunca va a tener 2100 -- decision explicita del usuario: aceptarlo
+    tal cual, no excluirlo) y esa limitacion es real, no un hueco para
+    reintentar. Lo unico que debe fallar la verificacion de 04 es que
+    el propio merge/recorte no reproduzca fielmente lo que los chunks
+    ya descargados prometen (un mes perdido o duplicado por el proceso
+    de mergetime/selyear/regrid -- ver el caso real de CESM2 con
+    chunks 'gn' y 'gr' duplicando cada mes). Que la busqueda (01/02b)
+    haya encontrado TODOS los archivos que existen de verdad en ESGF es
+    responsabilidad de esa etapa (ver esgf_get_all_docs), no de esta."""
+    months: set[int] = set()
+    for f in sorted(Path(chunk_dir).glob("*.nc")):
+        m = _FILE_YEARMONTH_RANGE_RE.search(f.name)
+        if not m:
+            continue
+        f_start, f_end = int(m.group(1)), int(m.group(2))
+        y, mo = divmod(f_start, 100)
+        end_y, end_mo = divmod(f_end, 100)
+        while (y, mo) <= (end_y, end_mo):
+            if year_start <= y <= year_end:
+                months.add(y * 100 + mo)
+            mo += 1
+            if mo > 12:
+                mo, y = 1, y + 1
+    return months
+
+
 def verify_files_by_boundary_sample(by_filename: dict[str, list[str]], experiment: str,
                                      year_start: int, year_end: int, timeout: float = 10) -> dict[str, list[str]]:
     """Decision explicita del usuario (no verificar cada chunk uno por
@@ -402,7 +441,7 @@ def cds_experiment_name(exp: str) -> str:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.exit("uso: pipeline_config.py {experiments|scenarios|year_range <exp>}")
+        sys.exit("uso: pipeline_config.py {experiments|scenarios|year_range <exp>|expected_months <chunk_dir> <year_start> <year_end>}")
     cmd = sys.argv[1]
     if cmd == "experiments":
         print(" ".join(experiments()))
@@ -413,5 +452,10 @@ if __name__ == "__main__":
             sys.exit("uso: pipeline_config.py year_range <experimento>")
         start, end = experiment_year_range(sys.argv[2])
         print(f"{start} {end}")
+    elif cmd == "expected_months":
+        if len(sys.argv) != 5:
+            sys.exit("uso: pipeline_config.py expected_months <chunk_dir> <year_start> <year_end>")
+        months = expected_months_from_chunks(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+        print(" ".join(str(m) for m in sorted(months)))
     else:
         sys.exit(f"comando desconocido: {cmd!r}")

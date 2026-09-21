@@ -192,34 +192,41 @@ ensure_period_weights () {
     echo "$weights_file"
 }
 
-# Meses esperados para un experimento (rango inclusive de YEAR_START/
-# YEAR_END, ya cargados de config/periods.yaml via pipeline_config.py).
-# Sirve para detectar, con precision exacta y sin importar la grilla
-# nativa del modelo (que hace que el tamano en bytes no sea comparable
-# entre modelos), un merge con huecos: un chunk crudo que fallo la
-# descarga en TODOS los mirrors (ver 02_download_cmip6_chunks.sh) no
-# tira un error ahi -- solo deja faltando ese mes en el mergetime de
-# aca, y sin este chequeo el .nc incompleto quedaba como si fuera el
-# resultado final (el hueco recien se notaba al graficar, ej.
-# plot_maps.py fallando al pedir el mes de muestra 1950-12).
-expected_months () {
-    local exp="$1"
-    echo $(( (${YEAR_END[$exp]} - ${YEAR_START[$exp]} + 1) * 12 ))
+# Verifica que el .nc de salida tenga EXACTAMENTE la misma lista de
+# meses (YYYYMM) que prometen los nombres de los chunks crudos ya
+# descargados de $RAW_DIR/<model>/<exp>/ (ver
+# pipeline_config.expected_months_from_chunks) -- no un conteo ideal
+# fijo de config/periods.yaml. Decision explicita del usuario: un
+# modelo puede publicar de verdad menos de lo que este pipeline pide
+# (ej. CAMS-CSM1-0: sus SSP terminan en 2099, ESGF nunca va a tener
+# 2100) y eso se acepta tal cual, no se descarta para siempre. Lo que
+# SI debe fallar esta verificacion es que el propio merge/recorte no
+# reproduzca fielmente lo que los chunks ya descargados prometen -- un
+# mes perdido o duplicado por mergetime/selyear/regrid (ver el caso
+# real de CESM2 con chunks 'gn' y 'gr' duplicando cada mes: la lista
+# esperada tiene cada mes una vez, la real los traia dos veces, y la
+# comparacion como texto (no como conjunto) lo detecta).
+months_match () {
+    local model="$1" exp="$2" outfile="$3"
+    local chunk_dir="$RAW_DIR/$model/$exp"
+    local expected actual
+    expected=$(python3 scripts/pipeline_config.py expected_months "$chunk_dir" "${YEAR_START[$exp]}" "${YEAR_END[$exp]}")
+    actual=$(cdo -s showdate "$outfile" 2>/dev/null | tr -s ' \n' '\n' | grep -v '^$' \
+             | sed -E 's/^([0-9]{4})-([0-9]{2})-.*/\1\2/' | sort -n | tr '\n' ' ')
+    [ "$expected" = "${actual% }" ]
 }
 
 process_experiment () {
     local model="$1" exp="$2" weights_file="$3"
     local outfile="$OUT_DIR/tos_${model}_${exp}.nc"
-    local expected; expected=$(expected_months "$exp")
 
     if [ -f "$outfile" ]; then
-        local n_actual; n_actual=$(cdo -s ntime "$outfile" 2>/dev/null || echo 0)
-        if [ "$n_actual" -eq "$expected" ]; then
+        if months_match "$model" "$exp" "$outfile"; then
             echo "Ya procesado, se omite: $(basename "$outfile")"
             return
         fi
-        echo "  $model $exp: $(basename "$outfile") existe pero incompleto ($n_actual/$expected meses) -- se descarta y se reprocesa" >&2
-        echo "$(date -Iseconds) $model $exp: $n_actual/$expected meses (salida existente, descartada)" >> "$INCOMPLETE_LOG"
+        echo "  $model $exp: $(basename "$outfile") existe pero no coincide con los meses de sus chunks crudos -- se descarta y se reprocesa" >&2
+        echo "$(date -Iseconds) $model $exp: no coincide con los meses de los chunks crudos (salida existente, descartada)" >> "$INCOMPLETE_LOG"
         rm -f "$outfile"
     fi
 
@@ -266,11 +273,10 @@ process_experiment () {
     fix_calendar "$cropped" "$cal_ok"
     fix_units "$cal_ok" "$outfile"
 
-    local n_final; n_final=$(cdo -s ntime "$outfile" 2>/dev/null || echo 0)
-    if [ "$n_final" -ne "$expected" ]; then
-        echo "  aviso: $model $exp quedo incompleto tras procesar ($n_final/$expected meses) -- " \
-             "faltan chunks crudos (ver logs/download_failures.log), se descarta el resultado" >&2
-        echo "$(date -Iseconds) $model $exp: $n_final/$expected meses (recien generado, descartado)" >> "$INCOMPLETE_LOG"
+    if ! months_match "$model" "$exp" "$outfile"; then
+        echo "  aviso: $model $exp: el resultado no coincide con los meses de sus chunks crudos -- " \
+             "revisar mergetime/selyear (mes perdido o duplicado en el proceso), se descarta el resultado" >&2
+        echo "$(date -Iseconds) $model $exp: no coincide con los meses de los chunks crudos (recien generado, descartado)" >> "$INCOMPLETE_LOG"
         rm -f "$outfile"
     fi
 
