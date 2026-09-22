@@ -9,6 +9,7 @@ importar pyplot: cualquier script que importe este modulo primero
 queda con ese backend fijo para el resto del proceso, sin necesidad de
 tener un $DISPLAY disponible.
 """
+import csv
 import sys
 from pathlib import Path
 
@@ -94,6 +95,19 @@ def should_regenerate_batch(existing_paths, kind: str = "figura(s)") -> bool:
         return False
     respuesta = sys.stdin.readline().strip().lower()
     return respuesta.startswith("s")
+
+
+def model_numbers() -> dict[str, str]:
+    """{model: "M001"} -- orden alfabetico sobre TODOS los modelos de
+    MODEL_AVAILABILITY_CSV (el mismo universo de 102 que inspecciona
+    00b, no solo los descargados), misma fuente/orden/ancho que
+    build_model_registry.py y plot_qc_summary.py -- para que el numero
+    de un modelo sea siempre el mismo en cualquier figura o reporte
+    que lo use."""
+    with open(MODEL_AVAILABILITY_CSV, newline="") as f:
+        models = sorted(row["model"] for row in csv.DictReader(f))
+    width = max(3, len(str(len(models))))
+    return {m: f"M{i:0{width}d}" for i, m in enumerate(models, start=1)}
 
 
 def list_available_models() -> list[str]:

@@ -22,7 +22,8 @@ import numpy as np  # noqa: E402
 import xarray as xr  # noqa: E402
 
 
-def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False) -> None:
+def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
+             model_number: str | None = None) -> None:
     out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
     if ax is None and out_path.exists() and not force:
         print(f"  {model}: {out_path.name} ya existe, se omite", file=sys.stderr)
@@ -52,6 +53,12 @@ def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False) 
     ax.set_xlabel("longitud")
     ax.set_ylabel("latitud")
     ax.set_title(f"{model} {exp.upper()}")
+    # Codigo M001..M102 (informe/model_registry.csv) como titulo
+    # aparte, alineado a la izquierda -- identifica el modelo sin
+    # competir con el titulo centrado de arriba. ERSSTv5 (el dato
+    # observado, no uno de los 102 modelos CMIP6) no tiene codigo.
+    if model_number:
+        ax.set_title(model_number, loc="left", fontsize=9, fontweight="bold")
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
     if standalone:
@@ -67,13 +74,14 @@ def main() -> None:
     existing = [pc.FIGURES_DIR / f"sst_2d_{m}.png" for m in targets
                 if (pc.FIGURES_DIR / f"sst_2d_{m}.png").exists()]
     force = pc.should_regenerate_batch(existing, kind="mapa(s) 2D") if existing else False
+    numbers = pc.model_numbers()
 
     print(f"Graficando mapas: {len(models)} modelo(s) + ERSSTv5 ...", file=sys.stderr)
     n_ok, n_fail = 0, 0
     for model in targets:
         print(f"  {model}", file=sys.stderr)
         try:
-            plot_map(model, "historical", force=force)
+            plot_map(model, "historical", force=force, model_number=numbers.get(model))
             n_ok += 1
         except Exception as e:
             # Un modelo con datos raros no debe tirar abajo el resto
