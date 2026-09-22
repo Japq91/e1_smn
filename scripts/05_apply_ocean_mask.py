@@ -74,8 +74,16 @@ VALUE_LIMIT = 400.0  # cualquier punto con |valor| > esto se vuelve NaN
 
 
 def apply_mask(infile: Path, outfile: Path, ocean_mask: np.ndarray) -> None:
-    shutil.copyfile(infile, outfile)
-    with nc.Dataset(outfile, "r+") as ds:
+    # Escribe a un archivo temporal y recien lo renombra a outfile al
+    # final, si todo salio bien -- shutil.copyfile+modificar in place
+    # directo sobre outfile dejaba, ante cualquier excepcion a mitad de
+    # camino (ej. ocean_mask con la forma vieja tras ampliar la
+    # ventana, Entregable 2), una copia sin mascarar pero con el nombre
+    # y dimensiones finales, que el chequeo de idempotencia de abajo
+    # (mismos meses que la entrada) daba por buena para siempre.
+    tmp = outfile.with_suffix(".tmp.nc")
+    shutil.copyfile(infile, tmp)
+    with nc.Dataset(tmp, "r+") as ds:
         varname = _first_data_var(ds)
         var = ds.variables[varname]
         data = var[:]
@@ -94,6 +102,7 @@ def apply_mask(infile: Path, outfile: Path, ocean_mask: np.ndarray) -> None:
             print(f"  {infile.name}: {n_invalid} puntos con |valor| > {VALUE_LIMIT:g}, vueltos NaN", file=sys.stderr)
 
         var[:] = np.ma.masked_where(land | invalid, data)
+    tmp.replace(outfile)
 
 
 def main() -> None:
