@@ -453,7 +453,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 
 \node[box] (S04) at (0.5,-9) {04: Grilla com\'un};
 \node[box] (S05) at (0.5,-10.5) {05: M\'ascara oc\'eano-tierra};
-\node[boxaux] (NB) at (5.5,-10.5) {Notebook\\gr\'aficos\\explorat.};
+% \node[boxaux] (NB) at (5.5,-10.5) {Notebook\\gr\'aficos\\explorat.};
 \node[box] (S06) at (0.5,-12) {06: Control de calidad};
 \node[box] (S07) at (0.5,-13.5) {07: Inventario final};
 \node[box] (S08) at (0.5,-15) {Registro de modelos};
@@ -476,7 +476,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edg] (S07) -- (S08);
 \draw[edg] (S08) -- (S09);
 % \draw[edg] (S09) -- (S10);
-\draw[edgd] (S05) -- (NB);
+% \draw[edgd] (S05) -- (NB);
 
 \end{tikzpicture}
 \caption[Flujograma del \emph{pipeline} del Entregable~1.]{Flujograma del \emph{pipeline} del Entregable~1. Las flechas s\'olidas son transiciones dentro de la secuencia autom\'atica de \texttt{run.sh} (Secci\'on~\ref{sec:runsh}); las flechas punteadas corresponden a pasos manuales/diagn\'osticos (\texttt{00c}, notebook de gr\'aficos exploratorios) o a la actualizaci\'on que los pasos~02b/02c hacen sobre el cat\'alogo del paso~01 cuando resuelven un modelo por una fuente alternativa. La cascada 02~$\to$~02b~$\to$~02c es autom\'atica dentro del propio paso~02 (\archivo{02_download_all_sources.sh}, Secci\'on~\ref{sec:paso02}): cada fuente se intenta \'unicamente para lo que la anterior no haya resuelto. Tras el paso~07, \texttt{run.sh} ejecuta adem\'as, siempre y sin importar \archivo{STEP_FROM}/\archivo{STEP_TO}: el registro de modelos (\archivo{build_model_registry.py}), los cinco gr\'aficos autom\'aticos (\archivo{scripts/plot_*.py}, Secci\'on~\ref{sec:scripts}) y, por \'ultimo, el reporte de estado (Secci\'on~\ref{sec:reporte}) junto con el paquete \archivo{.tar.gz} de entrega (\archivo{bundle_deliverable_update.py}). El notebook de gr\'aficos exploratorios sigue siendo manual e independiente de esta cadena autom\'atica.}
@@ -612,7 +612,7 @@ Como segunda verificaci\'on exploratoria, complementaria a la anterior, la Figur
 \includegraphics[width=\textwidth]{figuras/boxplot_Nino1+2.png}
 \caption{Ni\~no~1+2}
 \end{subfigure}
-\caption[Vista previa exploratoria: TSM en Ni\~no~3.4 y Ni\~no~1+2, ERSSTv5 vs.\ modelos.]{Dispersi\'on y mediana de la temperatura superficial del mar en ambas cajas, ERSSTv5 frente a los 40 modelos del inventario, sobre el mismo periodo hist\'orico com\'un. Cada caja se colorea seg\'un el sesgo de su mediana respecto a la mediana observada de ERSSTv5 (mapa divergente rojo--azul, m\'as rojo cuanto m\'as c\'alido que lo observado, m\'as azul cuanto m\'as fr\'io; la l\'inea roja punteada marca la mediana observada como referencia). Se incluye \'unicamente como vista previa exploratoria de que el dato qued\'o correctamente homogeneizado y es ya comparable entre fuentes; la evaluaci\'on formal de desempe\~no hist\'orico (climatolog\'ia, sesgos, diagrama de Taylor, \'indices C/E/ONI/RONI/ICEN) corresponde al Entregable~2.}
+\caption[Vista previa exploratoria: TSM en Ni\~no~3.4 y Ni\~no~1+2, ERSSTv5 vs.\ modelos.]{Dispersi\'on y mediana de la temperatura superficial del mar en ambas cajas, ERSSTv5 frente a los 40 modelos del inventario, sobre el mismo periodo hist\'orico com\'un. Cada caja se colorea seg\'un el sesgo de su mediana respecto a la mediana observada de ERSSTv5 (mapa divergente rojo--azul, m\'as rojo cuanto m\'as c\'alido que lo observado, m\'as azul cuanto m\'as fr\'io; la l\'inea roja punteada marca la mediana observada como referencia). Se incluye \'unicamente como vista previa exploratoria de que el dato qued\'o correctamente homogeneizado y es ya comparable entre fuentes; la evaluaci\'on formal de desempe\~no hist\'orico (climatolog\'ia, sesgos, diagrama de Taylor, \'indices ONI/RONI/ICEN) corresponde al Entregable~2.}
 \label{fig:boxplot}
 \end{figure}
 \newpage
@@ -631,7 +631,7 @@ Para orientar la continuidad del proyecto, el Cuadro~\ref{tab:roadmap} resume, p
 \toprule
 \textbf{Entregable} & \textbf{Gr\'aficas / Procesos} \\
 \midrule
-E2 & Climatolog\'ia y ciclo anual observado vs.\ modelado; mapas de sesgo; m\'etricas estad\'isticas (diagrama de Taylor, \'Indices~C y~E) para seleccionar los modelos con mejor capacidad de representaci\'on del ENOS. \\
+E2 & Climatolog\'ia y ciclo anual observado vs.\ modelado; mapas de sesgo; correcci\'on de sesgo (Linear Scaling) y m\'etricas estad\'isticas (diagrama de Taylor) sobre los eventos c\'alidos extremos del ENOS mediante ONI/RONI (Ni\~no~3.4) e ICEN (Ni\~no~1+2), para seleccionar los modelos con mejor capacidad de representaci\'on del ENOS. \\
 E3 & Proyecciones del estado medio y del gradiente zonal del Pac\'ifico bajo SSP2-4.5/SSP5-8.5, para 2036--2065 y 2071--2100; cambios en la variabilidad y en la ocurrencia de eventos extremos del ENOS mediante \'indices como ONI e ICEN. \\
 E4 & Estimaci\'on de fuentes de incertidumbre y raz\'on se\~nal-ruido; TOE por los dos m\'etodos adoptados (M1 y ToD) para Ni\~no~3.4 y Ni\~no~1+2; estudio t\'ecnico final con s\'intesis comparativa entre ambas cajas, conclusiones y recomendaciones (incluye la hip\'otesis de asimetr\'ia planteada en la Secci\'on~\ref{sec:similitudes}). \\
 \bottomrule
@@ -667,7 +667,7 @@ El Entregable~1, en cumplimiento de la actividad~(a) del TdR (Secci\'on~\ref{sec
 Para la continuidad del proyecto hacia los Entregables~2--4, se recomienda:
 
 \begin{itemize}
-\item Al iniciar el Entregable~2, evaluar primero la representatividad f\'isica y estad\'istica del ENOS en el conjunto de 40 modelos completos (\'Indices~C y~E, correlaci\'on, sesgo, diagrama de Taylor sobre Ni\~no~3.4/1+2 espec\'ificamente) antes de dar por buena su idoneidad solo por haber pasado el control de calidad de este entregable, que verifica homogeneizaci\'on y no desempe\~no clim\'atico (Secci\'on~\ref{sec:alcance}).
+\item Al iniciar el Entregable~2, evaluar primero la representatividad f\'isica y estad\'istica del ENOS en el conjunto de 40 modelos completos (correcci\'on de sesgo, ONI/RONI en Ni\~no~3.4, ICEN en Ni\~no~1+2, diagrama de Taylor espec\'ificamente sobre ambas cajas) antes de dar por buena su idoneidad solo por haber pasado el control de calidad de este entregable, que verifica homogeneizaci\'on y no desempe\~no clim\'atico (Secci\'on~\ref{sec:alcance}).
 \item Calcular y reportar M1 y ToD siempre en paralelo (Secci\'on~\ref{sec:toe_metodos}), documentando expl\'icitamente en el Entregable~4 los casos en que ambos m\'etodos difieran sustancialmente en la fecha de TOE, en lugar de reportar un \'unico n\'umero -- la bibliograf\'ia revisada (Secci\'on~\ref{sec:referencias}) muestra que esa discrepancia es la norma, no la excepci\'on, entre m\'etodos de TOE.
 \end{itemize}
 
