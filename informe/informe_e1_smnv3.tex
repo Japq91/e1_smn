@@ -127,7 +127,7 @@ Este informe documenta el Entregable~1 del servicio de asistencia en temas de in
 % Se puede mantener la redacción completa solo en Resultados (donde se
 % desglosa el detalle) y, en Resumen/Conclusiones, remitir con una frase corta
 % + referencia cruzada en vez de repetir la oración entera.
-El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{e1_smn}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245} y \texttt{ssp585} -- los exigidos por el TdR para este Entregable (Secci\'on~\ref{sec:alcance}) --, m\'as \texttt{ssp370} como escenario intermedio adicional, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); un modelo adicional, MIROC-ES2H, qued\'o con descarga parcial (\'unicamente \texttt{historical}, agotado tras el tope de 3 reintentos automatizados en ESGF y Copernicus CDS) y se excluye de este conteo aunque figure en el inventario t\'ecnico (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
+El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{e1_smn}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245} y \texttt{ssp585} -- los exigidos por el TdR para este Entregable (Secci\'on~\ref{sec:alcance}) --, m\'as \texttt{ssp370} como escenario intermedio adicional, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); el resto qued\'o excluido por descarga incompleta o no disponible en ninguna fuente consultada (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
 
 En paralelo a la construcci\'on del dato, este informe desarrolla el marco te\'orico exigido por los t\'erminos de referencia (TdR): la partici\'on de incertidumbre de \citet{hawkins2012}, su adaptaci\'on por \citet{szabo2016}, el antecedente directo de \citet{bruno2023} sobre CMIP6/Sudam\'erica, el precedente institucional de \citet{alvarez2024}, la caracterizaci\'on del Ni\~no costero de \citet{takahashi2019}, y un estado del arte de otras metodolog\'ias del TOE del cual se deriva la justificaci\'on expl\'icita de los dos m\'etodos de TOE que se aplicar\'an en el Entregable~4: M1 (\citealp{szabo2016}) y \emph{Time of Detection} (ToD, \citealp{gopika2024}).
 
@@ -325,7 +325,7 @@ Se usan dos fuentes: (i) CMIP6, salidas de modelo de la variable \texttt{tos} (t
 
 El Cuadro~\ref{tab:modelos} lista los 40 modelos CMIP6 seleccionados (Secci\'on~\ref{sec:resultados}: los cuatro experimentos \texttt{historical}, \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585} completos y aprobados en control de calidad), identificados con el mismo c\'odigo num\'erico \texttt{M001}--\texttt{M102} que usan las Figuras~\ref{fig:qc} y~\ref{fig:mapas2d} y el archivo \archivo{informe/model\_registry.csv} (asignado alfab\'eticamente sobre el universo completo de 102 candidatos, no solo los seleccionados, para que el mismo c\'odigo identifique siempre al mismo modelo en cualquier figura o corrida). Las columnas siguen el orden habitual en tablas de intercomparaci\'on CMIP6: primero la identidad del modelo (c\'odigo, nombre, centro de modelado e instituci\'on/pa\'is de origen que lo public\'o), y despu\'es sus especificaciones t\'ecnicas (realizaci\'on/miembro de ensamble \archivo{variant\_label}, y resoluci\'on nominal). No se repite una columna de experimentos porque, por construcci\'on de la Secci\'on~\ref{sec:resultados}, los 40 modelos de este cuadro tienen exactamente los mismos cuatro completos y aprobados -- la disponibilidad diferenciada por experimento, para el universo completo de 102 candidatos, es la que muestra la Figura~\ref{fig:qc}.
 
-\begin{longtable}{@{}L{1.1cm}L{2.4cm}L{2.4cm}L{2.1cm}L{2.1cm}L{1.9cm}@{}}
+\begin{longtable}{@{}L{1.1cm}L{3.2cm}L{3.2cm}L{2.8cm}L{1.9cm}L{1.9cm}@{}}
 \caption[Modelos CMIP6 seleccionados: c\'odigo, centro de modelado, pa\'is, realizaci\'on y resoluci\'on nominal.]{Modelos CMIP6 seleccionados (cuatro experimentos completos y aprobados). C\'odigo \texttt{M001}--\texttt{M102}: identificador num\'erico estable (\archivo{informe/model\_registry.csv}), igual en las Figuras~\ref{fig:qc} y~\ref{fig:mapas2d}. Instituci\'on: identificador \archivo{institution\_id} de CMIP6 del centro de modelado. Pa\'is: derivado del \emph{Controlled Vocabulary} oficial de CMIP6 (\archivo{WCRP-CMIP/CMIP6\_CVs}); para consorcios multinacionales (p.\,ej.\ EC-Earth) es el pa\'is de la sede administrativa, no de todos sus miembros. Realizaci\'on: \archivo{variant\_label} (miembro de ensamble) com\'un a los cuatro experimentos (Secci\'on~\ref{sec:paso01}). Resoluci\'on: \archivo{nominal\_resolution} de la variante de grilla efectivamente descargada -- la m\'as gruesa entre las que publican los cuatro experimentos (Secci\'on~\ref{sec:desviacion}), no la resoluci\'on final compartida tras el regrillado del Paso~04 (\'esa es siempre la de ERSSTv5, $\sim$2\textdegree).}
 \label{tab:modelos} \\
 \toprule
@@ -380,8 +380,6 @@ M097 & TaiESM1 & AS-RCEC & Taiw\'an & r1i1p1f1 & 100\,km \\
 M100 & UKESM1-0-LL & MOHC & Reino Unido & r1i1p1f2 & 100\,km \\
 \end{longtable}
 
-MIROC-ES2H obtuvo \'unicamente \texttt{historical} (Secci\'on~\ref{sec:resultados}) y por eso no figura en este cuadro, aunque el \emph{pipeline} lo siga rastreando (agot\'o el tope de 3 reintentos autom\'aticos en ESGF y Copernicus CDS, Secci\'on~\ref{sec:paso02}).
-
 La resoluci\'on nominal es una categor\'ia controlada del vocabulario CMIP6 (no una medida continua), consultada directamente contra el \'indice de b\'usqueda de ESGF para la variante de grilla efectivamente usada por cada modelo (campo \archivo{nominal_resolution} del \emph{dataset}, ya registrado en \archivo{config/models_seed_cmip6.csv} por el Paso~00b). Esta resoluci\'on no es la que finalmente comparten los archivos procesados: el Paso~04 regrilla a todos por igual a la resoluci\'on de ERSSTv5 ($\sim$2\textdegree, Secci\'on~\ref{sec:desviacion}).
 
 \subsection{Selecci\'on inicial de modelos}
@@ -402,14 +400,16 @@ Los dominios de an\'alisis, definidos en \texttt{config/domains.yaml} en convenc
 \item Ventana de descarga (envolvente de ambas cajas, con margen para permitir remapeo conservativo sin efectos de borde): 100\textdegree{}E--70\textdegree{}O, 20\textdegree{}S--20\textdegree{}N.
 \end{itemize}
 
-La Figura~\ref{fig:region_nino} ubica ambas cajas dentro del Pac\'ifico tropical.
-
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{figuras/region_nino_proj.png}
-\caption[Ubicaci\'on de las cajas oceanogr\'aficas Ni\~no~3.4 y Ni\~no~1+2, y \'area real de datos procesados.]{Regiones oceanogr\'aficas Ni\~no~3.4 (170\textdegree{}O--120\textdegree{}O, 5\textdegree{}S--5\textdegree{}N) y Ni\~no~1+2 (90\textdegree{}O--80\textdegree{}O, 10\textdegree{}S--0\textdegree{}, ambas con doble borde en la figura) sobre el Pac\'ifico tropical oriental, en proyecci\'on Robinson centrada din\'amicamente en el punto medio de Ni\~no~3.4 (\texttt{config/domains.yaml}). El \'area verde es la ventana de descarga real (100\textdegree{}E--70\textdegree{}O, 20\textdegree{}S--20\textdegree{}N, Secci\'on~\ref{sec:dominios_periodos}): todo el dominio efectivamente descargado, regrillado y enmascarado por el \emph{pipeline}, no solo las dos cajas de an\'alisis. Se incluyen adem\'as, solo como referencia geogr\'afica (no se usan en el an\'alisis), las cajas cl\'asicas Ni\~no~4 y Ni\~no~3. Ni\~no~1+2, adyacente a la costa peruano-chilena y a la zona de surgencia de la Corriente de Humboldt, es la caja de mayor relevancia directa para el monitoreo del Ni\~no costero en Per\'u (\citealp{takahashi2019}), mientras que Ni\~no~3.4 es la caja est\'andar internacional del \'Indice Oce\'anico de El Ni\~no (ONI).}
+\caption[Ubicaci\'on de las cajas oceanogr\'aficas Ni\~no~3.4 y Ni\~no~1+2, y \'area real de datos procesados.]{Regiones oceanogr\'aficas Ni\~no~3.4 (170\textdegree{}O--120\textdegree{}O, 5\textdegree{}S--5\textdegree{}N) y Ni\~no~1+2 (90\textdegree{}O--80\textdegree{}O, 10\textdegree{}S--0\textdegree{}, ambas con doble borde en la figura) sobre el Pac\'ifico tropical oriental, en proyecci\'on Robinson centrada din\'amicamente en el punto medio de Ni\~no~3.4 (\texttt{config/domains.yaml}). El \'area verde es la ventana de descarga real (100\textdegree{}E--70\textdegree{}O, 20\textdegree{}S--20\textdegree{}N, Secci\'on~\ref{sec:dominios_periodos}): todo el dominio efectivamente descargado, regrillado y enmascarado por el \emph{pipeline}. Ni\~no~1+2, adyacente a la costa peruana y a la zona de surgencia de la Corriente de Humboldt, es la caja de mayor relevancia directa para el monitoreo del Ni\~no costero en Per\'u (\citealp{takahashi2019}), mientras que Ni\~no~3.4 es la caja est\'andar internacional del \'Indice Oce\'anico de El Ni\~no (ONI).}
 \label{fig:region_nino}
 \end{figure}
+
+La Figura~\ref{fig:region_nino} ubica ambas cajas dentro del Pac\'ifico tropical.
+
+
 
 Definidos en \texttt{config/periods.yaml}: periodo de referencia/validaci\'on 1981--2014; proyecciones a 2036--2065 (P1) y 2071--2100 (P2); escenarios \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585} (\texttt{ssp370} se incorpora como escenario intermedio adicional, para robustecer el an\'alisis de sensibilidad entre SSP2-4.5 y SSP5-8.5). El rango temporal completo de descarga es 1850--2100 (\texttt{historical}: 1850--2014; los tres escenarios SSP: 2015--2100). El criterio de selecci\'on de modelos vigente es \'unicamente la disponibilidad de \texttt{tos}/\texttt{Omon} en los cuatro experimentos \texttt{historical}, \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585}.
 
@@ -458,7 +458,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \node[box] (S07) at (0.5,-13.5) {07: Inventario final};
 \node[box] (S08) at (0.5,-15) {Registro de modelos};
 \node[box] (S09) at (0.5,-16.5) {Gr\'aficos autom\'aticos};
-\node[box] (S10) at (0.5,-18) {Reporte + paquete final};
+% \node[box] (S10) at (0.5,-18) {Reporte + paquete final};
 
 \draw[edg] (S00) -- (S00b);
 \draw[edgd] (S00b) -- (S00c);
@@ -475,7 +475,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edg] (S06) -- (S07);
 \draw[edg] (S07) -- (S08);
 \draw[edg] (S08) -- (S09);
-\draw[edg] (S09) -- (S10);
+% \draw[edg] (S09) -- (S10);
 \draw[edgd] (S05) -- (NB);
 
 \end{tikzpicture}
@@ -522,7 +522,7 @@ Para los modelos que el nodo principal no resolvi\'o, repite la b\'usqueda contr
 \end{enumerate}
 Ejecutar \texttt{run.sh} pasa por \archivo{scripts/run_download_if_idle.sh}, que verifica mediante \texttt{pgrep} si ya hay una descarga en curso en otro proceso (marcada con \archivo{data/interim/.download_running_flag}) y, de ser as\'i, no lanza una segunda -- \texttt{run.sh} puede invocarse repetidamente sin riesgo de duplicar descargas.
 
-Un modelo que agota (b) y (c) sin resolverse suma 1 a la columna \archivo{intentos_busqueda} del cat\'alogo (Secci\'on~\ref{sec:paso01}); al llegar a 3 intentos en corridas separadas, deja de reintentarse autom\'aticamente (caso de \texttt{MIROC-ES2H}: ESGF completo + Copernicus, sin \'exito) hasta que se borre el cat\'alogo a mano.
+Un modelo que agota (b) y (c) sin resolverse suma 1 a la columna \archivo{intentos_busqueda} del cat\'alogo (Secci\'on~\ref{sec:paso01}); al llegar a 3 intentos en corridas separadas, deja de reintentarse autom\'aticamente hasta que se borre el cat\'alogo a mano.
 
 \subsection{Paso 03 -- \texttt{scripts/03\_download\_ersstv5.sh}}
 Descarga ERSSTv5 desde NOAA PSL (HTTPS, NetCDF nativo) una \'unica vez, y recorta con CDO (\texttt{sellonlatbox}, \texttt{selvar}) a la ventana regional de descarga (Secci\'on~\ref{sec:dominios_periodos}).
@@ -551,14 +551,14 @@ Al final de cada corrida de \texttt{run.sh}, sin importar el rango de pasos ejec
 \label{sec:resultados}
 % ============================================================
 
-Del universo de 102 modelos candidatos, 40 completaron los cuatro experimentos requeridos v\'ia descarga y aprobaron el control de calidad final (160 combinaciones modelo-experimento), tras el filtro de seguridad por valor descrito en la Secci\'on~\ref{sec:paso05} y las correcciones de robustez de descarga/verificaci\'on de ESGF descritas en las Secciones~\ref{sec:paso01} y~\ref{sec:paso04}. Un modelo adicional, MIROC-ES2H, obtuvo \'unicamente \texttt{historical} (\texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585} no est\'an disponibles para descarga, agotado tras el tope de 3 reintentos autom\'aticos en ESGF y Copernicus CDS, Secci\'on~\ref{sec:paso02}) y por eso no se cuenta entre los 40 completos, aunque el \emph{pipeline} lo siga rastreando (ver la Figura~\ref{fig:qc}). Del resto, 44 modelos no se encontraron en ninguna fuente consultada (ESGF principal, nodos alternativos ni Copernicus CDS) y quedan descartados estructuralmente; un subconjunto adicional qued\'o con descarga parcial v\'ia Copernicus, sin completar los cuatro experimentos.
+Del universo de 102 modelos candidatos, 40 completaron los cuatro experimentos requeridos v\'ia descarga y aprobaron el control de calidad final (160 combinaciones modelo-experimento), tras el filtro de seguridad por valor descrito en la Secci\'on~\ref{sec:paso05} y las correcciones de robustez de descarga/verificaci\'on de ESGF descritas en las Secciones~\ref{sec:paso01} y~\ref{sec:paso04}. Del resto, 44 modelos no se encontraron en ninguna fuente consultada (ESGF principal, nodos alternativos ni Copernicus CDS) y quedan descartados estructuralmente; un subconjunto adicional qued\'o con descarga parcial (v\'ia ESGF y/o Copernicus), sin completar los cuatro experimentos (ver la Figura~\ref{fig:qc}).
 
 La Figura~\ref{fig:qc} distingue seis estados posibles por celda (modelo $\times$ experimento): c\'irculo verde relleno (PASS) -- descargado y aprueba el control de calidad del Paso~06; cruz roja (FAIL) -- descargado pero no aprueba el control de calidad; c\'irculo verde hueco (PENDIENTE) -- existe un enlace de descarga vivo pero todav\'ia no se descarg\'o o proces\'o; c\'irculo gris hueco (SIN\_LINK) -- el modelo existe seg\'un el Paso~00b pero el Paso~01 no encontr\'o ning\'un enlace de descarga vivo; c\'irculo naranja hueco (SOLO\_HIST1950, s\'olo en la columna \texttt{historical}) -- el modelo publica \texttt{hist-1950} (HighResMIP, 1950--2014) en vez de \texttt{historical} est\'andar (1850--2014), equivalente para fines de clasificaci\'on pero nunca elegible como \emph{seed} porque esos modelos corren \texttt{highres-future} en vez de los SSP est\'andar y por lo tanto nunca tienen los cuatro experimentos requeridos; y cuadrado rojo (UNAVAILABLE) -- el experimento no existe en absoluto para ese modelo en ning\'un nodo consultado.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=1.1\textwidth]{figuras/sst_QD_vf.png}
-\caption[Disponibilidad y control de calidad de \texttt{tos}/\texttt{Omon} para los 102 modelos candidatos.]{Matriz de estado, por modelo (c\'odigo \texttt{M001}--\texttt{M102} y nombre, Secci\'on~\ref{sec:tabla_modelos}) y por columna (\texttt{tos}, \texttt{historical}, \texttt{ssp245}, \texttt{ssp370}, \texttt{ssp585}), para el universo completo de 102 modelos candidatos -- leyenda de s\'imbolos en el p\'arrafo anterior. De los 102 candidatos, 40 completan las cinco columnas; MIROC-ES2H aparece con FAIL/UNAVAILABLE en \texttt{ssp245}/\texttt{ssp370}/\texttt{ssp585} pero el \emph{pipeline} lo sigue rastreando; el resto queda excluido por al menos una columna sin PASS.}
+\includegraphics[width=1\textwidth]{figuras/sst_QD_vf.png}
+\caption[Disponibilidad y control de calidad de \texttt{tos}/\texttt{Omon} para los 102 modelos candidatos.]{Matriz de estado, por modelo (c\'odigo \texttt{M001}--\texttt{M102} y nombre, Secci\'on~\ref{sec:tabla_modelos}) y por columna (\texttt{tos}, \texttt{historical}, \texttt{ssp245}, \texttt{ssp370}, \texttt{ssp585}), para el universo completo de 102 modelos candidatos -- leyenda de s\'imbolos en el p\'arrafo anterior. De los 102 candidatos, 40 completan las cinco columnas; el resto queda excluido por al menos una columna sin PASS.}
 \label{fig:qc}
 \end{figure}
 
@@ -615,9 +615,9 @@ Como segunda verificaci\'on exploratoria, complementaria a la anterior, la Figur
 \caption[Vista previa exploratoria: TSM en Ni\~no~3.4 y Ni\~no~1+2, ERSSTv5 vs.\ modelos.]{Dispersi\'on y mediana de la temperatura superficial del mar en ambas cajas, ERSSTv5 frente a los 40 modelos del inventario, sobre el mismo periodo hist\'orico com\'un. Cada caja se colorea seg\'un el sesgo de su mediana respecto a la mediana observada de ERSSTv5 (mapa divergente rojo--azul, m\'as rojo cuanto m\'as c\'alido que lo observado, m\'as azul cuanto m\'as fr\'io; la l\'inea roja punteada marca la mediana observada como referencia). Se incluye \'unicamente como vista previa exploratoria de que el dato qued\'o correctamente homogeneizado y es ya comparable entre fuentes; la evaluaci\'on formal de desempe\~no hist\'orico (climatolog\'ia, sesgos, diagrama de Taylor, \'indices C/E/ONI/RONI/ICEN) corresponde al Entregable~2.}
 \label{fig:boxplot}
 \end{figure}
-
+\newpage
 % ============================================================
-\section{Entregable 2: proximos pasos}
+\section{Proximos pasos}
 \label{sec:roadmap}
 % ============================================================
 
@@ -629,7 +629,7 @@ Para orientar la continuidad del proyecto, el Cuadro~\ref{tab:roadmap} resume, p
 \small
 \begin{tabular}{@{}L{2.2cm}L{\dimexpr\textwidth-2.2cm-2\tabcolsep\relax}@{}}
 \toprule
-\textbf{Entregable} & \textbf{Gr\'aficas / comparaciones exigidas} \\
+\textbf{Entregable} & \textbf{Gr\'aficas / Procesos} \\
 \midrule
 E2 & Climatolog\'ia y ciclo anual observado vs.\ modelado; mapas de sesgo; m\'etricas estad\'isticas (diagrama de Taylor, \'Indices~C y~E) para seleccionar los modelos con mejor capacidad de representaci\'on del ENOS. \\
 E3 & Proyecciones del estado medio y del gradiente zonal del Pac\'ifico bajo SSP2-4.5/SSP5-8.5, para 2036--2065 y 2071--2100; cambios en la variabilidad y en la ocurrencia de eventos extremos del ENOS mediante \'indices como ONI e ICEN. \\
@@ -637,8 +637,8 @@ E4 & Estimaci\'on de fuentes de incertidumbre y raz\'on se\~nal-ruido; TOE por l
 \bottomrule
 \end{tabular}
 \end{table}
-
 El Entregable~1 queda completo y verificable sin depender de ning\'un paso posterior, y el Entregable~2 puede comenzar leyendo \'unicamente \texttt{data/processed/} -- sin necesidad de re-ejecutar ni conocer el detalle interno de este m\'odulo.
+
 
 \newpage
 % ============================================================
@@ -650,7 +650,7 @@ El Entregable~1, en cumplimiento de la actividad~(a) del TdR (Secci\'on~\ref{sec
 
 \begin{enumerate}[label=(\roman*)]
 
-\item El \emph{pipeline} qued\'o completo y verificable: de 102 modelos CMIP6 candidatos, 40 completaron los cuatro experimentos requeridos y aprobaron el control de calidad final (160 combinaciones modelo-experimento) -- un modelo adicional, MIROC-ES2H, qued\'o con descarga parcial del historico, agotado tras el tope de reintentos (Secci\'on~\ref{sec:resultados}) --, incluyendo la resoluci\'on de un caso real de contaminaci\'on num\'erica (FGOALS-f3-L, Secci\'on~\ref{sec:paso05}) que un control basado \'unicamente en metadatos no habr\'ia detectado.
+\item El \emph{pipeline} qued\'o completo y verificable: de 102 modelos CMIP6 candidatos, 40 completaron los cuatro experimentos requeridos y aprobaron el control de calidad final (160 combinaciones modelo-experimento), incluyendo la resoluci\'on de un caso real de contaminaci\'on num\'erica (FGOALS-f3-L, Secci\'on~\ref{sec:paso05}) que un control basado \'unicamente en metadatos no habr\'ia detectado.
 
 \item La revisi\'on cient\'ifica exigida por el TdR (Secci\'on~\ref{sec:marco}) profundiza: la bibliograf\'ia revisada (Cuadro~\ref{tab:referencias}) permite justificar, con evidencia expl\'icita lo requerido por el TdR, la adopci\'on de un segundo m\'etodo de TOE (ToD, \citealp{gopika2024}) independiente del prescrito (M1, \citealp{szabo2016}), y arroja una hip\'otesis de trabajo concreta y contrastable para el Entregable~4: cuatro l\'ineas de evidencia independientes de esa bibliograf\'ia convergen en anticipar que Ni\~no~1+2 emerger\'a m\'as tarde, o de forma m\'as incierta, que Ni\~no~3.4 (Secci\'on~\ref{sec:similitudes}).
 
