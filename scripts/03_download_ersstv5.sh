@@ -4,8 +4,9 @@
 # usada para CMIP6. Se descarga una sola vez (es la referencia
 # observacional fija de todo el pipeline).
 #
-# Actualizado: ventana ampliada a 100E-70W (antes 120E-80W), 20S-20N.
-# El pipeline no genera graficos (ver graficos_exploratorios.ipynb).
+# Actualizado (Entregable 2): ventana ampliada a global en longitud,
+# 30S-30N (antes 100E-70W, 20S-20N), para poder calcular la TSM media
+# tropical que necesita el indice RONI.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -25,7 +26,8 @@ wget -q -c --timeout=120 -P "$OUTDIR" \
     "https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/sst.mnmean.nc"
 
 # Ventana de descarga (debe coincidir con download_window de config/domains.yaml)
-# 100E a 70W (100 a 290 en 0-360), 20S a 20N
-LON1=100.0; LON2=290.0; LAT1=-20.0; LAT2=20.0
+# Global en longitud, 30S a 30N (ampliado para poder calcular la TSM
+# media tropical que necesita el indice RONI, Entregable 2)
+LON1=0.0; LON2=360.0; LAT1=-30.0; LAT2=30.0
 cdo -O -s -sellonlatbox,${LON1},${LON2},${LAT1},${LAT2} -selvar,sst \
     "$OUTDIR/sst.mnmean.nc" "$OUTDIR/ersstv5_region.nc"

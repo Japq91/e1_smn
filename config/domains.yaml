@@ -15,11 +15,13 @@ nino12:
   lon_max: 280.0
   lat_min: -10.0
   lat_max: 0.0
-# caja de descarga regional (envolvente de ambas cajas, con margen).
-# Actualizado: 100E a 70W (mas amplia que la version anterior,
-# 120E-80W), 20S a 20N.
+# caja de descarga regional. Actualizado (Entregable 2): longitud
+# global completa y latitud ampliada a 30S-30N -- antes 100E-70W,
+# 20S-20N (Pacifico tropical), insuficiente para calcular la TSM media
+# tropical que necesita el indice RONI (Nino 3.4 relativo al promedio
+# de las 3 cuencas oceanicas, no solo el Pacifico).
 download_window:
-  lon_min: 100.0    # 100E
-  lon_max: 290.0    # 70W (0-360: 360 - 70 = 290)
-  lat_min: -20.0    # 20S
-  lat_max: 20.0     # 20N
+  lon_min: 0.0      # global
+  lon_max: 360.0    # global
+  lat_min: -30.0    # 30S
+  lat_max: 30.0     # 30N
