@@ -1,0 +1,189 @@
+MARCO TEORICO -- ENTREGABLE 2
+==============================
+Borrador de trabajo (texto plano). Ecuaciones en sintaxis LaTeX para
+portar directamente a informe_e2.tex. Cubre la actividad (b) del TdR:
+evaluar el desempeño de los modelos CMIP6 en estado medio, ciclo
+anual, variabilidad y eventos cálidos extremos del ENOS, mediante
+climatologías, sesgos, métricas estadísticas e índices, para
+seleccionar los modelos con mejor representación del período
+histórico. Aplica sobre los 40 modelos de
+data/processed/models_inventory_final.csv, regiones Niño 3.4 y
+Niño 1+2 (contrato de datos en scripts_e2/README.md).
+
+Cada sección: (1) qué mide, (2) ecuación, (3) autor(es) que la
+sustentan -- listos para pasar a informe/references.bib como entradas
+@article nuevas (ninguna de estas siete referencias existe todavía en
+el .bib de E1, que es enteramente de time-of-emergence/incertidumbre,
+no de evaluación de modelos).
+
+
+1. CLIMATOLOGIA Y CICLO ANUAL
+------------------------------
+Media mensual multi-anual sobre el período histórico común, por caja
+(Niño 3.4 / Niño 1+2), observado y por modelo:
+
+    C_m = (1/N) * sum_{y=1}^{N} X(y, m)
+
+donde X(y,m) es la TSM del año y, mes m; N = número de años del
+período histórico común. El ciclo anual es la secuencia {C_1,...,C_12}.
+Esto es estadística descriptiva estándar (no requiere cita de método),
+pero como insumo de referencia metodológica para "climatología
+observada vs. modelada" en el contexto de evaluación CMIP6 se puede
+anclar en:
+
+    Eyring, V., Cox, P. M., Flato, G. M., Gleckler, P. J., Abramowitz,
+    G., Caldwell, P., ... & Williamson, M. S. (2019). Taking climate
+    model evaluation to the next level. Nature Climate Change, 9(2),
+    102-110. doi:10.1038/s41558-018-0355-y
+
+    (marco general de evaluación de modelos CMIP6 -- útil para
+    justificar por qué climatología+ciclo anual+sesgo+variabilidad es
+    el conjunto mínimo estándar de diagnósticos, antes de entrar en
+    las métricas específicas de abajo.)
+
+
+2. ANOMALIAS (insumo para variabilidad e indices)
+--------------------------------------------------
+Se remueve el ciclo anual climatológico para aislar la variabilidad:
+
+    A(y, m) = X(y, m) - C_m
+
+Base de todo lo que sigue en variabilidad interanual (Sección 5) e
+Índices C/E (Sección 7).
+
+
+3. SESGO (BIAS)
+----------------
+Diferencia sistemática modelo-observación, sobre la climatología o
+sobre la serie completa:
+
+    B = X_modelo_barra - X_obs_barra
+
+o por mes (sesgo del ciclo anual):
+
+    B_m = C_m^modelo - C_m^obs
+
+Métrica estándar de evaluación de modelos climáticos, ver Sección 4
+(mismo respaldo bibliográfico que RMSE/correlación: Gleckler et al.,
+2008, y Taylor, 2001, la tratan como parte del mismo conjunto de
+diagnósticos resumidos en un diagrama de Taylor / "portrait diagram").
+
+
+4. RAIZ DEL ERROR CUADRATICO MEDIO (RMSE)
+--------------------------------------------
+    RMSE = sqrt( (1/N) * sum_i (M_i - O_i)^2 )
+
+Versión centrada (remueve el sesgo de la media, la que efectivamente
+entra en el diagrama de Taylor -- ver Sección 6):
+
+    RMSE' = sqrt( (1/N) * sum_i [ (M_i - M_barra) - (O_i - O_barra) ]^2 )
+
+Autor de referencia para el uso combinado de sesgo/RMSE/correlación
+como métricas resumen de desempeño de modelos climáticos:
+
+    Gleckler, P. J., Taylor, K. E., & Doutriaux, C. (2008). Performance
+    metrics for climate models. Journal of Geophysical Research, 113,
+    D06104. doi:10.1029/2007JD008972
+
+
+5. CORRELACION DE PEARSON
+----------------------------
+    r = [ sum_i (M_i - M_barra)(O_i - O_barra) ] /
+        [ sqrt(sum_i (M_i - M_barra)^2) * sqrt(sum_i (O_i - O_barra)^2) ]
+
+Mide el grado de covariación temporal/espacial modelo-observación,
+independiente del sesgo y de la amplitud. Entra directo en el
+diagrama de Taylor (Sección 6).
+
+
+6. DIAGRAMA DE TAYLOR
+------------------------
+Resume en un solo gráfico polar tres métricas simultáneas: desviación
+estándar del modelo (sigma_f), desviación estándar de la referencia
+observada (sigma_r), correlación (r) y el RMSE centrado (E'), ligados
+por:
+
+    E'^2 = sigma_f^2 + sigma_r^2 - 2 * sigma_f * sigma_r * r
+
+En la versión normalizada (para comparar los 40 modelos en un mismo
+diagrama, cada uno con climatologías propias de distinta amplitud) se
+usa sigma_f_hat = sigma_f / sigma_r, de modo que el punto de cada
+modelo se ubica en coordenadas polares (radio = sigma_f_hat, ángulo =
+arccos(r)); el punto de referencia (observación perfecta) queda en
+(1, 0).
+
+    Taylor, K. E. (2001). Summarizing multiple aspects of model
+    performance in a single diagram. Journal of Geophysical Research:
+    Atmospheres, 106(D7), 7183-7192. doi:10.1029/2000JD900719
+
+
+7. VARIABILIDAD INTERANUAL
+------------------------------
+Desviación estándar de las anomalías (Sección 2), por caja, observado
+y por modelo:
+
+    sigma = sqrt( (1/(N-1)) * sum_i (A_i - A_barra)^2 )
+
+Comparar sigma_modelo/sigma_obs (ya usado también como eje del
+diagrama de Taylor, Sección 6) indica si el modelo sub- o
+sobre-representa la amplitud de la variabilidad ENOS observada --
+parte de lo que el TdR pide explícitamente ("variabilidad").
+
+
+8. INDICES C Y E DEL ENOS (Takahashi et al., 2011)
+------------------------------------------------------
+Construidos a partir de un análisis EOF de las anomalías de TSM en el
+Pacífico tropical (dominio típico 10°S-10°N, 120°E-80°O). Se
+normalizan las dos primeras componentes principales a varianza
+unitaria (PC1*, PC2*) y se rotan 45°:
+
+    C = (PC1* + PC2*) / sqrt(2)
+    E = (PC1* - PC2*) / sqrt(2)
+
+El índice C captura la variabilidad "canónica" asociada al Pacífico
+central (correlaciona con el tipo de señal de Niño 3.4); el índice E
+captura los eventos de calentamiento del Pacífico oriental, que son
+justamente los eventos cálidos extremos del ENOS que el TdR pide
+evaluar en Niño 1+2. Este par de índices conecta de forma directa las
+dos cajas del TdR (Niño 3.4 <-> C, Niño 1+2 <-> E) con un marco
+estadístico único, en vez de dos análisis desconectados.
+
+    Takahashi, K., Montecinos, A., Goubanova, K., & Dewitte, B. (2011).
+    ENSO regimes: Reinterpreting the canonical and Modoki El Niño.
+    Geophysical Research Letters, 38(10), L10704.
+    doi:10.1029/2011GL047364
+
+
+9. NOTA: ONI E ICEN (diferidos formalmente a E3)
+----------------------------------------------------
+El Cuadro tab:roadmap del informe de E1 ubica ONI e ICEN en el
+Entregable 3 (proyecciones futuras), no en el 2 (evaluación
+histórica) -- coherente con la actividad (c) del TdR, que los nombra
+explícitamente para esa etapa. Se documentan aquí solo como nota de
+continuidad porque comparten el mismo insumo (anomalías de TSM,
+Sección 2) que todo lo anterior:
+
+  - ONI (Oceanic Niño Index): media móvil de 3 meses de la anomalía de
+    TSM en Niño 3.4, respecto a un período base climatológico de 30
+    años actualizado cada 5 años (NOAA CPC).
+  - ICEN (Índice Costero El Niño): definido por el IGP/ENFEN sobre
+    anomalías de TSM en Niño 1+2, metodología emparentada con la
+    usada en [[takahashi2019]] (ya citado en el informe de E1, sobre
+    El Niño costero de 1925) -- confirmar con el IGP la referencia
+    metodológica exacta del ICEN antes de portar esta sección a E3,
+    no asumir la cita.
+
+
+PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
+-----------------------------------------------------------
+- Confirmar si se usa una métrica agregada tipo "portrait diagram"
+  (Gleckler et al., 2008) para consolidar bias+RMSE+correlación+sigma
+  en un ranking único de los 40 modelos, o si el ranking final se
+  reporta como tabla de métricas individuales sin agregación (decisión
+  metodológica, no está en el TdR).
+- Las 4 referencias nuevas (Eyring 2019, Gleckler 2008, Taylor 2001,
+  Takahashi 2011) hay que agregarlas a informe/references.bib recien
+  cuando se porte esto a .tex -- ninguna existe todavía ahí.
+- Revisar notación: aquí se usó pseudo-LaTeX en texto plano
+  (sigma, barra, etc.) por legibilidad -- al portar a .tex reemplazar
+  por \sigma, \bar{M}, etc. reales.
