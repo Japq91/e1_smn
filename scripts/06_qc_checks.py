@@ -18,12 +18,24 @@ utilizable -- no hace falta descartarlo solo por no cubrir el
 historical completo, siempre que llegue razonablemente cerca del
 presente. Los escenarios SSP mantienen el chequeo por tolerancia de meses.
 
-Idempotente por archivo: si out_csv ya existe, reusa las filas de
-archivos ya evaluados (salvo las que dieron ERROR_CDO, que se
-reintentan) y solo corre CDO sobre los tos_*.nc nuevos.
+No es idempotente y no cachea nada: cada corrida recalcula las 3
+metricas (rango fisico, meses, ultimo anio) para TODOS los tos_*.nc
+presentes y reescribe qc_report.csv completo desde cero. A diferencia
+de 02/04/05 (descargas y regrillado, minutos-horas por modelo), este
+chequeo es liviano -- solo 3 operaciones CDO de reduccion por archivo,
+menos de un minuto para el universo completo de 102 modelos -- asi que
+no vale la pena la complejidad de cachear por archivo.
+
+BUG real encontrado en produccion (HPC), ya corregido: una version
+anterior cacheaba filas por nombre de archivo entre corridas. Tras
+redescargar y reprocesar EC-Earth3-Veg con datos completos (el Paso~04
+si verifica por valor y regenera el .nc), 06 seguia reusando la fila
+FAIL cacheada de la corrida anterior con datos incompletos -- el .nc
+en disco ya tenia los meses completos (verificado con CDO a mano) pero
+qc_report.csv nunca se recalculaba para ese archivo. Se elimino el
+cacheo por completo en vez de intentar invalidarlo por mtime.
 """
 import csv
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -73,23 +85,11 @@ def split_model_experiment(stem: str) -> tuple[str, str]:
 
 
 def main(in_dir: str, out_csv: str) -> None:
-    # Idempotente por archivo (igual que los pasos 04/05): si out_csv ya
-    # existe, se reusan sus filas en vez de volver a correr CDO sobre
-    # archivos ya evaluados -- solo se calculan los tos_*.nc nuevos. Las
-    # filas ERROR_CDO no se cachean: si algo fallo antes (dato corrupto,
-    # etc.), se reintenta en cada corrida hasta que se resuelva.
-    cached_rows: dict[str, dict] = {}
-    if Path(out_csv).exists():
-        with open(out_csv, newline="") as fh:
-            cached_rows = {r["file"]: r for r in csv.DictReader(fh) if r.get("status") != "ERROR_CDO"}
-
+    # Sin cache: se recalculan las 3 metricas para todos los tos_*.nc en
+    # cada corrida (ver docstring del modulo -- es barato y evita que
+    # qc_report.csv quede desactualizado respecto al .nc real en disco).
     rows = []
-    n_cached = 0
     for f in sorted(Path(in_dir).glob("tos_*.nc")):
-        if f.name in cached_rows:
-            rows.append(cached_rows[f.name])
-            n_cached += 1
-            continue
         model, exp = split_model_experiment(f.stem)
         try:
             vmin, vmax = field_minmax(str(f))
@@ -131,8 +131,7 @@ def main(in_dir: str, out_csv: str) -> None:
         writer.writerows(rows)
 
     n_fail = sum(1 for r in rows if r["status"] != "PASS")
-    print(f"QC escrito en {out_csv} ({len(rows)} archivos, {n_cached} reusados de una corrida "
-          f"anterior, {n_fail} con fallas)", file=sys.stderr)
+    print(f"QC escrito en {out_csv} ({len(rows)} archivos, {n_fail} con fallas)", file=sys.stderr)
 
 
 if __name__ == "__main__":
