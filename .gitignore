@@ -1,3 +1,9 @@
+# PDFs de referencia/confidenciales que se dejan en la raiz del repo
+# para consulta local (ej. el TdR) -- nunca se suben a GitHub, a
+# proposito, sin importar el nombre. Solo la raiz (/*.pdf, no recursivo):
+# los PDFs dentro de informe/ tienen su propia regla mas abajo.
+/*.pdf
+
 data/raw/
 data/interim/
 data/processed/masked/
