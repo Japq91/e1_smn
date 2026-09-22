@@ -20,10 +20,21 @@ import matplotlib.pyplot as plt  # noqa: E402
 import netCDF4 as nc  # noqa: E402
 import numpy as np  # noqa: E402
 import xarray as xr  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
 
 plt.rcParams.update({"font.size": 10})
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
+
+# Mes de muestra para el mapa 2D -- unica fuente de verdad: cambiar
+# solo aca para que el titulo de la figura y el dato graficado se
+# actualicen juntos (antes el titulo decia "HISTORICAL" a secas, sin
+# decir que mes se estaba mostrando en realidad).
+SAMPLE_MONTH = "1950-12"
+
+_DEG = FuncFormatter(lambda v, _pos: f"{v:g}°")
+
+
 def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
              model_number: str | None = None) -> None:
     out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
@@ -45,16 +56,24 @@ def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
     # campo 2D, y revienta con un error de matplotlib que no dice nada
     # del problema real (visto en la practica con CESM2). Mejor un
     # error propio, claro, que decirle a xarray que adivine.
-    d1 = d[varname].sel(time=slice("1950-12", "1950-12")).squeeze()
+    d1 = d[varname].sel(time=slice(SAMPLE_MONTH, SAMPLE_MONTH)).squeeze()
     if d1.ndim != 2:
         raise ValueError(
-            f"{model} {exp}: se esperaba un campo 2D (lat, lon) para 1950-12, "
+            f"{model} {exp}: se esperaba un campo 2D (lat, lon) para {SAMPLE_MONTH}, "
             f"se obtuvo dims={d1.dims} shape={d1.shape} -- revisar el archivo de entrada"
         )
-    d1.plot.pcolormesh(ax=ax, cmap="turbo", levels=np.arange(20, 34, 1), extend="both")
-    ax.set_xlabel("longitud")
-    ax.set_ylabel("latitud")
-    ax.set_title(f"{model} {exp.upper()}")
+    im = d1.plot.pcolormesh(ax=ax, cmap="turbo", levels=np.arange(20, 34, 1), extend="both",
+                             add_colorbar=False)
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label("SST (°C)")
+    ax.xaxis.set_major_formatter(_DEG)
+    ax.yaxis.set_major_formatter(_DEG)
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    # Titulo con el mes de muestra exacto (SAMPLE_MONTH), no solo el
+    # nombre del experimento -- asi queda claro que dato puntual se
+    # esta mostrando, y cambiar SAMPLE_MONTH arriba lo actualiza solo.
+    ax.set_title(f"{model} – {SAMPLE_MONTH}")
     # Codigo M001..M102 (informe/model_registry.csv) como titulo
     # aparte, alineado a la izquierda -- identifica el modelo sin
     # competir con el titulo centrado de arriba. ERSSTv5 (el dato

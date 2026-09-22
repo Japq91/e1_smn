@@ -170,8 +170,8 @@ def plot_qc_summary(n_panels: int = 4) -> None:
     # unico circulo relleno.
     HOLLOW = {"PENDIENTE", "SIN_LINK", "SOLO_HIST1950"}
 
-    fig, axes = plt.subplots(1, n_panels, figsize=(n_panels * 2.4, panel_size * 0.12 + .4),
-                              sharey=False, gridspec_kw={"wspace": 1.4, "hspace": 0.2})
+    fig, axes = plt.subplots(1, n_panels, figsize=(n_panels * 2.5, panel_size * 0.12 + .4),
+                              sharey=False, gridspec_kw={"wspace": 1.5, "hspace": 0.2})
     for idx, ax in enumerate(axes):
         chunk = panels[idx]
         for i, model in enumerate(chunk):
