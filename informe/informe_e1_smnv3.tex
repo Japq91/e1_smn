@@ -449,14 +449,18 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \node[box] (S02b) at (-2.6,-7.8) {02b\\Nodos ESGF alt.};
 \node[box] (S02c) at (-2.6,-9.7) {02c\\Copernicus CDS};
 
-\node[box] (S04) at (0.5,-11.7) {04\\Grilla com\'un};
-\node[box] (S05) at (0.5,-13.6) {05\\M\'ascara oc\'eano-tierra};
-\node[boxaux] (NB) at (4.4,-13.6) {Notebook\\gr\'aficos\\explorat.};
-\node[box] (S06) at (0.5,-15.5) {06\\Control de calidad};
-\node[box] (S07) at (0.5,-17.4) {07\\Inventario final};
-\node[box] (S08) at (0.5,-19.3) {Registro de\\modelos};
-\node[box] (S09) at (0.5,-21.2) {Gr\'aficos\\autom\'aticos};
-\node[box] (S10) at (0.5,-23.1) {Reporte +\\paquete final};
+\node[box] (S04) at (0,-11.7) {04\\Grilla com\'un};
+\node[boxaux] (NB) at (4.6,-11.7) {Notebook\\gr\'aficos\\explorat.};
+
+% A partir de 05, las cajas restantes se acomodan de a tres por fila
+% (serpenteando izquierda-derecha-izquierda) en vez de una sola columna
+% vertical, para no alargar innecesariamente la figura.
+\node[box] (S05) at (-4.6,-13.6) {05\\M\'ascara oc\'eano-tierra};
+\node[box] (S06) at (0,-13.6) {06\\Control de calidad};
+\node[box] (S07) at (4.6,-13.6) {07\\Inventario final};
+\node[box] (S08) at (4.6,-15.5) {Registro de\\modelos};
+\node[box] (S09) at (0,-15.5) {Gr\'aficos\\autom\'aticos};
+\node[box] (S10) at (-4.6,-15.5) {Reporte +\\paquete final};
 
 \draw[edg] (S00) -- (S00b);
 \draw[edgd] (S00b) -- (S00c);
@@ -477,7 +481,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edg] (S07) -- (S08);
 \draw[edg] (S08) -- (S09);
 \draw[edg] (S09) -- (S10);
-\draw[edgd] (S05) -- (NB);
+\draw[edgd] (S05) to[bend left=15] (NB);
 
 \end{tikzpicture}
 \caption[Flujograma del \emph{pipeline} del Entregable~1.]{Flujograma del \emph{pipeline} del Entregable~1. Las flechas s\'olidas son transiciones dentro de la secuencia autom\'atica de \texttt{run.sh} (Secci\'on~\ref{sec:runsh}); las flechas punteadas corresponden a pasos manuales/diagn\'osticos (\texttt{00c}, notebook de gr\'aficos exploratorios) o a la actualizaci\'on que los pasos~02b/02c hacen sobre el cat\'alogo del paso~01 cuando resuelven un modelo por una fuente alternativa. La cascada 02~$\to$~02b~$\to$~02c es autom\'atica dentro del propio paso~02 (\archivo{02_download_all_sources.sh}, Secci\'on~\ref{sec:paso02}): cada fuente se intenta \'unicamente para lo que la anterior no haya resuelto. Tras el paso~07, \texttt{run.sh} ejecuta adem\'as, siempre y sin importar \archivo{STEP_FROM}/\archivo{STEP_TO}: el registro de modelos (\archivo{build_model_registry.py}), los cinco gr\'aficos autom\'aticos (\archivo{scripts/plot_*.py}, Secci\'on~\ref{sec:scripts}) y, por \'ultimo, el reporte de estado (Secci\'on~\ref{sec:reporte}) junto con el paquete \archivo{.tar.gz} de entrega (\archivo{bundle_deliverable_update.py}). El notebook de gr\'aficos exploratorios sigue siendo manual e independiente de esta cadena autom\'atica.}
