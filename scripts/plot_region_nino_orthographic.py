@@ -159,16 +159,16 @@ def main(out_path: Path) -> None:
     # por caja sobre el mapa (asi era antes: 5 etiquetas sueltas
     # compitiendo con la costa/grilla por espacio).
     legend_elements = [
-        Line2D([0], [0], color="tab:blue", lw=1.4, label="Niño 4 (referencia, no usada)"),
-        Line2D([0], [0], color="tab:purple", lw=1.4, label="Niño 3 (referencia, no usada)"),
-        Line2D([0], [0], color="tab:red", lw=1.4, label="Niño 3.4 y Niño 1+2 (usadas en este proyecto)"),
+        Line2D([0], [0], color="tab:blue", lw=1.4, label="Niño 4"),
+        Line2D([0], [0], color="tab:purple", lw=1.4, label="Niño 3"),
+        Line2D([0], [0], color="tab:red", lw=1.4, label="Niño 3.4 y Niño 1+2"),
         Patch(facecolor=download_color, alpha=0.3, edgecolor="none",
-              label="Área de datos procesados (ventana real de descarga)"),
+              label="Área de datos procesados"),
     ]
     ax.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.32),
                ncol=2, frameon=False, fontsize=8)
 
-    ax.set_title("Regiones Niño y área de datos procesados -- centrado en Niño 3.4", fontsize=11)
+    ax.set_title("Regiones Niño y área de datos procesados", fontsize=11)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=100, bbox_inches="tight")
