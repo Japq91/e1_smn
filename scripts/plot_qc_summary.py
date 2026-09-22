@@ -25,7 +25,7 @@ import pandas as pd  # noqa: E402
 
 def plot_qc_summary(n_panels: int = 4) -> None:
     out_path = pc.FIGURES_DIR / "sst_QD_vf.png"
-    if not pc.should_regenerate(out_path):
+    if out_path.exists() and not pc.should_regenerate_batch([out_path]):
         return
 
     if not pc.QC_CSV.exists():

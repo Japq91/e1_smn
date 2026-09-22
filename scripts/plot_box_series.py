@@ -22,12 +22,13 @@ import plot_common as pc  # noqa: E402 (fuerza el backend Agg antes de pyplot)
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-def plot_box_series(model: str, box: dict, box_name: str, ax=None) -> None:
+def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool = False) -> None:
     """Serie de caja del modelo con historical + cada escenario SSP
     configurado (config/periods.yaml) superpuestos en el mismo eje."""
     ofile = pc.FIGURES_DIR / f"serie_{model}_sst_{box_name.replace(' ', '')}.png"
     standalone = ax is None
-    if standalone and not pc.should_regenerate(ofile, label=f"{model} {box_name}: {ofile.name}"):
+    if standalone and ofile.exists() and not force:
+        print(f"  {model} {box_name}: {ofile.name} ya existe, se omite", file=sys.stderr)
         return
     if standalone:
         fig, ax = plt.subplots(figsize=(9, 3))
@@ -53,19 +54,32 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None) -> None:
         plt.close()
 
 
+BOXES = [(pc.NINO12, "Nino 1+2"), (pc.NINO34, "Nino 3.4")]
+
+
 def main() -> None:
     models = pc.list_available_models()
     if not models:
         sys.exit(f"No hay archivos tos_*_historical.nc en {pc.MASKED_DIR} -- corre run.sh hasta el paso 05.")
 
+    con_ssp = []
+    for m in models:
+        if any(os.path.exists(pc.masked_path(m, s)) for s in pc.SCENARIOS):
+            con_ssp.append(m)
+        else:
+            print(f"{m}: no tiene escenarios SSP descargados, se omite", file=sys.stderr)
+    models = con_ssp
+
+    existing = [pc.FIGURES_DIR / f"serie_{m}_sst_{box_name.replace(' ', '')}.png"
+                for m in models for _, box_name in BOXES
+                if (pc.FIGURES_DIR / f"serie_{m}_sst_{box_name.replace(' ', '')}.png").exists()]
+    force = pc.should_regenerate_batch(existing, kind="serie(s) de caja") if existing else False
+
     n_done = 0
     for model in models:
-        if not any(os.path.exists(pc.masked_path(model, s)) for s in pc.SCENARIOS):
-            print(f"{model}: no tiene escenarios SSP descargados, se omite", file=sys.stderr)
-            continue
         print(f"{model}", file=sys.stderr)
-        plot_box_series(model, pc.NINO12, "Nino 1+2")
-        plot_box_series(model, pc.NINO34, "Nino 3.4")
+        for box, box_name in BOXES:
+            plot_box_series(model, box, box_name, force=force)
         n_done += 1
 
     print(f"Listo, {n_done} modelo(s) graficado(s) (2 figuras cada uno) en {pc.FIGURES_DIR}", file=sys.stderr)

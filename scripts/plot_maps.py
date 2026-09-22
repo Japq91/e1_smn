@@ -22,9 +22,10 @@ import numpy as np  # noqa: E402
 import xarray as xr  # noqa: E402
 
 
-def plot_map(model: str, exp: str = "historical", ax=None) -> None:
+def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False) -> None:
     out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
-    if ax is None and not pc.should_regenerate(out_path, label=f"{model}: {out_path.name}"):
+    if ax is None and out_path.exists() and not force:
+        print(f"  {model}: {out_path.name} ya existe, se omite", file=sys.stderr)
         return
 
     with nc.Dataset(pc.masked_path(model, exp)) as ds:
@@ -62,12 +63,17 @@ def main() -> None:
     if not models:
         sys.exit(f"No hay archivos tos_*_historical.nc en {pc.MASKED_DIR} -- corre run.sh hasta el paso 05.")
 
+    targets = models + ["ERSSTv5"]
+    existing = [pc.FIGURES_DIR / f"sst_2d_{m}.png" for m in targets
+                if (pc.FIGURES_DIR / f"sst_2d_{m}.png").exists()]
+    force = pc.should_regenerate_batch(existing, kind="mapa(s) 2D") if existing else False
+
     print(f"Graficando mapas: {len(models)} modelo(s) + ERSSTv5 ...", file=sys.stderr)
     n_ok, n_fail = 0, 0
-    for model in models + ["ERSSTv5"]:
+    for model in targets:
         print(f"  {model}", file=sys.stderr)
         try:
-            plot_map(model, "historical")
+            plot_map(model, "historical", force=force)
             n_ok += 1
         except Exception as e:
             # Un modelo con datos raros no debe tirar abajo el resto

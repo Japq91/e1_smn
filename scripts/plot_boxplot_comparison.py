@@ -23,9 +23,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 
-def plot_box_boxplot(box: dict, box_name: str) -> None:
+def plot_box_boxplot(box: dict, box_name: str, force: bool = False) -> None:
     out_path = pc.FIGURES_DIR / f"boxplot_{box_name.replace(' ', '')}.png"
-    if not pc.should_regenerate(out_path, label=f"{box_name}: {out_path.name}"):
+    if out_path.exists() and not force:
+        print(f"  {box_name}: {out_path.name} ya existe, se omite", file=sys.stderr)
         return
 
     sources = ["ERSSTv5"] + pc.list_available_models()
@@ -96,9 +97,14 @@ def main() -> None:
     if not pc.masked_path("ERSSTv5").exists():
         sys.exit(f"Falta {pc.masked_path('ERSSTv5')} -- corre run.sh hasta el paso 05.")
 
+    boxes = [(pc.NINO34, "Nino 3.4"), (pc.NINO12, "Nino 1+2")]
+    existing = [pc.FIGURES_DIR / f"boxplot_{name.replace(' ', '')}.png" for _, name in boxes
+                if (pc.FIGURES_DIR / f"boxplot_{name.replace(' ', '')}.png").exists()]
+    force = pc.should_regenerate_batch(existing, kind="boxplot(s) comparativo(s)") if existing else False
+
     print("Graficando boxplots comparativos ...", file=sys.stderr)
-    plot_box_boxplot(pc.NINO34, "Nino 3.4")
-    plot_box_boxplot(pc.NINO12, "Nino 1+2")
+    for box, name in boxes:
+        plot_box_boxplot(box, name, force=force)
     print("Listo.", file=sys.stderr)
 
 

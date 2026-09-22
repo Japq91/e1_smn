@@ -56,29 +56,41 @@ NINO12 = dict(lon1=270, lon2=280, lat1=-10, lat2=0)
 SCENARIO_COLORS = ["tab:blue", "tab:orange", "tab:red", "tab:purple", "tab:green", "tab:brown"]
 
 
-def should_regenerate(out_path: Path, label: str | None = None) -> bool:
-    """Decide si (re)generar 'out_path': automatico (sin preguntar) si
-    todavia no existe -- no hay nada que decidir. Si YA existe, pregunta
-    (limite de 15s, misma mecanica que la confirmacion de nodos
-    alternativos en 02_download_all_sources.sh) si se quiere
-    regenerar; el default ante silencio/timeout/sin terminal
-    interactiva es MANTENER la figura ya generada (el comportamiento
-    historico de este pipeline era saltarla siempre) -- al reves del
-    default de esa otra confirmacion (ahi 'sin respuesta' significaba
-    seguir intentando fuentes nuevas), porque aca 'sin respuesta'
-    corresponde a no tocar algo que ya existe, no a arrancar algo nuevo."""
-    if not out_path.exists():
-        return True
-    name = label or out_path.name
+def should_regenerate_batch(existing_paths, kind: str = "figura(s)") -> bool:
+    """Pregunta UNA sola vez si se deben regenerar TODAS las figuras
+    de 'existing_paths' (las que YA EXISTEN) -- nunca una pregunta por
+    archivo/modelo. Decision explicita del usuario: una tanda de N
+    modelos no debe significar N preguntas identicas; los archivos
+    NUEVOS (de un modelo recien descargado, por ejemplo) los generan
+    los llamadores directamente, sin pasar por aca, porque no hay nada
+    que decidir sobre algo que todavia no existe.
+
+    Limite de 15s (misma mecanica que la confirmacion de nodos
+    alternativos en 02_download_all_sources.sh): el default ante
+    silencio/timeout/sin terminal interactiva es MANTENER las figuras
+    ya generadas (el comportamiento historico de este pipeline era
+    saltarlas siempre) -- al reves del default de esa otra
+    confirmacion (ahi 'sin respuesta' significaba seguir intentando
+    fuentes nuevas), porque aca 'sin respuesta' corresponde a no tocar
+    algo que ya existe, no a arrancar algo nuevo.
+
+    Si 'existing_paths' esta vacia no hay nada que preguntar (False,
+    sin efecto: los llamadores solo la consultan cuando SI hay algo
+    existente de por medio)."""
+    existing_paths = list(existing_paths)
+    if not existing_paths:
+        return False
     if not sys.stdin.isatty():
-        print(f"{name} ya existe, se omite (sin terminal interactiva para preguntar).", file=sys.stderr)
+        print(f"{len(existing_paths)} {kind} ya existen, se omiten "
+              "(sin terminal interactiva para preguntar).", file=sys.stderr)
         return False
     import select
-    print(f"{name} ya existe. Regenerar? [s/N, 15s, por defecto N] ", end="", file=sys.stderr, flush=True)
+    print(f"{len(existing_paths)} {kind} ya existen. Regenerar TODAS? [s/N, 15s, por defecto N] ",
+          end="", file=sys.stderr, flush=True)
     rlist, _, _ = select.select([sys.stdin], [], [], 15)
     if not rlist:
         print("", file=sys.stderr)
-        print("(sin respuesta en 15s, se mantiene la figura existente)", file=sys.stderr)
+        print("(sin respuesta en 15s, se mantienen las existentes)", file=sys.stderr)
         return False
     respuesta = sys.stdin.readline().strip().lower()
     return respuesta.startswith("s")
