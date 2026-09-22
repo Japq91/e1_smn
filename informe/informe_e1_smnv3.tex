@@ -315,7 +315,7 @@ Se usan dos fuentes: (i) CMIP6, salidas de modelo de la variable \texttt{tos} (t
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{cmip6_contribution.png}
+\includegraphics[width=\textwidth]{figuras/cmip6_contribution.png}
 \caption[Distribuci\'on institucional de los modelos CMIP6 disponibles por pa\'is de origen.]{Distribuci\'on por instituci\'on/pa\'is de origen de los modelos CMIP6. La dispersi\'on institucional es relevante para la Secci\'on~\ref{sec:similitudes}: un conjunto de modelos concentrado en pocos centros de modelado comparte con mayor probabilidad el mismo sesgo estructural (p.\,ej., lengua fr\'ia o doble ZCIT del Pac\'ifico oriental), lo que subestimar\'ia la incertidumbre real del TOE.}
 \label{fig:cmip6_contribution}
 \end{figure}
@@ -454,6 +454,9 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \node[boxaux] (NB) at (4.4,-13.6) {Notebook\\gr\'aficos\\explorat.};
 \node[box] (S06) at (0.5,-15.5) {06\\Control de calidad};
 \node[box] (S07) at (0.5,-17.4) {07\\Inventario final};
+\node[box] (S08) at (0.5,-19.3) {Registro de\\modelos};
+\node[box] (S09) at (0.5,-21.2) {Gr\'aficos\\autom\'aticos};
+\node[box] (S10) at (0.5,-23.1) {Reporte +\\paquete final};
 
 \draw[edg] (S00) -- (S00b);
 \draw[edgd] (S00b) -- (S00c);
@@ -471,10 +474,13 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edg] (S04) -- (S05);
 \draw[edg] (S05) -- (S06);
 \draw[edg] (S06) -- (S07);
+\draw[edg] (S07) -- (S08);
+\draw[edg] (S08) -- (S09);
+\draw[edg] (S09) -- (S10);
 \draw[edgd] (S05) -- (NB);
 
 \end{tikzpicture}
-\caption[Flujograma del \emph{pipeline} del Entregable~1.]{Flujograma del \emph{pipeline} del Entregable~1. Las flechas s\'olidas son transiciones dentro de la secuencia autom\'atica de \texttt{run.sh} (Secci\'on~\ref{sec:runsh}); las flechas punteadas corresponden a pasos manuales/diagn\'osticos (\texttt{00c}, notebook de gr\'aficos exploratorios) o a la actualizaci\'on que los pasos~02b/02c hacen sobre el cat\'alogo del paso~01 cuando resuelven un modelo por una fuente alternativa. La cascada 02~$\to$~02b~$\to$~02c es autom\'atica dentro del propio paso~02 (\archivo{02_download_all_sources.sh}, Secci\'on~\ref{sec:paso02}): cada fuente se intenta \'unicamente para lo que la anterior no haya resuelto.}
+\caption[Flujograma del \emph{pipeline} del Entregable~1.]{Flujograma del \emph{pipeline} del Entregable~1. Las flechas s\'olidas son transiciones dentro de la secuencia autom\'atica de \texttt{run.sh} (Secci\'on~\ref{sec:runsh}); las flechas punteadas corresponden a pasos manuales/diagn\'osticos (\texttt{00c}, notebook de gr\'aficos exploratorios) o a la actualizaci\'on que los pasos~02b/02c hacen sobre el cat\'alogo del paso~01 cuando resuelven un modelo por una fuente alternativa. La cascada 02~$\to$~02b~$\to$~02c es autom\'atica dentro del propio paso~02 (\archivo{02_download_all_sources.sh}, Secci\'on~\ref{sec:paso02}): cada fuente se intenta \'unicamente para lo que la anterior no haya resuelto. Tras el paso~07, \texttt{run.sh} ejecuta adem\'as, siempre y sin importar \archivo{STEP_FROM}/\archivo{STEP_TO}: el registro de modelos (\archivo{build_model_registry.py}), los cinco gr\'aficos autom\'aticos (\archivo{scripts/plot_*.py}, Secci\'on~\ref{sec:scripts}) y, por \'ultimo, el reporte de estado (Secci\'on~\ref{sec:reporte}) junto con el paquete \archivo{.tar.gz} de entrega (\archivo{bundle_deliverable_update.py}). El notebook de gr\'aficos exploratorios sigue siendo manual e independiente de esta cadena autom\'atica.}
 \label{fig:flujograma}
 \end{figure}
 
