@@ -36,7 +36,7 @@ FIGURES_DIR = BASE_DIR / "figures"
 # Todas las figuras se guardan livianas (DPI 100) -- pensado para que
 # el informe/presentacion no pese de mas, y para no generar archivos
 # grandes en el HPC sin necesidad.
-DPI = 100
+DPI = 150
 
 sys.path.insert(0, str(BASE_DIR / "scripts"))
 import pipeline_config  # noqa: E402
