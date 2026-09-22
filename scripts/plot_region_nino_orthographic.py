@@ -118,9 +118,15 @@ def draw_download_window(ax, domains: dict, color: str) -> None:
     en convencion -180/180. Maneja el cruce del antimeridiano
     partiendo el rectangulo en dos si hace falta."""
     dw = domains["download_window"]
+    lat1, lat2 = dw["lat_min"], dw["lat_max"]
+    if dw["lon_max"] - dw["lon_min"] >= 360.0:
+        # Ventana global en longitud (lon_min=0, lon_max=360, Entregable 2):
+        # no hay antimeridiano que cruzar -- lon2 = lon_max - 360.0 daria
+        # 0.0, igual a lon1, y el rectangulo quedaria con ancho cero.
+        draw_rect(ax, -180.0, 180.0, lat1, lat2, alpha=0.35, color=color)
+        return
     lon1 = dw["lon_min"]
     lon2 = dw["lon_max"] - 360.0
-    lat1, lat2 = dw["lat_min"], dw["lat_max"]
     if lon1 > lon2:
         draw_rect(ax, lon1, 180.0, lat1, lat2, alpha=0.35, color=color)
         draw_rect(ax, -180.0, lon2, lat1, lat2, alpha=0.35, color=color)
