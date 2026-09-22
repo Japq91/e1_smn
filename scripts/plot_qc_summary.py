@@ -197,7 +197,7 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         ax.set_xticks(range(len(all_cols)))
         ax.set_xticklabels(all_cols, rotation=45, ha="left", fontsize=8)
         ax.set_yticks(range(len(chunk)))
-        ax.set_yticklabels([model_number[m] for m in chunk], fontsize=6.5)
+        ax.set_yticklabels([f"{m} [{model_number[m]}]" for m in chunk], fontsize=6.5)
         ax.set_ylim(-0.5, len(chunk) - 0.5)
         ax.invert_yaxis()
         ax.set_xlim(-0.6, len(all_cols) - 1 + 0.6)
