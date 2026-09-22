@@ -205,25 +205,28 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         ax.tick_params(axis="y", length=0)
         ax.grid(axis="x", linewidth=0.5, alpha=0.3)
 
+    # Leyenda recortada a etiquetas cortas (una idea por item, sin la
+    # explicacion completa del estado) -- decision del usuario: la
+    # version anterior (una oracion completa por item) sobrecargaba la
+    # leyenda. El detalle completo de cada estado sigue documentado en
+    # el docstring de este script y en el README.
     from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], marker="o", color="w", markerfacecolor="tab:green",
-               markersize=8, label="PASS"),
+               markersize=8, label="Pass"),
         Line2D([0], [0], marker="X", color="w", markerfacecolor="tab:red",
-               markersize=8, label="FAIL (QC/CDO, sobre archivo descargado)"),
+               markersize=8, label="Fail"),
         Line2D([0], [0], marker="o", color="tab:green", markerfacecolor="none",
-               markersize=8, label="Link vivo encontrado, falta descargar y/o procesar"),
+               markersize=8, label="Pending download"),
         Line2D([0], [0], marker="o", color="gray", markerfacecolor="none",
-               markersize=8, label="Existe segun 00b, pero 01 no encontro ningun link vivo"),
+               markersize=8, label="No link found"),
         Line2D([0], [0], marker="o", color="tab:orange", markerfacecolor="none",
-               markersize=8, label="Columna 'historical': solo tiene hist-1950 (HighResMIP), "
-                                   "no se busco link (no califica como seed)"),
+               markersize=8, label="hist-1950 only"),
         Line2D([0], [0], marker="s", color="w", markerfacecolor="tab:red",
-               markersize=8, label="No existe en absoluto (columna 'tos') / sin ese "
-                                   "experimento en ningun lado (columnas historical/SSP)"),
+               markersize=8, label="Not available"),
     ]
-    fig.legend(handles=legend_elements, ncol=2, frameon=False, fontsize=8,
-               loc="upper center", bbox_to_anchor=(0.5, .1))
+    fig.legend(handles=legend_elements, ncol=6, frameon=False, fontsize=8,
+               loc="upper center", bbox_to_anchor=(0.5, .06))
 
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")

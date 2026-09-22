@@ -41,10 +41,12 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool =
         years, values = pc.box_mean(model, exp, **box)
         ax.plot(years, values, label=exp, linewidth=0.4, marker=".", markersize=1.8, **estilo)
 
-    ax.set_xlabel("anio")
-    ax.set_ylabel("SST (degC)")
-    ax.set_title(f"{box_name} -- {model}")
-    ax.legend()
+    display_name = box_name.replace("Nino", "Niño")
+    ax.set_ylim(18, 36)
+    ax.set_xlabel("Year")
+    ax.set_ylabel("SST (°C)")
+    ax.set_title(f"{display_name} – {model}")
+    ax.legend(loc="upper left", ncol=2, frameon=False)
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plt.savefig(ofile, dpi=pc.DPI, bbox_inches="tight")
     if standalone:
