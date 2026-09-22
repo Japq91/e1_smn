@@ -52,7 +52,8 @@ def _historical_medians(model: str, box: dict) -> tuple[float, float] | None:
     return obs_median, hist_median
 
 
-def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool = False) -> None:
+def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool = False,
+                     model_number: str | None = None) -> None:
     """Serie de caja del modelo con historical + cada escenario SSP
     configurado (config/periods.yaml) superpuestos en el mismo eje."""
     ofile = pc.FIGURES_DIR / f"serie_{model}_sst_{box_name.replace(' ', '')}.png"
@@ -87,6 +88,12 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool =
     ax.set_xlabel("Year")
     ax.set_ylabel("SST (°C)")
     ax.set_title(f"{display_name} – {model}")
+    # Codigo M001..M102 como titulo aparte a la izquierda -- mismo
+    # criterio que plot_maps.py (informe/model_registry.csv). ERSSTv5
+    # no tiene codigo (no es de los 102 modelos CMIP6), pero tampoco
+    # pasa por aca (esta funcion solo grafica modelos, no el observado).
+    if model_number:
+        ax.set_title(model_number, loc="left", fontsize=9, fontweight="bold")
     ax.legend(loc="upper left", ncol=2, frameon=False, fontsize=8)
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plt.savefig(ofile, dpi=pc.DPI, bbox_inches="tight")
@@ -114,12 +121,13 @@ def main() -> None:
                 for m in models for _, box_name in BOXES
                 if (pc.FIGURES_DIR / f"serie_{m}_sst_{box_name.replace(' ', '')}.png").exists()]
     force = pc.should_regenerate_batch(existing, kind="serie(s) de caja") if existing else False
+    numbers = pc.model_numbers()
 
     n_done = 0
     for model in models:
         print(f"{model}", file=sys.stderr)
         for box, box_name in BOXES:
-            plot_box_series(model, box, box_name, force=force)
+            plot_box_series(model, box, box_name, force=force, model_number=numbers.get(model))
         n_done += 1
 
     print(f"Listo, {n_done} modelo(s) graficado(s) (2 figuras cada uno) en {pc.FIGURES_DIR}", file=sys.stderr)
