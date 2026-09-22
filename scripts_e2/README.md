@@ -16,7 +16,18 @@ Entregable 1 (`scripts/`, `run.sh`):
 - `data/processed/masked/ersstv5_region.nc` -- referencia
   observacional.
 
-Ningún script de esta carpeta debe escribir dentro de `data/` fuera de
-un subdirectorio propio (p.ej. `data/processed/e2/`), ni modificar
-nada bajo `scripts/` o `data/processed/masked/` -- eso es responsabilidad
-exclusiva del pipeline de E1 (`run.sh`).
+Salidas propias del Entregable 2, todas anidadas bajo el mismo
+directorio raíz por tipo de contenido que usa E1 (en vez de carpetas
+sueltas `data_e2/`/`figuras_e2/` en la raíz del repo -- E3 y E4 del
+mismo TdR van a necesitar el mismo patrón):
+
+- `data/processed/e2/` -- datos procesados propios de E2.
+- `figures/e2/` -- figuras generadas por estos scripts.
+- `informe/figuras/e2/` -- symlinks curados hacia `figures/e2/` para
+  el futuro `informe/informe_e2.tex` (mismo criterio que
+  `informe/figuras/` para E1, ver su README).
+
+Ningún script de esta carpeta debe escribir fuera de esos tres
+subdirectorios, ni modificar nada bajo `scripts/`, `run.sh` o
+`data/processed/masked/` -- eso es responsabilidad exclusiva del
+pipeline de E1.
