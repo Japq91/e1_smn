@@ -18,7 +18,7 @@ Se ejecuta con un único orquestador: `run.sh [STEP_FROM] [STEP_TO] [MAX_MODELS]
 ./run.sh 00 04 2
 ```
 
-El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. Al final de cada corrida, `run.sh` genera automáticamente las figuras principales (`scripts/plot_*.py`: los modelos nuevos se grafican solos, sin preguntar; para las figuras que ya existen pregunta una sola vez por lote si regenerarlas, ver la sección "Gráficos" más abajo) y arma un paquete `.tar.gz` con todo lo necesario para actualizar el informe. Para exploración interactiva o ad-hoc está `graficos_exploratorios.ipynb`.
+El procesamiento numérico usa CDO, salvo la máscara océano-tierra (paso 05), en Python/`numpy`. Al final de cada corrida, `run.sh` genera automáticamente las figuras principales (`scripts/plot_*.py`: los modelos nuevos se grafican solos, sin preguntar; para las figuras que ya existen pregunta una sola vez por lote si regenerarlas, ver la sección "Gráficos" más abajo) y arma un paquete `.tar.gz` con todo lo necesario para actualizar el informe.
 
 ## Configuración global (`config/periods.yaml`)
 
@@ -81,10 +81,10 @@ data/interim/ocean_mask.nc                         # 05: máscara 1=océano
 data/processed/masked/tos_<modelo>_<exp>.nc        # 05: dato final, listo para el cálculo de TOE
 data/processed/qc_report.csv                       # 06
 data/processed/models_inventory_final.csv          # 07: modelos selected=True (los que se grafican)
-figures/                                            # scripts/plot_*.py (automatico) + graficos_exploratorios.ipynb (manual)
+figures/                                            # scripts/plot_*.py (automatico, run.sh)
 ```
 
-`data/interim/processed/` es un paso intermedio (regrillado, todavía sin máscara); `data/processed/masked/` es el dato final. `run.sh` genera los PNG de `figures/` el mismo (`scripts/plot_*.py`, al final de cada corrida); `graficos_exploratorios.ipynb` cubre lo mismo de forma interactiva, para editar libremente.
+`data/interim/processed/` es un paso intermedio (regrillado, todavía sin máscara); `data/processed/masked/` es el dato final. `run.sh` genera los PNG de `figures/` el mismo (`scripts/plot_*.py`, al final de cada corrida).
 
 ## Pasos
 
@@ -160,8 +160,8 @@ Todos leen los escenarios SSP de `config/periods.yaml` (vía `pipeline_config.py
 
 `scripts/build_model_registry.py` (se corre solo al final de `run.sh`, junto con los gráficos): arma `informe/model_registry.csv` -- un identificador numérico estable `M001..M102` (orden alfabético, mismo universo que `plot_qc_summary.py`) más institución, país/consorcio, realización (`member_id`) y resolución horizontal (solo para los modelos que llegaron a ser seed) y un `1`/`0` por experimento (`tiene_hist`/`tiene_sspXXX`) que indica si existe en ESGF **en absoluto** -- no si ya se descargó. El país sale de `config/CMIP6_institution_id.json`, el Controlled Vocabulary oficial de CMIP6 (`WCRP-CMIP/CMIP6_CVs`), versionado tal cual se bajó (no cambia entre corridas/máquinas); ver el docstring del script para refrescarlo.
 
-### `graficos_exploratorios.ipynb` (manual, para exploración interactiva)
-El mismo contenido que los scripts de arriba, pero como notebook editable libremente celda por celda -- útil para probar variantes puntuales sin tocar código. No es necesario correrlo para tener las figuras del informe: eso ya lo cubre `run.sh`.
+### `scripts/graficos_exploratorios.ipynb` (prototipo histórico, no versionado)
+Notebook con el que se prototiparon interactivamente las figuras de arriba antes de convertirlas en los scripts reproducibles `scripts/plot_*.py`. Ya cumplió ese propósito: no es una vía paralela vigente para las figuras del informe -- eso lo cubre `run.sh` por completo -- y, como el resto de notebooks del repositorio, no se versiona en GitHub (`.gitignore`); vive solo localmente.
 
 Los cinco fuerzan el backend `Agg` de matplotlib (sin ventana), así que no necesitan `$DISPLAY` -- los cuatro primeros vía `scripts/plot_common.py` (que también centraliza `should_regenerate_batch()`, la lógica de pregunta-antes-de-regenerar por lote); `plot_region_nino_orthographic.py` lo hace por su cuenta (deliberadamente independiente del resto, con su propia copia de `should_regenerate()`, la variante de un solo archivo -- esta figura no tiene "lote", es una sola) y es el único que requiere `cartopy` (incluido en `environment.yml`). Todos guardan en `figures/` con DPI 100 (livianas, pensadas para el informe).
 
