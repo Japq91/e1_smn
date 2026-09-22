@@ -13,6 +13,10 @@ data/processed/qc_report.csv
 data/processed/models_inventory_final.csv
 __pycache__/
 .ipynb_checkpoints/
+# Notebooks: se usan localmente para prototipar/testear (ver
+# graficos_exploratorios.ipynb, scripts_e2/) antes de convertirse en
+# .py versionados -- no se suben a GitHub.
+*.ipynb
 logs/*.log
 logs/run_report_*.txt
 # Tiempos observados por maquina (ver scripts/pipeline_timing.py):
