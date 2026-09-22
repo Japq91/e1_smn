@@ -42,7 +42,13 @@ from pathlib import Path
 
 import pipeline_config
 
-MIN_SST, MAX_SST = -2.0, 39.0
+# MAX_SST subido de 39.0 a 45.0 (Entregable 2, ventana ampliada a
+# global/30S-30N, commit 79a9786): con el dominio Pacifico angosto
+# anterior 39.0 nunca se alcanzaba; con mares marginales calidos
+# (ej. Golfo Persico, Mar Rojo) bajo ssp585 hacia 2100, varios modelos
+# superaban ese techo por 39.1-41.2 grados de forma fisicamente
+# plausible, no por un artefacto de dato -- ver conversacion.
+MIN_SST, MAX_SST = -2.0, 45.0
 EXPERIMENTS = pipeline_config.experiments()
 SCENARIO_EXPECTED_YEARS = {}
 for _exp in EXPERIMENTS:
