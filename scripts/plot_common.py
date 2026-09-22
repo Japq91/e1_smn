@@ -30,6 +30,7 @@ MASKED_DIR = BASE_DIR / "data/processed/masked"
 QC_CSV = BASE_DIR / "data/processed/qc_report.csv"
 MODEL_AVAILABILITY_CSV = BASE_DIR / "informe/model_availability_priority.csv"
 CATALOG_CSV = BASE_DIR / "data/interim/models_catalog_status.csv"
+INVENTORY_CSV = BASE_DIR / "data/processed/models_inventory_final.csv"
 FIGURES_DIR = BASE_DIR / "figures"
 
 # Todas las figuras se guardan livianas (DPI 100) -- pensado para que
@@ -110,11 +111,39 @@ def model_numbers() -> dict[str, str]:
     return {m: f"M{i:0{width}d}" for i, m in enumerate(models, start=1)}
 
 
-def list_available_models() -> list[str]:
-    return sorted(
-        f.stem.replace("tos_", "", 1).replace("_historical", "")
-        for f in MASKED_DIR.glob("tos_*_historical.nc")
-    )
+def sst_2d_filename(model: str, model_number: str | None) -> str:
+    """Nombre de archivo del mapa 2D de plot_maps.py, con el codigo
+    M001..M102 como primer segmento (pedido del usuario, para poder
+    ordenar/identificar las figuras por numero de modelo a simple
+    vista) -- ej. "M001_sst_2d_ACCESS-CM2.png". ERSSTv5 no tiene
+    codigo (no es uno de los 102 modelos CMIP6): queda sin prefijo,
+    como antes."""
+    prefix = f"{model_number}_" if model_number else ""
+    return f"{prefix}sst_2d_{model}.png"
+
+
+def series_filename(model: str, box_name: str, model_number: str | None) -> str:
+    """Nombre de archivo de la serie de plot_box_series.py, con el
+    mismo prefijo M001..M102 que sst_2d_filename."""
+    prefix = f"{model_number}_" if model_number else ""
+    return f"{prefix}serie_{model}_sst_{box_name.replace(' ', '')}.png"
+
+
+def selected_models() -> list[str]:
+    """Modelos que de verdad quedaron en el entregable final: los
+    marcados selected=True en data/processed/models_inventory_final.csv
+    (paso 07 -- exige los 4 experimentos requeridos, todos con PASS en
+    control de calidad). Antes los scripts de plot usaban un criterio
+    mas laxo (cualquier archivo tos_<modelo>_historical.nc presente en
+    data/processed/masked/, sin mirar QC ni si estan los 4
+    experimentos) -- eso graficaba modelos con descarga parcial que el
+    inventario ya excluia (mismo bug real corregido en
+    07_build_inventory_report.py: un modelo como CIESM, con solo 3 de
+    4 experimentos, apareceria en las figuras como si fuera uno mas)."""
+    if not INVENTORY_CSV.exists():
+        sys.exit(f"Falta {INVENTORY_CSV}. Se genera con run.sh (paso 07).")
+    with open(INVENTORY_CSV, newline="") as f:
+        return sorted(row["model"] for row in csv.DictReader(f) if row["selected"] == "True")
 
 
 def masked_path(model: str, exp: str = "historical") -> Path:

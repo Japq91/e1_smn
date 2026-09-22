@@ -41,30 +41,32 @@ EXPECTED_FILES = [
      "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
      "necesita data/processed/masked/ersstv5_region.nc (pasos 03-05) -- el observado"),
     # Los 3 modelos de grilla mas gruesa entre los seleccionados (ver
-    # informe/model_registry.csv, columna resolution_km: ACCESS-CM2,
-    # ACCESS-ESM1-5 y GISS-E2-1-G empatan en 250 km, se toman los 3
-    # primeros en orden alfabetico/de codigo M -- mismo criterio que el
-    # resto del proyecto) -- mapa 2D + series de caja de cada uno.
-    ("figures/sst_2d_ACCESS-CM2.png",
+    # informe/model_registry.csv, columna resolution_km: ACCESS-CM2
+    # (M001), ACCESS-ESM1-5 (M002) y GISS-E2-1-G (M057) empatan en 250 km,
+    # se toman los 3 primeros en orden alfabetico/de codigo M -- mismo
+    # criterio que el resto del proyecto) -- mapa 2D + series de caja de
+    # cada uno. Nombre de archivo con el codigo M como primer segmento
+    # (scripts/plot_common.py: sst_2d_filename/series_filename).
+    ("figures/M001_sst_2d_ACCESS-CM2.png",
      "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
      "necesita que ACCESS-CM2 este descargado y procesado (pasos 02-05)"),
-    ("figures/sst_2d_ACCESS-ESM1-5.png",
+    ("figures/M002_sst_2d_ACCESS-ESM1-5.png",
      "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
      "necesita que ACCESS-ESM1-5 este descargado y procesado (pasos 02-05)"),
-    ("figures/sst_2d_GISS-E2-1-G.png",
+    ("figures/M057_sst_2d_GISS-E2-1-G.png",
      "python3 scripts/plot_maps.py (ya se corre solo al final de run.sh) -- "
      "necesita que GISS-E2-1-G este descargado y procesado (pasos 02-05)"),
-    ("figures/serie_ACCESS-CM2_sst_Nino3.4.png",
+    ("figures/M001_serie_ACCESS-CM2_sst_Nino3.4.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
-    ("figures/serie_ACCESS-CM2_sst_Nino1+2.png",
+    ("figures/M001_serie_ACCESS-CM2_sst_Nino1+2.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
-    ("figures/serie_ACCESS-ESM1-5_sst_Nino3.4.png",
+    ("figures/M002_serie_ACCESS-ESM1-5_sst_Nino3.4.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
-    ("figures/serie_ACCESS-ESM1-5_sst_Nino1+2.png",
+    ("figures/M002_serie_ACCESS-ESM1-5_sst_Nino1+2.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
-    ("figures/serie_GISS-E2-1-G_sst_Nino3.4.png",
+    ("figures/M057_serie_GISS-E2-1-G_sst_Nino3.4.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
-    ("figures/serie_GISS-E2-1-G_sst_Nino1+2.png",
+    ("figures/M057_serie_GISS-E2-1-G_sst_Nino1+2.png",
      "python3 scripts/plot_box_series.py (ya se corre solo al final de run.sh)"),
     ("figures/boxplot_Nino3.4.png",
      "python3 scripts/plot_boxplot_comparison.py (ya se corre solo al final de run.sh)"),

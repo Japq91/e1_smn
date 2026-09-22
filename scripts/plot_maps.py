@@ -4,8 +4,9 @@ completo, por modelo/experimento y para ERSSTv5. Extraido de
 graficos_exploratorios.ipynb para poder correrlo desde terminal sin
 Jupyter (ej. un cluster HPC sin interfaz grafica).
 
-Requiere que data/processed/masked/ ya tenga archivos (correr
-./run.sh hasta el paso 05 como minimo).
+Requiere data/processed/models_inventory_final.csv (correr
+./run.sh hasta el paso 07 como minimo): solo grafica modelos
+selected=True.
 
 Uso:
     python3 scripts/plot_maps.py
@@ -37,7 +38,7 @@ _DEG = FuncFormatter(lambda v, _pos: f"{v:g}°")
 
 def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
              model_number: str | None = None) -> None:
-    out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
+    out_path = pc.FIGURES_DIR / pc.sst_2d_filename(model, model_number)
     if ax is None and out_path.exists() and not force:
         print(f"  {model}: {out_path.name} ya existe, se omite", file=sys.stderr)
         return
@@ -87,15 +88,15 @@ def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
 
 
 def main() -> None:
-    models = pc.list_available_models()
+    models = pc.selected_models()
     if not models:
-        sys.exit(f"No hay archivos tos_*_historical.nc en {pc.MASKED_DIR} -- corre run.sh hasta el paso 05.")
+        sys.exit(f"Ningun modelo selected=True en {pc.INVENTORY_CSV} -- corre run.sh hasta el paso 07.")
 
     targets = models + ["ERSSTv5"]
-    existing = [pc.FIGURES_DIR / f"sst_2d_{m}.png" for m in targets
-                if (pc.FIGURES_DIR / f"sst_2d_{m}.png").exists()]
-    force = pc.should_regenerate_batch(existing, kind="mapa(s) 2D") if existing else False
     numbers = pc.model_numbers()
+    existing = [pc.FIGURES_DIR / pc.sst_2d_filename(m, numbers.get(m)) for m in targets
+                if (pc.FIGURES_DIR / pc.sst_2d_filename(m, numbers.get(m))).exists()]
+    force = pc.should_regenerate_batch(existing, kind="mapa(s) 2D") if existing else False
 
     print(f"Graficando mapas: {len(models)} modelo(s) + ERSSTv5 ...", file=sys.stderr)
     n_ok, n_fail = 0, 0

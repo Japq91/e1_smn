@@ -6,8 +6,9 @@ historico: los escenarios futuros no tienen contraparte observada.
 Extraido de graficos_exploratorios.ipynb para poder correrlo desde
 terminal sin Jupyter (ej. un cluster HPC sin interfaz grafica).
 
-Requiere que data/processed/masked/ ya tenga archivos (correr
-./run.sh hasta el paso 05 como minimo).
+Requiere data/processed/models_inventory_final.csv (correr
+./run.sh hasta el paso 07 como minimo): solo grafica modelos
+selected=True.
 
 Uso:
     python3 scripts/plot_boxplot_comparison.py
@@ -31,7 +32,7 @@ def plot_box_boxplot(box: dict, box_name: str, force: bool = False) -> None:
         print(f"  {box_name}: {out_path.name} ya existe, se omite", file=sys.stderr)
         return
 
-    sources = ["ERSSTv5"] + pc.list_available_models()
+    sources = ["ERSSTv5"] + pc.selected_models()
     series = {}
     for src in sources:
         exp = "" if src == "ERSSTv5" else "historical"
@@ -94,8 +95,8 @@ def plot_box_boxplot(box: dict, box_name: str, force: bool = False) -> None:
 
 
 def main() -> None:
-    if not pc.list_available_models():
-        sys.exit(f"No hay archivos tos_*_historical.nc en {pc.MASKED_DIR} -- corre run.sh hasta el paso 05.")
+    if not pc.selected_models():
+        sys.exit(f"Ningun modelo selected=True en {pc.INVENTORY_CSV} -- corre run.sh hasta el paso 07.")
     if not pc.masked_path("ERSSTv5").exists():
         sys.exit(f"Falta {pc.masked_path('ERSSTv5')} -- corre run.sh hasta el paso 05.")
 

@@ -564,17 +564,17 @@ Como verificaci\'on exploratoria de que el dato ya qued\'o correctamente homogen
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.75\textwidth}
-\includegraphics[width=\textwidth]{figuras/sst_2d_ACCESS-CM2.png}
+\includegraphics[width=\textwidth]{figuras/M001_sst_2d_ACCESS-CM2.png}
 \caption{Modelo: ACCESS-CM2 (M001)}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.75\textwidth}
-\includegraphics[width=\textwidth]{figuras/sst_2d_ACCESS-ESM1-5.png}
+\includegraphics[width=\textwidth]{figuras/M002_sst_2d_ACCESS-ESM1-5.png}
 \caption{Modelo: ACCESS-ESM1-5 (M002)}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.75\textwidth}
-\includegraphics[width=\textwidth]{figuras/sst_2d_GISS-E2-1-G.png}
+\includegraphics[width=\textwidth]{figuras/M057_sst_2d_GISS-E2-1-G.png}
 \caption{Modelo: GISS-E2-1-G (M057)}
 \end{subfigure}
 \caption[Comparaci\'on espacial de SST: ERSSTv5 vs.\ los tres modelos de grilla m\'as gruesa.]{Comparaci\'on espacial de la temperatura superficial del mar media del periodo hist\'orico com\'un (mes de muestra 1950-12), ya en la grilla, calendario, unidades y m\'ascara oc\'eano-tierra homogeneizados por el \emph{pipeline} (Pasos~04--05); el c\'odigo en la esquina superior izquierda de cada panel de modelo es su identificador \texttt{M001}--\texttt{M102} (Cuadro~\ref{tab:modelos}). Las cuatro fuentes comparten exactamente la misma grilla y la misma huella de puntos v\'alidos/faltantes, condici\'on necesaria para la comparaci\'on punto a punto formal del Entregable~2; esta figura es una verificaci\'on visual de que dicha condici\'on se cumple incluso en el caso m\'as exigente (grilla nativa m\'as gruesa), no un resultado de desempe\~no.}
@@ -586,18 +586,18 @@ Como segunda verificaci\'on exploratoria, complementaria a la anterior, la Figur
 \begin{figure}[htbp]
 \centering
 \begin{subfigure}[t]{\textwidth}
-\includegraphics[width=\textwidth]{figuras/serie_ACCESS-CM2_sst_Nino3.4.png}
+\includegraphics[width=\textwidth]{figuras/M001_serie_ACCESS-CM2_sst_Nino3.4.png}
 \caption{ACCESS-CM2 -- Ni\~no~3.4}
 \end{subfigure}
 \begin{subfigure}[t]{\textwidth}
-\includegraphics[width=\textwidth]{figuras/serie_ACCESS-ESM1-5_sst_Nino3.4.png}
+\includegraphics[width=\textwidth]{figuras/M002_serie_ACCESS-ESM1-5_sst_Nino3.4.png}
 \caption{ACCESS-ESM1-5 -- Ni\~no~3.4}
 \end{subfigure}
 \begin{subfigure}[t]{\textwidth}
-\includegraphics[width=\textwidth]{figuras/serie_GISS-E2-1-G_sst_Nino3.4.png}
+\includegraphics[width=\textwidth]{figuras/M057_serie_GISS-E2-1-G_sst_Nino3.4.png}
 \caption{GISS-E2-1-G -- Ni\~no~3.4}
 \end{subfigure}
-\caption[Series de tiempo de TSM en Ni\~no~3.4 para los tres modelos de grilla m\'as gruesa.]{Serie de tiempo de la TSM promediada en la caja Ni\~no~3.4 (1850--2100), \texttt{historical} (gris) y los tres escenarios SSP superpuestos (Secci\'on~\ref{sec:dominios_periodos}), para los mismos tres modelos de la Figura~\ref{fig:mapas2d}. L\'inea fina con marcador de punto en cada dato mensual real, sin interpolar huecos: un tramo sin puntos es directamente visible como un hueco real de datos (chunk nunca descargado), en vez de quedar disimulado por una l\'inea continua entre dos meses lejanos. La caja Ni\~no~1+2 (no incluida aqu\'i por espacio) se genera de forma an\'aloga en \archivo{figures/serie\_<modelo>\_sst\_Nino1+2.png}.}
+\caption[Series de tiempo de TSM en Ni\~no~3.4 para los tres modelos de grilla m\'as gruesa.]{Serie de tiempo de la TSM promediada en la caja Ni\~no~3.4 (1850--2100), \texttt{historical} (gris) y los tres escenarios SSP superpuestos (Secci\'on~\ref{sec:dominios_periodos}), para los mismos tres modelos de la Figura~\ref{fig:mapas2d}. L\'inea fina con marcador de punto en cada dato mensual real, sin interpolar huecos: un tramo sin puntos es directamente visible como un hueco real de datos (chunk nunca descargado), en vez de quedar disimulado por una l\'inea continua entre dos meses lejanos. La caja Ni\~no~1+2 (no incluida aqu\'i por espacio) se genera de forma an\'aloga en \archivo{figures/<M00X>\_serie\_<modelo>\_sst\_Nino1+2.png}.}
 \label{fig:series}
 \end{figure}
 

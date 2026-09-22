@@ -6,8 +6,9 @@ falta que el pipeline lo deje precalculado en disco. Extraido de
 graficos_exploratorios.ipynb para poder correrlo desde terminal sin
 Jupyter (ej. un cluster HPC sin interfaz grafica).
 
-Requiere que data/processed/masked/ ya tenga archivos (correr
-./run.sh hasta el paso 05 como minimo).
+Requiere data/processed/models_inventory_final.csv (correr
+./run.sh hasta el paso 07 como minimo): solo grafica modelos
+selected=True.
 
 Uso:
     python3 scripts/plot_box_series.py
@@ -56,7 +57,7 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool =
                      model_number: str | None = None) -> None:
     """Serie de caja del modelo con historical + cada escenario SSP
     configurado (config/periods.yaml) superpuestos en el mismo eje."""
-    ofile = pc.FIGURES_DIR / f"serie_{model}_sst_{box_name.replace(' ', '')}.png"
+    ofile = pc.FIGURES_DIR / pc.series_filename(model, box_name, model_number)
     standalone = ax is None
     if standalone and ofile.exists() and not force:
         print(f"  {model} {box_name}: {ofile.name} ya existe, se omite", file=sys.stderr)
@@ -105,23 +106,15 @@ BOXES = [(pc.NINO12, "Nino 1+2"), (pc.NINO34, "Nino 3.4")]
 
 
 def main() -> None:
-    models = pc.list_available_models()
+    models = pc.selected_models()
     if not models:
-        sys.exit(f"No hay archivos tos_*_historical.nc en {pc.MASKED_DIR} -- corre run.sh hasta el paso 05.")
+        sys.exit(f"Ningun modelo selected=True en {pc.INVENTORY_CSV} -- corre run.sh hasta el paso 07.")
 
-    con_ssp = []
-    for m in models:
-        if any(os.path.exists(pc.masked_path(m, s)) for s in pc.SCENARIOS):
-            con_ssp.append(m)
-        else:
-            print(f"{m}: no tiene escenarios SSP descargados, se omite", file=sys.stderr)
-    models = con_ssp
-
-    existing = [pc.FIGURES_DIR / f"serie_{m}_sst_{box_name.replace(' ', '')}.png"
-                for m in models for _, box_name in BOXES
-                if (pc.FIGURES_DIR / f"serie_{m}_sst_{box_name.replace(' ', '')}.png").exists()]
-    force = pc.should_regenerate_batch(existing, kind="serie(s) de caja") if existing else False
     numbers = pc.model_numbers()
+    existing = [pc.FIGURES_DIR / pc.series_filename(m, box_name, numbers.get(m))
+                for m in models for _, box_name in BOXES
+                if (pc.FIGURES_DIR / pc.series_filename(m, box_name, numbers.get(m))).exists()]
+    force = pc.should_regenerate_batch(existing, kind="serie(s) de caja") if existing else False
 
     n_done = 0
     for model in models:
