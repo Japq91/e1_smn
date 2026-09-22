@@ -195,7 +195,7 @@ def plot_qc_summary(n_panels: int = 4) -> None:
 
         all_cols = ["tos"] + experiments
         ax.set_xticks(range(len(all_cols)))
-        ax.set_xticklabels(all_cols, rotation=45, ha="left", fontsize=8)
+        ax.set_xticklabels(all_cols, rotation=-45, ha="right", fontsize=8)
         ax.set_yticks(range(len(chunk)))
         ax.set_yticklabels([f"{m} [{model_number[m]}]" for m in chunk], fontsize=6.5)
         ax.set_ylim(-0.5, len(chunk) - 0.5)
@@ -225,8 +225,8 @@ def plot_qc_summary(n_panels: int = 4) -> None:
         Line2D([0], [0], marker="s", color="w", markerfacecolor="tab:red",
                markersize=8, label="Not available"),
     ]
-    fig.legend(handles=legend_elements, ncol=6, frameon=False, fontsize=8,
-               loc="upper center", bbox_to_anchor=(0.5, .06))
+    fig.legend(handles=legend_elements, ncol=3, frameon=False, fontsize=8,
+               loc="upper center", bbox_to_anchor=(0.4, .1))
 
     pc.FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=pc.DPI, bbox_inches="tight")
