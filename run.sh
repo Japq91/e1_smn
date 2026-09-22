@@ -49,8 +49,11 @@ mkdir -p logs
 # "conda env create -f environment.yml") sin que quien ejecuta tenga
 # que saber que es un PATH ni acordarse de "conda activate": alcanza
 # con correr ./run.sh. Si ya hay un entorno "smn_toe" activo se deja
-# como esta; si no, y existe uno con ese nombre, se activa aca mismo.
-# Si conda no esta instalado o el entorno todavia no se creo, esto no
+# como esta; si no, prueba activar "smn_toe" y, si todavia no existe
+# (maquina que no recreo el entorno tras el rename de e1_smn -> smn_toe,
+# ver environment.yml), cae de vuelta a "e1_smn" si ese existe -- mismo
+# entorno, nombre viejo, funciona igual mientras no se recree.
+# Si conda no esta instalado o ningun entorno de los dos existe, esto no
 # hace nada y 00_setup_env.sh (paso 00) va a reportar con claridad que
 # falta.
 # NOTA: 'conda shell.bash hook' puede correr activate.d/deactivate.d
@@ -62,6 +65,8 @@ if command -v conda >/dev/null 2>&1 && [ "$(basename "${CONDA_PREFIX:-}")" != "s
     eval "$(conda shell.bash hook 2>/dev/null)" || true
     if conda env list 2>/dev/null | grep -qE '(^|[[:space:]])smn_toe([[:space:]]|$)'; then
         conda activate smn_toe 2>/dev/null || true
+    elif conda env list 2>/dev/null | grep -qE '(^|[[:space:]])e1_smn([[:space:]]|$)'; then
+        conda activate e1_smn 2>/dev/null || true
     fi
 fi
 set -eu

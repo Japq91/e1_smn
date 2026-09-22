@@ -100,7 +100,7 @@
 
 \vspace{0.5cm}
 
-{\normalsize Repositorio: \archivo{https://github.com/Japq91/e1_smn} \par}
+{\normalsize Repositorio: \archivo{https://github.com/Japq91/smn_toe} \par}
 
 \vfill
 {\normalsize \today \par}
@@ -127,7 +127,7 @@ Este informe documenta el Entregable~1 del servicio de asistencia en temas de in
 % Se puede mantener la redacción completa solo en Resultados (donde se
 % desglosa el detalle) y, en Resumen/Conclusiones, remitir con una frase corta
 % + referencia cruzada en vez de repetir la oración entera.
-El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{e1_smn}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245} y \texttt{ssp585} -- los exigidos por el TdR para este Entregable (Secci\'on~\ref{sec:alcance}) --, m\'as \texttt{ssp370} como escenario intermedio adicional, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); el resto qued\'o excluido por descarga incompleta o no disponible en ninguna fuente consultada (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
+El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{smn_toe}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245} y \texttt{ssp585} -- los exigidos por el TdR para este Entregable (Secci\'on~\ref{sec:alcance}) --, m\'as \texttt{ssp370} como escenario intermedio adicional, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); el resto qued\'o excluido por descarga incompleta o no disponible en ninguna fuente consultada (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
 
 En paralelo a la construcci\'on del dato, este informe desarrolla el marco te\'orico exigido por los t\'erminos de referencia (TdR): la partici\'on de incertidumbre de \citet{hawkins2012}, su adaptaci\'on por \citet{szabo2016}, el antecedente directo de \citet{bruno2023} sobre CMIP6/Sudam\'erica, el precedente institucional de \citet{alvarez2024}, la caracterizaci\'on del Ni\~no costero de \citet{takahashi2019}, y un estado del arte de otras metodolog\'ias del TOE del cual se deriva la justificaci\'on expl\'icita de los dos m\'etodos de TOE que se aplicar\'an en el Entregable~4: M1 (\citealp{szabo2016}) y \emph{Time of Detection} (ToD, \citealp{gopika2024}).
 
@@ -418,7 +418,7 @@ Definidos en \texttt{config/periods.yaml}: periodo de referencia/validaci\'on 19
 \label{sec:arquitectura}
 % ============================================================
 
-Este m\'odulo vive en el repositorio \archivo{e1_smn}, con un \'unico punto de entrada (\texttt{run.sh}) y salidas versionadas en \texttt{data/processed/}, consumibles de forma independiente por el Entregable~2 sin necesidad de conocer el detalle interno de este m\'odulo.
+Este m\'odulo vive en el repositorio \archivo{smn_toe}, con un \'unico punto de entrada (\texttt{run.sh}) y salidas versionadas en \texttt{data/processed/}, consumibles de forma independiente por el Entregable~2 sin necesidad de conocer el detalle interno de este m\'odulo.
 
 Principios del \emph{pipeline}: idempotencia (cada paso omite su procesamiento si el archivo de salida ya existe, permitiendo interrumpir y reanudar sin recomputar); verificaci\'on por valor y no por metadato (las Secciones~\ref{sec:paso04} y~\ref{sec:paso05} documentan dos casos concretos en que confiar en el atributo declarado de una variable, en vez de en su valor num\'erico real, habr\'ia dejado pasar datos err\'oneos); y cascada de fuentes con degradaci\'on expl\'icita (Secci\'on~\ref{sec:paso02}): un \texttt{git clone} nuevo m\'as \texttt{./run.sh}, sin intervenci\'on manual, obtiene todo lo que sea posible obtener automatizadamente, y deja registrado en el reporte de estado (Secci\'on~\ref{sec:reporte}) qu\'e qued\'o pendiente y por qu\'e.
 
@@ -488,7 +488,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \label{sec:scripts}
 % ============================================================
 
-Esta secci\'on describe la l\'ogica de cada script por su nombre y ruta, sin reproducir el c\'odigo completo (disponible en el repositorio \archivo{e1_smn}).
+Esta secci\'on describe la l\'ogica de cada script por su nombre y ruta, sin reproducir el c\'odigo completo (disponible en el repositorio \archivo{smn_toe}).
 La Figura~\ref{fig:flujograma} esquematiza el flujo de datos entre los pasos descritos en la Secci\'on~\ref{sec:scripts}, equivalente al diagrama de flujo que documenta el mismo \emph{pipeline} en el \texttt{README.md} del repositorio.
 
 
@@ -656,7 +656,7 @@ El Entregable~1, en cumplimiento de la actividad~(a) del TdR (Secci\'on~\ref{sec
 
 \item La ampliaci\'on del universo de modelos candidatos m\'as all\'a de la selecci\'on de \citet{bruno2023} (Secci\'on~\ref{sec:desviacion}) deja al Entregable~2 con m\'as informaci\'on, no menos: la decisi\'on de cu\'ales de los 40 modelos completos son adem\'as representativos del ENOS observado en Ni\~no~3.4/1+2 queda pendiente de esa evaluaci\'on de desempe\~no, en lugar de haberse resuelto de antemano por una lista pensada para otras variables.
 
-\item Todo el trabajo qued\'o versionado y es reproducible sin intervenci\'on manual: un \texttt{git clone} del repositorio \archivo{e1_smn} m\'as \texttt{./run.sh} reconstruye el mismo estado documentado en este informe (Secci\'on~\ref{sec:runsh}), y cada corrida deja adem\'as un reporte de estado verificable (Secci\'on~\ref{sec:reporte}).
+\item Todo el trabajo qued\'o versionado y es reproducible sin intervenci\'on manual: un \texttt{git clone} del repositorio \archivo{smn_toe} m\'as \texttt{./run.sh} reconstruye el mismo estado documentado en este informe (Secci\'on~\ref{sec:runsh}), y cada corrida deja adem\'as un reporte de estado verificable (Secci\'on~\ref{sec:reporte}).
 \end{enumerate}
 
 % ============================================================
@@ -678,8 +678,8 @@ Para la continuidad del proyecto hacia los Entregables~2--4, se recomienda:
 
 \newpage
 \section{Anexos}
-\begin{lstlisting}[style=bashstyle,caption={Estructura interna del repositorio \texttt{e1\_smn}.},label={lst:tree}]
-e1_smn/
+\begin{lstlisting}[style=bashstyle,caption={Estructura interna del repositorio \texttt{smn\_toe}.},label={lst:tree}]
+smn_toe/
 |-- run.sh                                # orquestador (unico punto de entrada)
 |-- environment.yml                       # entorno conda (python, cdo, netcdf4, ...)
 |-- config/
