@@ -31,3 +31,14 @@ informe/entregable_update.tar.gz
 # regeneran solas por maquina, no se versionan (se incluyen en el
 # paquete de bundle_deliverable_update.py para transferirlas).
 figures/
+# Artefactos de compilar informe/*.tex con pdflatex/bibtex: se
+# regeneran en cualquier maquina que compile el informe, no se versionan.
+informe/*.aux
+informe/*.log
+informe/*.toc
+informe/*.lof
+informe/*.lot
+informe/*.out
+informe/*.bbl
+informe/*.blg
+informe/*.pdf
