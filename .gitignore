@@ -33,12 +33,15 @@ informe/entregable_update.tar.gz
 figures/
 # Artefactos de compilar informe/*.tex con pdflatex/bibtex: se
 # regeneran en cualquier maquina que compile el informe, no se versionan.
-informe/*.aux
-informe/*.log
-informe/*.toc
-informe/*.lof
-informe/*.lot
-informe/*.out
-informe/*.bbl
-informe/*.blg
-informe/*.pdf
+# Nombrados por basename, no por *.pdf/*.aux genericos -- informe/
+# tambien contiene PDFs de referencia (ej. el TdR) que SI hay que
+# versionar u observar, no descartar solo por la extension.
+informe/informe_e1_smnv3.aux
+informe/informe_e1_smnv3.log
+informe/informe_e1_smnv3.toc
+informe/informe_e1_smnv3.lof
+informe/informe_e1_smnv3.lot
+informe/informe_e1_smnv3.out
+informe/informe_e1_smnv3.bbl
+informe/informe_e1_smnv3.blg
+informe/informe_e1_smnv3.pdf
