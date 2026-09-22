@@ -127,7 +127,7 @@ Este informe documenta el Entregable~1 del servicio de asistencia en temas de in
 % Se puede mantener la redacción completa solo en Resultados (donde se
 % desglosa el detalle) y, en Resumen/Conclusiones, remitir con una frase corta
 % + referencia cruzada en vez de repetir la oración entera.
-El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{e1_smn}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585}, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); un modelo adicional, MIROC-ES2H, qued\'o con descarga parcial (\'unicamente \texttt{historical}, agotado tras el tope de 3 reintentos automatizados en ESGF y Copernicus CDS) y se excluye de este conteo aunque figure en el inventario t\'ecnico (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
+El resultado operativo de este entregable es un \emph{pipeline} reproducible (repositorio \archivo{e1_smn}, orquestado por un \'unico punto de entrada \texttt{run.sh}) que descarga, homogeneiza, enmascara y valida la variable \texttt{tos} (temperatura superficial del mar, tabla CMOR \texttt{Omon}) de todo modelo CMIP6 disponible con los experimentos \texttt{historical}, \texttt{ssp245} y \texttt{ssp585} -- los exigidos por el TdR para este Entregable (Secci\'on~\ref{sec:alcance}) --, m\'as \texttt{ssp370} como escenario intermedio adicional, junto con la referencia observacional ERSSTv5 de NOAA. Del universo de 102 modelos candidatos (46 de un barrido inicial del vocabulario CMIP6 completo m\'as 56 citados en la literatura del proyecto), 40 modelos quedaron completos en los cuatro experimentos y aprobaron el control de calidad final (160 combinaciones modelo-experimento); un modelo adicional, MIROC-ES2H, qued\'o con descarga parcial (\'unicamente \texttt{historical}, agotado tras el tope de 3 reintentos automatizados en ESGF y Copernicus CDS) y se excluye de este conteo aunque figure en el inventario t\'ecnico (Secci\'on~\ref{sec:resultados}). Entre los modelos completos se resolvi\'o, entre otros, un bug de contaminaci\'on num\'erica de FGOALS-f3-L mediante un filtro de seguridad por valor f\'isico (Secci\'on~\ref{sec:paso05}), y cuatro bugs de robustez del propio \emph{pipeline}: paginaci\'on de b\'usqueda de archivos en ESGF que pod\'ia cortarse a mitad ante un corte de red transitorio (Secci\'on~\ref{sec:paso01}), chunks crudos de m\'as de una variante de grilla mezclados en un mismo modelo (Secci\'on~\ref{sec:paso04}), el criterio de selecci\'on del inventario final (Paso~07), que marcaba un modelo como completo si aprobaba el control de calidad de \emph{lo que hab\'ia llegado a intentarse} en vez de exigir expl\'icitamente los cuatro experimentos requeridos -- un modelo con descarga parcial pod\'ia quedar \texttt{selected=True} si esos pocos experimentos igual pasaban QC --, y un cach\'e obsoleto del control de calidad (Paso~06, Secci\'on~\ref{sec:paso06}) que pod\'ia seguir reportando un archivo como \texttt{FAIL} despu\'es de que una redescarga ya lo hubiera corregido.
 
 En paralelo a la construcci\'on del dato, este informe desarrolla el marco te\'orico exigido por los t\'erminos de referencia (TdR): la partici\'on de incertidumbre de \citet{hawkins2012}, su adaptaci\'on por \citet{szabo2016}, el antecedente directo de \citet{bruno2023} sobre CMIP6/Sudam\'erica, el precedente institucional de \citet{alvarez2024}, la caracterizaci\'on del Ni\~no costero de \citet{takahashi2019}, y un estado del arte de otras metodolog\'ias del TOE del cual se deriva la justificaci\'on expl\'icita de los dos m\'etodos de TOE que se aplicar\'an en el Entregable~4: M1 (\citealp{szabo2016}) y \emph{Time of Detection} (ToD, \citealp{gopika2024}).
 
@@ -411,7 +411,7 @@ La Figura~\ref{fig:region_nino} ubica ambas cajas dentro del Pac\'ifico tropical
 \label{fig:region_nino}
 \end{figure}
 
-Definidos en \texttt{config/periods.yaml}: periodo de referencia/validaci\'on 1981--2014; proyecciones a 2036--2065 (P1) y 2071--2100 (P2); escenarios \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585} (\texttt{ssp370} se agreg\'o durante la construcci\'on de este entregable para robustecer el an\'alisis de escenario intermedio, sin que el TdR lo exija expl\'icitamente). El rango temporal completo de descarga es 1850--2100 (\texttt{historical}: 1850--2014; los tres escenarios SSP: 2015--2100). El criterio de selecci\'on de modelos vigente es \'unicamente la disponibilidad de \texttt{tos}/\texttt{Omon} en los cuatro experimentos \texttt{historical}, \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585}.
+Definidos en \texttt{config/periods.yaml}: periodo de referencia/validaci\'on 1981--2014; proyecciones a 2036--2065 (P1) y 2071--2100 (P2); escenarios \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585} (\texttt{ssp370} se incorpora como escenario intermedio adicional, para robustecer el an\'alisis de sensibilidad entre SSP2-4.5 y SSP5-8.5). El rango temporal completo de descarga es 1850--2100 (\texttt{historical}: 1850--2014; los tres escenarios SSP: 2015--2100). El criterio de selecci\'on de modelos vigente es \'unicamente la disponibilidad de \texttt{tos}/\texttt{Omon} en los cuatro experimentos \texttt{historical}, \texttt{ssp245}, \texttt{ssp370} y \texttt{ssp585}.
 
 % ============================================================
 \section{\emph{Pipeline}}
@@ -432,35 +432,33 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
-  box/.style={draw, rounded corners, fill=cyan!18, align=center, text width=3.4cm, minimum height=1.1cm, font=\small},
-  boxaux/.style={draw, rounded corners, dashed, fill=green!20!cyan!15, align=center, text width=2.4cm, minimum height=1.1cm, font=\small},
+  scale=0.95,                    % <-- reduce todo al 75%
+  transform shape,               % <-- escala también nodos y texto
+  box/.style={draw, rounded corners, fill=green!80!white!10, align=center, text width=4.2cm, minimum height=.8cm, font=\small},
+  boxaux/.style={draw, rounded corners, dashed, fill=green!20!cyan!15, align=center, text width=2.6cm, minimum height=1.1cm, font=\small},
   edg/.style={-{Latex[length=3mm]}, thick},
   edgd/.style={-{Latex[length=3mm]}, dashed, gray!80!black},
   every node/.style={font=\small}
 ]
 
-\node[box] (S00) at (0,0) {00\\Entorno};
-\node[box] (S00b) at (0,-2.0) {00b\\Modelos candidatos};
-\node[boxaux] (S00c) at (4.0,-2.0) {00c\\Verif. literatura};
-\node[box] (S01) at (0,-4.1) {01\\Cat\'alogo ESGF};
+\node[box] (S00) at (0,0) {00: Entorno};
+\node[box] (S00b) at (0,-1.5) {00b: Modelos candidatos};
+\node[boxaux] (S00c) at (5.5,-1.5) {00c\\Verif. literatura};
+\node[box] (S01) at (0,-3) {01: Cat\'alogo ESGF};
 
-\node[box] (S02) at (-2.6,-5.9) {02\\Descarga CMIP6};
-\node[box] (S03) at (3.9,-5.9) {03\\Descarga ERSSTv5};
-\node[box] (S02b) at (-2.6,-7.8) {02b\\Nodos ESGF alt.};
-\node[box] (S02c) at (-2.6,-9.7) {02c\\Copernicus CDS};
+\node[box] (S02) at (-2.6,-4.5) {02: Descarga CMIP6};
+\node[box] (S03) at (3.9,-4.5) {03: Descarga ERSSTv5};
+\node[box] (S02b) at (-2.6,-6) {02b: Nodos ESGF alt.};
+\node[box] (S02c) at (-2.6,-7.5) {02c: Copernicus CDS};
 
-\node[box] (S04) at (0,-11.7) {04\\Grilla com\'un};
-\node[boxaux] (NB) at (4.6,-11.7) {Notebook\\gr\'aficos\\explorat.};
-
-% A partir de 05, las cajas restantes se acomodan de a tres por fila
-% (serpenteando izquierda-derecha-izquierda) en vez de una sola columna
-% vertical, para no alargar innecesariamente la figura.
-\node[box] (S05) at (-4.6,-13.6) {05\\M\'ascara oc\'eano-tierra};
-\node[box] (S06) at (0,-13.6) {06\\Control de calidad};
-\node[box] (S07) at (4.6,-13.6) {07\\Inventario final};
-\node[box] (S08) at (4.6,-15.5) {Registro de\\modelos};
-\node[box] (S09) at (0,-15.5) {Gr\'aficos\\autom\'aticos};
-\node[box] (S10) at (-4.6,-15.5) {Reporte +\\paquete final};
+\node[box] (S04) at (0.5,-9) {04: Grilla com\'un};
+\node[box] (S05) at (0.5,-10.5) {05: M\'ascara oc\'eano-tierra};
+\node[boxaux] (NB) at (5.5,-10.5) {Notebook\\gr\'aficos\\explorat.};
+\node[box] (S06) at (0.5,-12) {06: Control de calidad};
+\node[box] (S07) at (0.5,-13.5) {07: Inventario final};
+\node[box] (S08) at (0.5,-15) {Registro de modelos};
+\node[box] (S09) at (0.5,-16.5) {Gr\'aficos autom\'aticos};
+\node[box] (S10) at (0.5,-18) {Reporte + paquete final};
 
 \draw[edg] (S00) -- (S00b);
 \draw[edgd] (S00b) -- (S00c);
@@ -471,9 +469,6 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edgd] (S02b) to[bend right=60] (S01);
 \draw[edgd] (S02c) to[bend right=80] (S01);
 \draw[edg] (S02.west) -- ++(-1.5,0) |- (S04.west);
-% \draw[edg] (S02.west) -- ++(1.5,0) |- (S04.east);
-% \draw[edg] (S02) to[out=210,in=180] (S04);
-% \draw[edg] (S02) -- (S04);
 \draw[edg] (S03) -- (S04);
 \draw[edg] (S04) -- (S05);
 \draw[edg] (S05) -- (S06);
@@ -481,7 +476,7 @@ Internamente, \texttt{run.sh} no contiene l\'ogica de procesamiento propia: para
 \draw[edg] (S07) -- (S08);
 \draw[edg] (S08) -- (S09);
 \draw[edg] (S09) -- (S10);
-\draw[edgd] (S05) to[bend left=15] (NB);
+\draw[edgd] (S05) -- (NB);
 
 \end{tikzpicture}
 \caption[Flujograma del \emph{pipeline} del Entregable~1.]{Flujograma del \emph{pipeline} del Entregable~1. Las flechas s\'olidas son transiciones dentro de la secuencia autom\'atica de \texttt{run.sh} (Secci\'on~\ref{sec:runsh}); las flechas punteadas corresponden a pasos manuales/diagn\'osticos (\texttt{00c}, notebook de gr\'aficos exploratorios) o a la actualizaci\'on que los pasos~02b/02c hacen sobre el cat\'alogo del paso~01 cuando resuelven un modelo por una fuente alternativa. La cascada 02~$\to$~02b~$\to$~02c es autom\'atica dentro del propio paso~02 (\archivo{02_download_all_sources.sh}, Secci\'on~\ref{sec:paso02}): cada fuente se intenta \'unicamente para lo que la anterior no haya resuelto. Tras el paso~07, \texttt{run.sh} ejecuta adem\'as, siempre y sin importar \archivo{STEP_FROM}/\archivo{STEP_TO}: el registro de modelos (\archivo{build_model_registry.py}), los cinco gr\'aficos autom\'aticos (\archivo{scripts/plot_*.py}, Secci\'on~\ref{sec:scripts}) y, por \'ultimo, el reporte de estado (Secci\'on~\ref{sec:reporte}) junto con el paquete \archivo{.tar.gz} de entrega (\archivo{bundle_deliverable_update.py}). El notebook de gr\'aficos exploratorios sigue siendo manual e independiente de esta cadena autom\'atica.}
@@ -562,7 +557,7 @@ La Figura~\ref{fig:qc} distingue seis estados posibles por celda (modelo $\times
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{figuras/sst_QD_vf.png}
+\includegraphics[width=1.1\textwidth]{figuras/sst_QD_vf.png}
 \caption[Disponibilidad y control de calidad de \texttt{tos}/\texttt{Omon} para los 102 modelos candidatos.]{Matriz de estado, por modelo (c\'odigo \texttt{M001}--\texttt{M102} y nombre, Secci\'on~\ref{sec:tabla_modelos}) y por columna (\texttt{tos}, \texttt{historical}, \texttt{ssp245}, \texttt{ssp370}, \texttt{ssp585}), para el universo completo de 102 modelos candidatos -- leyenda de s\'imbolos en el p\'arrafo anterior. De los 102 candidatos, 40 completan las cinco columnas; MIROC-ES2H aparece con FAIL/UNAVAILABLE en \texttt{ssp245}/\texttt{ssp370}/\texttt{ssp585} pero el \emph{pipeline} lo sigue rastreando; el resto queda excluido por al menos una columna sin PASS.}
 \label{fig:qc}
 \end{figure}
@@ -586,7 +581,7 @@ Como verificaci\'on exploratoria de que el dato ya qued\'o correctamente homogen
 \begin{subfigure}[t]{0.75\textwidth}
 \includegraphics[width=\textwidth]{figuras/M057_sst_2d_GISS-E2-1-G.png}
 \end{subfigure}
-\caption[Comparaci\'on espacial de SST: ERSSTv5 vs.\ los tres modelos de grilla m\'as gruesa.]{Comparaci\'on espacial de la temperatura superficial del mar media del periodo hist\'orico com\'un (mes de muestra 1950-12), ya en la grilla, calendario, unidades y m\'ascara oc\'eano-tierra homogeneizados por el \emph{pipeline} (Pasos~04--05). De arriba hacia abajo: observado (ERSSTv5) y los tres modelos de grilla nativa m\'as gruesa entre los seleccionados -- cada panel indica su propia fuente/identificador \texttt{M001}--\texttt{M102} (Cuadro~\ref{tab:modelos}) directamente en el t\'itulo del gr\'afico. Las cuatro fuentes comparten exactamente la misma grilla y la misma huella de puntos v\'alidos/faltantes, condici\'on necesaria para la comparaci\'on punto a punto formal del Entregable~2; esta figura es una verificaci\'on visual de que dicha condici\'on se cumple incluso en el caso m\'as exigente (grilla nativa m\'as gruesa), no un resultado de desempe\~no.}
+\caption[Comparaci\'on espacial de SST: ERSSTv5 vs.\ los tres modelos de grilla m\'as gruesa.]{Comparaci\'on espacial de la temperatura superficial del mar media del periodo hist\'orico com\'un (mes de muestra 1950-12), ya en la grilla, calendario, unidades y m\'ascara oc\'eano-tierra homogeneizados por el \emph{pipeline} (Pasos~04--05). De arriba hacia abajo: observado (ERSSTv5) y los tres modelos de grilla nativa m\'as gruesa entre los seleccionados -- cada panel indica su propia fuente/identificador \texttt{M001}--\texttt{M102} (Cuadro~\ref{tab:modelos}) directamente en el t\'itulo del gr\'afico; esta figura es una verificaci\'on visual de que dicha condici\'on se cumple incluso en el caso m\'as exigente (grilla nativa m\'as gruesa), no un resultado de desempe\~no.}
 \label{fig:mapas2d}
 \end{figure}
 
@@ -651,7 +646,7 @@ El Entregable~1 queda completo y verificable sin depender de ning\'un paso poste
 \label{sec:conclusiones}
 % ============================================================
 
-El Entregable~1 deja construido, verificado y versionado el insumo completo del que depender\'an los Entregables~2 a~4, de su ejecuci\'on se desprenden las siguientes conclusiones:
+El Entregable~1, en cumplimiento de la actividad~(a) del TdR (Secci\'on~\ref{sec:alcance}), deja construido, verificado y versionado el insumo completo del que depender\'an los Entregables~2 a~4, de su ejecuci\'on se desprenden las siguientes conclusiones:
 
 \begin{enumerate}[label=(\roman*)]
 
