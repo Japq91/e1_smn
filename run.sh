@@ -48,7 +48,7 @@ mkdir -p logs
 # Activa el entorno conda del pipeline (creado una vez con
 # "conda env create -f environment.yml") sin que quien ejecuta tenga
 # que saber que es un PATH ni acordarse de "conda activate": alcanza
-# con correr ./run.sh. Si ya hay un entorno "e1_smn" activo se deja
+# con correr ./run.sh. Si ya hay un entorno "smn_toe" activo se deja
 # como esta; si no, y existe uno con ese nombre, se activa aca mismo.
 # Si conda no esta instalado o el entorno todavia no se creo, esto no
 # hace nada y 00_setup_env.sh (paso 00) va a reportar con claridad que
@@ -58,10 +58,10 @@ mkdir -p logs
 # una variable sin definir) -- no estan pensados para 'set -u', asi que
 # se relajan -eu justo para este bloque y se restauran despues.
 set +eu
-if command -v conda >/dev/null 2>&1 && [ "$(basename "${CONDA_PREFIX:-}")" != "e1_smn" ]; then
+if command -v conda >/dev/null 2>&1 && [ "$(basename "${CONDA_PREFIX:-}")" != "smn_toe" ]; then
     eval "$(conda shell.bash hook 2>/dev/null)" || true
-    if conda env list 2>/dev/null | grep -qE '(^|[[:space:]])e1_smn([[:space:]]|$)'; then
-        conda activate e1_smn 2>/dev/null || true
+    if conda env list 2>/dev/null | grep -qE '(^|[[:space:]])smn_toe([[:space:]]|$)'; then
+        conda activate smn_toe 2>/dev/null || true
     fi
 fi
 set -eu

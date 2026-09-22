@@ -4,15 +4,15 @@
 #   conda env create -f environment.yml
 #   bash run.sh
 #
-# No hace falta "conda activate e1_smn" a mano: run.sh activa el
+# No hace falta "conda activate smn_toe" a mano: run.sh activa el
 # entorno el mismo si lo encuentra creado (ver comentario al inicio de
 # run.sh). Si corres algun script suelto (sin pasar por run.sh), ahi si
-# hace falta activarlo vos: "conda activate e1_smn".
+# hace falta activarlo vos: "conda activate smn_toe".
 #
 # Incluye todo lo que scripts/00_setup_env.sh verifica (cdo, wget,
 # python3, requests) mas el resto de paquetes que usan los demas
 # pasos del pipeline y el notebook de graficos exploratorios.
-name: e1_smn
+name: smn_toe
 channels:
   - conda-forge
 dependencies:
