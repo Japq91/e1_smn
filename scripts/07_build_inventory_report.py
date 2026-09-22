@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pipeline_config
+
 
 def griddes_resolution(path: str) -> str:
     out = subprocess.run(["cdo", "-s", "griddes", path], capture_output=True, text=True).stdout
@@ -25,13 +27,27 @@ def main(qc_csv: str, data_dir: str, out_csv: str) -> None:
     if not qc_rows:
         sys.exit(f"07_build_inventory_report.py: {qc_csv} esta vacio")
 
+    # Los EXPERIMENTOS REQUERIDOS (config/periods.yaml, via
+    # pipeline_config.py -- misma fuente unica de verdad que usa el
+    # resto del pipeline), no "lo que este modelo llego a intentar".
+    # BUG real encontrado en produccion: antes, "selected" comparaba
+    # experiments_pass == experiments_total, donde experiments_total
+    # solo contaba las filas de qc_report.csv que EXISTIAN para ese
+    # modelo -- un modelo con descarga parcial (ej. MIROC-ES2H, solo
+    # 'historical') quedaba "seleccionado" si ese unico experimento
+    # pasaba QC (1 == 1), aunque le faltaran los 3 SSP. Verificado con
+    # un qc_report.csv real de HPC: CIESM (3/3), MIROC-ES2H (1/1) y
+    # otros quedaban selected=True sin tener los 4 experimentos.
+    required_experiments = set(pipeline_config.experiments())
+
     by_model: dict[str, dict] = {}
     for row in qc_rows:
         m = row.get("model", "?")
-        agg = by_model.setdefault(m, {"experiments_pass": 0, "experiments_total": 0})
+        agg = by_model.setdefault(m, {"experiments_pass": 0, "experiments_total": 0, "pass_set": set()})
         agg["experiments_total"] += 1
         if row.get("status") == "PASS":
             agg["experiments_pass"] += 1
+            agg["pass_set"].add(row.get("experiment"))
 
     final_rows = []
     for model, agg in sorted(by_model.items()):
@@ -42,7 +58,7 @@ def main(qc_csv: str, data_dir: str, out_csv: str) -> None:
             "resolution": resolution,
             "experiments_pass": agg["experiments_pass"],
             "experiments_total": agg["experiments_total"],
-            "selected": agg["experiments_pass"] == agg["experiments_total"],
+            "selected": required_experiments <= agg["pass_set"],
         })
 
     Path(out_csv).parent.mkdir(parents=True, exist_ok=True)
