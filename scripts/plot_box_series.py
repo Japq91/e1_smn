@@ -21,7 +21,9 @@ import plot_common as pc  # noqa: E402 (fuerza el backend Agg antes de pyplot)
 
 import matplotlib.pyplot as plt  # noqa: E402
 
-
+plt.rcParams.update({"font.size": 10})
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
 def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool = False) -> None:
     """Serie de caja del modelo con historical + cada escenario SSP
     configurado (config/periods.yaml) superpuestos en el mismo eje."""
@@ -31,18 +33,13 @@ def plot_box_series(model: str, box: dict, box_name: str, ax=None, force: bool =
         print(f"  {model} {box_name}: {ofile.name} ya existe, se omite", file=sys.stderr)
         return
     if standalone:
-        fig, ax = plt.subplots(figsize=(9, 3))
+        fig, ax = plt.subplots(figsize=(12, 3))
 
     for exp, estilo in pc.scenario_styles().items():
         if not os.path.exists(pc.masked_path(model, exp)):
             continue
         years, values = pc.box_mean(model, exp, **box)
-        # Linea fina (antes 1.5, el default de matplotlib, se veia muy
-        # gruesa) + marcador de punto en cada dato real -- asi un hueco
-        # real (anios sin dato, ej. un chunk que nunca se descargo)
-        # sigue siendo visible como corte en la linea/ausencia de
-        # puntos, sin perder la referencia visual de la serie completa.
-        ax.plot(years, values, label=exp, linewidth=0.5, marker=".", markersize=2, **estilo)
+        ax.plot(years, values, label=exp, linewidth=0.4, marker=".", markersize=1.8, **estilo)
 
     ax.set_xlabel("anio")
     ax.set_ylabel("SST (degC)")

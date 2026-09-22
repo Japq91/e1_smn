@@ -21,7 +21,9 @@ import netCDF4 as nc  # noqa: E402
 import numpy as np  # noqa: E402
 import xarray as xr  # noqa: E402
 
-
+plt.rcParams.update({"font.size": 10})
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
 def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
              model_number: str | None = None) -> None:
     out_path = pc.FIGURES_DIR / f"sst_2d_{model}.png"
@@ -35,7 +37,7 @@ def plot_map(model: str, exp: str = "historical", ax=None, force: bool = False,
 
     standalone = ax is None
     if standalone:
-        fig, ax = plt.subplots(figsize=(9, 4))
+        fig, ax = plt.subplots(figsize=(12, 4))
     # .sel(...).squeeze() puede dejar dimensiones sueltas de tamano 1
     # (ej. una malla nativa con una dimension extra) -- si no queda
     # 2D (lat, lon), NO usar el dispatch generico d1.plot(...): para

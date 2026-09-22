@@ -22,7 +22,9 @@ import matplotlib.colors as mcolors  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-
+plt.rcParams.update({"font.size": 10})
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
 def plot_box_boxplot(box: dict, box_name: str, force: bool = False) -> None:
     out_path = pc.FIGURES_DIR / f"boxplot_{box_name.replace(' ', '')}.png"
     if out_path.exists() and not force:
@@ -71,7 +73,7 @@ def plot_box_boxplot(box: dict, box_name: str, force: bool = False) -> None:
     medianprops = dict(color="black", linewidth=1.2)
     flierprops = dict(marker="x", color="gray", alpha=0.6, markersize=4)
 
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(12, 3))
     bp = ax.boxplot(data_for_box, tick_labels=model_labels, patch_artist=True,
                      medianprops=medianprops, flierprops=flierprops)
     for patch, color in zip(bp["boxes"], box_colors):
