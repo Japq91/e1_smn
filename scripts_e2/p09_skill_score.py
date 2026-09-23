@@ -5,15 +5,19 @@ buenos/malos vía gap statistic + Jenks natural breaks -- responde a la
 pregunta del TdR ("seleccionar los modelos con mejor capacidad de
 representacion") sin imponer un umbral arbitrario.
 
-1. Skill score de Taylor (2001), con R0=1 (no hay estimacion propia de
-   incertidumbre observacional de ERSSTv5 -- default estandar cuando no
-   se tiene esa informacion):
+1. Skill score de Taylor (2001), forma general con exponente n:
 
-       S = 4*(1+R)^4 / [ (sigma_hat + 1/sigma_hat)^2 * (1+R0)^4 ]
+       S_n = 4*(1+R)^n / [ (sigma_hat + 1/sigma_hat)^2 * (1+R0)^n ]
 
-   con R0=1 se simplifica ((1+R0)^4 = 16):
+   n=1, R0=1 -- EXPONENTE VERIFICADO contra el uso real del skill score
+   en evaluacion de modelos CMIP para ENOS (no supuesto, leido
+   directamente del PDF): Kaur, S., Kumar, P., Min, S.-K., Patra, A., &
+   Wang, X. L. (2021). CMIP5 model evaluation for extreme ocean wave
+   height responses to ENSO. Climate Dynamics, 59, 1323-1337, ecuacion
+   (3) -- doi:10.1007/s00382-021-06039-6. Con n=1, R0=1 se simplifica
+   ((1+R0)^1 = 2):
 
-       S = (1+R)^4 / [ 4*(sigma_hat + 1/sigma_hat)^2 ]
+       S = 4*(1+R) / [ 2*(sigma_hat + 1/sigma_hat)^2 ] = 2*(1+R) / (sigma_hat + 1/sigma_hat)^2
 
    sigma_hat = sigma_norm (ya en taylor_*.csv), R = r (idem). NO usa
    rmse_centrado -- es redundante dada la identidad de Taylor
@@ -41,13 +45,15 @@ representacion") sin imponer un umbral arbitrario.
    observacion. La correlacion de taylor_nino34/nino12 pregunta
    literalmente "¿coincide el año del evento?", pregunta sin respuesta
    posible en una corrida libre (R~0 para CUALQUIER modelo, bueno o
-   malo). Eso colapsa S ahi a un techo bajo (~0.06, ver
-   informe/borradores/marco_teorico_e2.txt Seccion 12) sin importar
-   la calidad real del modelo -- incluir ese bloque en S_final
-   mezclaria ruido de fase con señal real de habilidad. Las columnas
-   S_nino34/S_nino12 se calculan y reportan igual en el CSV, como
-   referencia/diagnostico, pero no entran en S_final ni en la
-   particion buenos/malos.
+   malo) -- con n=1 el techo matematico de S ahi es ~0.5 (no ~0.06, ese
+   numero era con el exponente n=4 sin verificar, ya corregido), pero
+   el argumento de fondo no cambia: ese R~0 sigue siendo ruido de fase,
+   no señal real de habilidad, y en la corrida real con n=1 el rango de
+   S_nino34/S_nino12 (~0.30-0.60) queda igual muy por debajo del rango
+   de S_ONI/RONI/ICEN (~0.35-0.99), que si mide algo que el modelo
+   puede efectivamente acertar o fallar. Las columnas S_nino34/S_nino12
+   se calculan y reportan igual en el CSV, como referencia/diagnostico,
+   pero no entran en S_final ni en la particion buenos/malos.
 
 3. Gap statistic (Tibshirani, Walther & Hastie, 2001): responde
    primero si existe siquiera una separacion real entre "buenos" y
@@ -107,6 +113,12 @@ REF_FIN = 2014
 # observacional de ERSSTv5 (decision del usuario).
 R0 = 1.0
 
+# Exponente n de la formula general S_n de Taylor (2001). n=1 -- valor
+# verificado contra la ecuacion (3) de Kaur et al. (2021), que aplica
+# este mismo skill score a evaluacion de modelos CMIP para ENOS (ver
+# docstring del modulo). No es un supuesto propio.
+N_EXP = 1
+
 # Gap statistic: numero de datasets de referencia uniforme (Monte
 # Carlo) y semilla, para reproducibilidad exacta entre corridas.
 N_REF = 1000
@@ -114,11 +126,11 @@ SEED = 0
 
 
 def skill_score(r, sigma_norm):
-    """S de Taylor (2001), R0 fijo en el modulo (simplificado para
-    R0=1: (1+R0)^4=16 es constante)."""
+    """S_n de Taylor (2001), R0 y N_EXP fijos en el modulo (n=1,
+    verificado contra Kaur et al. 2021, ecuacion 3 -- ver docstring)."""
     sigma_hat = sigma_norm
-    num = (1 + r) ** 4
-    den = 4 * (sigma_hat + 1 / sigma_hat) ** 2
+    num = 4 * (1 + r) ** N_EXP
+    den = (sigma_hat + 1 / sigma_hat) ** 2 * (1 + R0) ** N_EXP
     return num / den
 
 

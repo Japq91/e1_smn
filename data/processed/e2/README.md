@@ -327,22 +327,27 @@ Confirma la hipótesis en la práctica: con los mismos 40 modelos, $r$
 en `taylor_compuesto_ONI_ref1981-2014.csv` va de ~0.94 a ~0.99, contra
 valores cercanos a 0 en `taylor_nino34_ref1981-2014.csv`.
 
-Metodología (Kaur et al., 2021; Kumar et al., 2023): para cada evento
-de `eventos_<INDICE>_ref<ref>.csv`, se extrae una ventana de **±12
-meses (24 meses totales) centrada en `fecha_pico`**; los eventos cuya
-ventana pediría meses fuera del rango disponible (bordes del registro,
-ej. cerca de 1900 por IITM-ESM o cerca de 2014) se **descartan
-enteros**, no se rellenan con NaN -- decisión explícita del usuario,
-para no promediar compuestos con distinto número de observaciones por
-mes relativo. Las ventanas válidas de cada dataset se promedian en una
-sola curva de 25 puntos (mes relativo al pico, $t=-12..0..+12$): el
-"evento típico" de ese dataset. Esa curva compuesta del modelo se
-compara contra la curva compuesta de OBS con las mismas 4 métricas del
-Taylor de caja.
+Metodología: para cada evento de `eventos_<INDICE>_ref<ref>.csv`, se
+extrae una ventana de **±12 meses (24 meses totales) centrada en
+`fecha_pico`**; los eventos cuya ventana pediría meses fuera del rango
+disponible (bordes del registro, ej. cerca de 1900 por IITM-ESM o
+cerca de 2014) se **descartan enteros**, no se rellenan con NaN --
+decisión explícita del usuario, para no promediar compuestos con
+distinto número de observaciones por mes relativo. Las ventanas
+válidas de cada dataset se promedian en una sola curva de 25 puntos
+(mes relativo al pico, $t=-12..0..+12$): el "evento típico" de ese
+dataset. Esa curva compuesta del modelo se compara contra la curva
+compuesta de OBS con las mismas 4 métricas del Taylor de caja.
 
-> Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang, X. L. (2021).
-> CMIP5 model evaluation for extreme ocean wave height responses to
-> ENSO. *Climate Dynamics*. https://doi.org/10.1007/s00382-021-06039-6
+> **Cita pendiente -- sin verificar.** Se citaba aquí Kaur et al.
+> (2021) y "Kumar et al. 2023" como respaldo de esta metodología, pero
+> al leer el PDF completo de ambos papers (búsqueda de
+> "composite/superposed/epoch/window/peak": cero coincidencias en los
+> dos) ninguno describe una ventana compuesta centrada en el pico del
+> evento -- error de la investigación original, corregido en
+> `informe/borradores/marco_teorico_e2.txt` (Sección 12, nota "CITA SIN
+> VERIFICAR"). El usuario está buscando la cita correcta. No agregar
+> ninguna cita acá hasta que la confirme.
 
 Generado por `scripts_e2/p08_taylor_compuesto.py`. Sin corrección
 Linear Scaling (mismo criterio que el resto de E2). Sobre la anomalía
@@ -372,31 +377,39 @@ descendente por `S_final`. Columnas:
   no hay un quiebre objetivamente distinguible, los modelos caen en un
   continuo de `S_final`).
 
-**Fórmula ($S$, Taylor 2001)**, sobre `r` y `sigma_norm` ya presentes
-en cada `taylor_*.csv` (no usa `rmse_centrado`, redundante dada la
-identidad de Taylor; no usa sesgo, diagnóstico aparte por diseño):
+**Fórmula ($S$, Taylor 2001)**, forma general con exponente $n$, sobre
+`r` y `sigma_norm` ya presentes en cada `taylor_*.csv` (no usa
+`rmse_centrado`, redundante dada la identidad de Taylor; no usa sesgo,
+diagnóstico aparte por diseño):
 
-$$S=\frac{4(1+R)^4}{(\hat\sigma+1/\hat\sigma)^2(1+R_0)^4}$$
+$$S_n=\frac{4(1+R)^n}{(\hat\sigma+1/\hat\sigma)^2(1+R_0)^n}$$
 
-con $R_0=1$ (correlación máxima alcanzable -- default estándar sin una
-estimación propia de incertidumbre observacional de ERSSTv5), lo que
-simplifica a $S=(1+R)^4/[4(\hat\sigma+1/\hat\sigma)^2]$. Acotado en
-$[0,1]$, $S=1$ solo si $\hat\sigma=1$ y $R=1$.
+Con $n=1$, $R_0=1$ -- **exponente verificado**, no supuesto: leído
+directamente de la ecuación (3) de Kaur et al. (2021), que aplica este
+mismo skill score a evaluación de modelos CMIP para ENOS (ver cita
+abajo; $R_0=1$ sigue siendo default propio, sin estimación de
+incertidumbre observacional de ERSSTv5). Se simplifica a
+$S=2(1+R)/(\hat\sigma+1/\hat\sigma)^2$. Acotado en $[0,1]$, $S=1$ solo
+si $\hat\sigma=1$ y $R=1$.
+
+> Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang, X. L. (2021).
+> CMIP5 model evaluation for extreme ocean wave height responses to
+> ENSO. *Climate Dynamics*, 59, 1323-1337, ecuación (3).
+> https://doi.org/10.1007/s00382-021-06039-6
 
 **Por qué `S_final` usa SOLO los 3 índices compuestos, no las 5
 tablas**: se probó primero un promedio 50/50 por bloque temático
 (`S_serie`=mean(nino34,nino12) y `S_compuesto`=mean(ONI,RONI,ICEN)),
-pero `S_nino34`/`S_nino12` salieron sistemáticamente bajos (0.04-0.14)
-para los 40 modelos -- no por defecto de los modelos, sino porque
-`historical` es una corrida libre sin inicializar (mismo argumento de
-`taylor_compuesto_*.csv` arriba): con $R\approx0$ por el problema de
-fase, el numerador $(1+R)^4$ colapsa $S$ a un techo bajo (~0.06)
-**para cualquier modelo, bueno o malo**. Meter ese bloque en
-`S_final` con peso 50% mezclaría ruido de fase con señal real de
-habilidad, y en la práctica el bloque compuesto terminaba dominando
-igual (0.35-0.98) pese al peso nominal igual -- decisión del usuario:
-excluir el bloque de serie completa de `S_final`, dejarlo solo como
-referencia.
+pero `S_nino34`/`S_nino12` salieron sistemáticamente más bajos
+(0.30-0.60, techo matemático ~0.5 en $R\approx0$) que
+`S_ONI/RONI/ICEN` (0.35-0.99) para los 40 modelos -- no por defecto de
+los modelos, sino porque `historical` es una corrida libre sin
+inicializar (mismo argumento de `taylor_compuesto_*.csv` arriba): con
+$R\approx0$ por el problema de fase, la serie completa mide
+mayormente ruido de fase, no señal real de habilidad. Meter ese
+bloque en `S_final` con peso 50% lo mezclaría con la señal real del
+bloque compuesto -- decisión del usuario: excluir el bloque de serie
+completa de `S_final`, dejarlo solo como referencia en el CSV.
 
 **Gap statistic** (Tibshirani, Walther & Hastie, 2001), sobre los 40
 valores de `S_final`: compara la dispersión intra-grupo real (K=1 vs
@@ -404,8 +417,8 @@ K=2, K-means) contra la esperada bajo una referencia sin estructura
 (uniforme en el rango de `S_final`, 1000 datasets Monte Carlo,
 semilla fija para reproducibilidad). Se elige K=1 (sin partición)
 salvo que Gap(2) supere a Gap(1) por más que el margen de error de la
-referencia. Con `ref1981-2014`: Gap(1)=0.601±0.153 vs.
-Gap(2)=0.292±0.149 -- K=1 gana, **no hay separación real
+referencia. Con `ref1981-2014` (n=1): Gap(1)=0.568±0.153 vs.
+Gap(2)=0.301±0.149 -- K=1 gana, **no hay separación real
 "buenos/malos"**, resultado real (no forzado), reportado tal cual.
 
 > Tibshirani, R., Walther, G., & Hastie, T. (2001). Estimating the

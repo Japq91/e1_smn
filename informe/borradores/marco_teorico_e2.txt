@@ -387,15 +387,35 @@ compuesto (taylor_compuesto_ONI_ref1981-2014.csv) va de ~0.94 a ~0.99,
 frente a valores cercanos a 0 en el Taylor de serie completa --
 confirma la hipótesis de que el problema era de fase, no de forma.
 
-    Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang, X. L. (2021).
-    CMIP5 model evaluation for extreme ocean wave height responses to
-    ENSO. Climate Dynamics. doi:10.1007/s00382-021-06039-6
+    *** CITA SIN VERIFICAR -- NO USAR EN informe_e2.tex TODAVIA ***
+    Se citaba aca Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang,
+    X. L. (2021), CMIP5 model evaluation for extreme ocean wave height
+    responses to ENSO, Climate Dynamics, doi:10.1007/s00382-021-06039-6,
+    y "Kumar et al. 2023" (sin cita completa), como respaldo de la
+    metodologia de ventana compuesta +-12 meses. Se leyo el PDF
+    COMPLETO de Kaur et al. (2021) (informe/borradores/s00382-021-06039-6.pdf)
+    y el del segundo paper (Divya Sardana, Prashant Kumar, Rajni, 2023,
+    "CMIP6 model evaluation for sea surface height responses to ENSO",
+    Climate Dynamics 62:1829-1847, doi:10.1007/s00382-023-06997-z --
+    casi con certeza el "Kumar et al. 2023" citado antes, dado el
+    coautor Kumar en comun) buscando "composite/superposed/epoch/
+    window/peak": CERO coincidencias en los dos. Ninguno de los dos
+    describe una ventana compuesta centrada en el pico del evento --
+    Kaur et al. (2021) usa un analisis GEV no-estacionario con el
+    indice ENOS como covariable + Taylor skill score sobre MAPAS DE
+    REGRESION (no series compuestas por evento); Sardana et al. (2023)
+    usa RMSE/IVS/M-Score/TSS tambien sobre patrones de regresion
+    espacial. La cita que se le puso a este punto durante la
+    investigacion web de la propuesta original
+    (propuesta_puntos_11_12.md) NO esta respaldada por lo que
+    realmente dicen estos papers -- error de esa investigacion, sin
+    verificar hasta ahora. El USUARIO esta buscando una cita correcta
+    por su cuenta; no reemplazar esta nota hasta que la confirme.
 
-    (Kumar et al. 2023, citado en la investigación previa de
-    informe/borradores/propuesta_puntos_11_12.md como segunda
-    referencia de la misma metodología de composite -- confirmar cita
-    completa antes de portar a informe_e2.tex, ver PENDIENTE DE
-    REVISION abajo.)
+    (Nota aparte: el mismo Kaur et al. 2021 SI resultó útil para otra
+    cosa -- su ecuación (3) es la fuente verificada del exponente n=1
+    del skill score S de la Sección 13, distinto de la metodología de
+    ventana compuesta de esta sección.)
 
 Implementación: scripts_e2/p08_taylor_compuesto.py, insumo directo de
 scripts_e2/p07_eventos.py (no independiente de él), salida
@@ -412,19 +432,28 @@ resuelve en dos pasos: (a) un número único de habilidad por modelo
 existe una separación real "buenos/malos" antes de imponerla, en vez
 de un corte arbitrario.
 
-Skill score de Taylor (2001), sobre `r` y `sigma_norm` de cada tabla
-`taylor_*.csv` (Secciones 6 y 12) -- no usa `rmse_centrado` (redundante
-dada la identidad de Taylor) ni el sesgo (Sección 3, diagnóstico
-aparte por diseño):
+Skill score de Taylor (2001), forma general con exponente n, sobre `r`
+y `sigma_norm` de cada tabla `taylor_*.csv` (Secciones 6 y 12) -- no
+usa `rmse_centrado` (redundante dada la identidad de Taylor) ni el
+sesgo (Sección 3, diagnóstico aparte por diseño):
 
-    S = 4*(1+R)^4 / [ (sigma_hat + 1/sigma_hat)^2 * (1+R0)^4 ]
+    S_n = 4*(1+R)^n / [ (sigma_hat + 1/sigma_hat)^2 * (1+R0)^n ]
 
-con R0=1 (correlación máxima alcanzable; default estándar sin una
-estimación propia de incertidumbre observacional de ERSSTv5), lo que
-simplifica a S = (1+R)^4 / [4*(sigma_hat+1/sigma_hat)^2]. Acotado en
-[0,1], S=1 solo si sigma_hat=1 y R=1 (modelo perfecto); penaliza
-simétricamente sub- y sobre-dispersión (sigma_hat+1/sigma_hat es
-simétrico en escala logarítmica, mínimo en sigma_hat=1).
+n=1, R0=1 -- EXPONENTE VERIFICADO, no supuesto: leído directamente de
+la ecuación (3) de Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang,
+X. L. (2021), CMIP5 model evaluation for extreme ocean wave height
+responses to ENSO, Climate Dynamics, 59, 1323-1337
+(doi:10.1007/s00382-021-06039-6) -- mismo paper ya citado en la
+Sección 12, que aplica este skill score a evaluación de modelos CMIP
+para ENOS. Con n=1, R0=1 se simplifica a S = 2*(1+R)/(sigma_hat+1/sigma_hat)^2.
+Acotado en [0,1], S=1 solo si sigma_hat=1 y R=1 (modelo perfecto);
+penaliza simétricamente sub- y sobre-dispersión (sigma_hat+1/sigma_hat
+es simétrico en escala logarítmica, mínimo en sigma_hat=1).
+
+(Nota de corrección: una versión anterior de este documento usaba
+n=4 sin verificar contra ningún paper -- supuesto propio, no
+justificado. Se corrigió a n=1 tras leer el PDF completo de Kaur et
+al. 2021 y encontrar la ecuación (3) real.)
 
     Taylor, K. E. (2001). Summarizing multiple aspects of model
     performance in a single diagram. Journal of Geophysical Research:
@@ -435,15 +464,17 @@ Agregación: S_final = mean(S_ONI, S_RONI, S_ICEN) -- SOLO los 3
 Niño3.4/Niño1+2) queda deliberadamente FUERA. Se probó primero un
 promedio 50/50 por bloque temático (serie completa + compuesto, para
 darle igual peso a "estado medio/variabilidad" y "eventos extremos"
-como pide el TdR), pero el bloque de serie completa resultó no
+como pide el TdR), pero el bloque de serie completa resultó menos
 informativo: por el mismo problema de fase de la Sección 12 (corrida
 libre, sin inicializar, R~0 para CUALQUIER modelo sin importar su
-calidad real), S sobre la serie completa queda topado en ~0.06 para
-los 40 modelos -- incluirlo mezclaría ruido de fase con señal real de
-habilidad, y en la práctica el bloque compuesto terminaba dominando
-igual pese al peso nominal 50/50. Decisión del usuario: excluir la
-serie completa de S_final, reportarla solo como referencia/diagnóstico
-en el CSV de salida.
+calidad real), S sobre la serie completa queda con techo matemático
+~0.5 en R~0 (con n=1; el valor real obtenido es 0.30-0.60 para los 40
+modelos) -- notablemente más bajo y menos discriminante que
+S_ONI/RONI/ICEN (0.35-0.99), que sí mide algo que el modelo puede
+efectivamente acertar o fallar. Incluirlo mezclaría ruido de fase con
+señal real de habilidad. Decisión del usuario: excluir la serie
+completa de S_final, reportarla solo como referencia/diagnóstico en el
+CSV de salida.
 
 Gap statistic (Tibshirani, Walther & Hastie, 2001) sobre los 40
 valores de S_final: compara la dispersión intra-grupo real (K=1 sin
@@ -452,10 +483,10 @@ estructura (uniforme en el rango de S_final, generada por Monte
 Carlo). Se elige K=1 salvo que Gap(2) supere a Gap(1) por más que el
 margen de error de la referencia (regla del paper: menor k tal que
 Gap(k) >= Gap(k+1) - s_{k+1}). Resultado obtenido con
-REF_INICIO=1981/REF_FIN=2014: Gap(1)=0.601+-0.153 vs.
-Gap(2)=0.292+-0.149 -- K=1 gana, no hay separación "buenos/malos"
+REF_INICIO=1981/REF_FIN=2014 (n=1): Gap(1)=0.568+-0.153 vs.
+Gap(2)=0.301+-0.149 -- K=1 gana, no hay separación "buenos/malos"
 estadísticamente confirmada; los 40 modelos caen en un continuo de
-S_final (0.37-0.95), reportado tal cual, sin forzar una partición que
+S_final (0.46-0.98), reportado tal cual, sin forzar una partición que
 los datos no sustentan.
 
     Tibshirani, R., Walther, G., & Hastie, T. (2001). Estimating the
@@ -494,16 +525,24 @@ PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
   ya tomadas de la clasificación de eventos extremos (Sección 11) y el
   diagrama de Taylor compuesto (Sección 12), ambas ya implementadas
   (scripts_e2/p07_eventos.py, scripts_e2/p08_taylor_compuesto.py).
-- Confirmar la cita completa de Kumar et al. (2023) (Sección 12,
-  segunda referencia de la metodología de composite) antes de portar a
-  informe_e2.tex -- verificada en propuesta_puntos_11_12.md pero sin
-  el detalle completo trasladado aquí todavía.
+- ***PENDIENTE CRITICO***: la Sección 12 (metodología de ventana
+  compuesta +-12 meses) se quedó SIN cita de respaldo -- se leyó el
+  PDF completo de Kaur et al. (2021) y de Sardana et al. (2023,
+  antes mal citado como "Kumar et al. 2023") y ninguno describe esa
+  metodología (ver nota "CITA SIN VERIFICAR" dentro de la Sección 12).
+  El usuario está buscando la cita correcta por su cuenta. NO portar
+  la Sección 12 a informe_e2.tex hasta tener una cita verificada, o
+  presentarla explícitamente como metodología propia sin anclar a un
+  paper específico.
 - Referencias nuevas a agregar a informe/references.bib recién al
   portar esto a .tex -- ninguna existe todavía ahí: Eyring et al.
   (2019), Gleckler et al. (2008), Taylor (2001), Trenberth (1997),
   Wilks (2011), van Oldenborgh et al. (2021), Takahashi & Reupo (2015),
-  Shin et al. (2022), Kaur et al. (2021), Kumar et al. (2023),
-  Tibshirani, Walther & Hastie (2001), Fisher (1958).
+  Shin et al. (2022), Tibshirani, Walther & Hastie (2001), Fisher
+  (1958). Kaur et al. (2021) SÍ entra (respalda el exponente n=1 del
+  skill score S, Sección 13) pero NO como cita de la Sección 12. La
+  cita de la Sección 12 queda pendiente de lo que encuentre el
+  usuario.
 - Revisar notación: aquí se usó pseudo-LaTeX en texto plano
   (sigma, barra, etc.) por legibilidad -- al portar a .tex reemplazar
   por \sigma, \bar{M}, etc. reales.
