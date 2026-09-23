@@ -1,8 +1,22 @@
 # scripts_e2/
 
-Código del Entregable 2 (climatología, sesgos, diagrama de Taylor,
-Índices C/E -- ver `informe/informe_e1_smnv3.tex`, sección "Entregable
-2: próximos pasos").
+Código del Entregable 2: climatología, sesgo, ONI/RONI (Niño 3.4) e
+ICEN (Niño 1+2), diagrama de Taylor -- ver
+`informe/borradores/marco_teorico_e2.txt` para las ecuaciones/citas y
+`informe/informe_e1_smnv3.tex`, sección "Próximos pasos", `tab:roadmap`,
+para lo que exige el TdR. No se usan Índices C/E (Takahashi et al.,
+2011): decisión del usuario, reemplazados por ONI/RONI/ICEN.
+
+**Sin corrección Linear Scaling (LS)**: se probó y se descartó -- LS es
+una resta constante por mes calendario, y cualquier anomalía (que es
+todo lo que se calcula acá: ONI, RONI, ICEN, variabilidad, correlación,
+Taylor) la cancela algebraicamente sola. Los índices se calculan
+directamente como anomalía respecto a la climatología **propia** de
+cada dataset (ERSSTv5 con la suya, cada modelo con la suya) -- mismo
+criterio con el que se calcula ONI en la práctica real, sin mezclar
+climatologías entre fuentes. El sesgo (`C_m^modelo - C_m^obs`) se sigue
+reportando como diagnóstico independiente (lo pide el TdR), pero ya no
+alimenta ningún cálculo posterior.
 
 Contrato de entrada, fijo y de solo lectura, producido por el
 Entregable 1 (`scripts/`, `run.sh`):
@@ -31,3 +45,10 @@ Ningún script de esta carpeta debe escribir fuera de esos tres
 subdirectorios, ni modificar nada bajo `scripts/`, `run.sh` o
 `data/processed/masked/` -- eso es responsabilidad exclusiva del
 pipeline de E1.
+
+## Convenciones de datos de E2
+
+Documentadas en `data/processed/e2/README.md` (numeración de modelos
+`M01..M40`, formato del CSV de índices, y el recorte a la ventana
+temporal común a los 40 modelos por la disponibilidad de IITM-ESM) --
+no se duplican acá.

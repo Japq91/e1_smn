@@ -16,14 +16,33 @@ sustentan -- listos para pasar a informe/references.bib como entradas
 .bib de E1, que es enteramente de time-of-emergence/incertidumbre, no
 de evaluación de modelos).
 
+Implementación de referencia: scripts_e2/p01_indices_enso.py ...
+p06_correlacion.py (ver data/processed/e2/README.md para el detalle
+de cada archivo de salida).
+
 Eventos cálidos extremos del ENOS (punto central de la actividad b):
 se definen con distinto índice por caja -- ONI y RONI en Niño 3.4
-(Secciones 9), ICEN en Niño 1+2 (Sección 10) -- y ambas series de
-modelo se corrigen primero por Linear Scaling (LS, Sección 8) antes de
-derivar el índice y compararlo contra el mismo índice calculado sobre
-ERSSTv5. Decisión del usuario (reemplaza un enfoque anterior con
-Índices C/E de Takahashi et al. 2011, que ya no forma parte de este
-marco teórico).
+(Sección 8), ICEN en Niño 1+2 (Sección 9). Decisión del usuario
+(reemplaza un enfoque anterior con Índices C/E de Takahashi et al.
+2011, que ya no forma parte de este marco teórico).
+
+**Sin corrección Linear Scaling (LS)**: se probó (una versión anterior
+de este documento la incluía como Sección 8) y se descartó -- LS es
+una resta constante por mes calendario, y cualquier anomalía (que es
+todo lo que alimenta variabilidad/RMSE'/correlación/Taylor/ONI/RONI/
+ICEN) la cancela algebraicamente sola:
+
+    anomalía(X_modelo - B_m, C_m^obs) = anomalía(X_modelo, C_m^modelo)
+
+Es decir, "corregir con LS y restar la climatología de obs" da
+exactamente el mismo resultado que "restar directamente la
+climatología propia del modelo" -- sin pasar por LS. Los índices se
+calculan directamente como anomalía respecto a la climatología
+**propia** de cada dataset (Sección 2), igual que se calcula ONI en la
+práctica real (nunca se mezcla la climatología de una fuente con los
+datos de otra). El sesgo (Sección 3) se sigue reportando, tal como
+pide el TdR, pero como diagnóstico independiente que no alimenta nada
+río abajo.
 
 
 1. CLIMATOLOGIA Y CICLO ANUAL
@@ -51,15 +70,17 @@ anclar en:
     las métricas específicas de abajo.)
 
 
-2. ANOMALIAS (insumo para variabilidad, LS e indices)
---------------------------------------------------------
-Se remueve el ciclo anual climatológico para aislar la variabilidad:
+2. ANOMALIAS (insumo para variabilidad e indices)
+------------------------------------------------------
+Se remueve el ciclo anual climatológico, respecto a la climatología
+**propia** de cada dataset (Sección 1 -- sin LS, ver nota de arriba),
+para aislar la variabilidad:
 
     A(y, m) = X(y, m) - C_m
 
-Base de todo lo que sigue: variabilidad interanual (Sección 7) y, tras
-la corrección LS (Sección 8), la derivación de ONI/RONI (Sección 9) e
-ICEN (Sección 10).
+Base de todo lo que sigue: variabilidad interanual (Sección 7), RMSE'
+y correlación (Secciones 4-5), diagrama de Taylor (Sección 6), y la
+derivación de ONI/RONI (Sección 8) e ICEN (Sección 9).
 
 
 3. SESGO (BIAS)
@@ -73,11 +94,13 @@ o por mes (sesgo del ciclo anual):
 
     B_m = C_m^modelo - C_m^obs
 
-Métrica estándar de evaluación de modelos climáticos (ver Sección 4),
-y el insumo directo de la corrección LS (Sección 8). Mismo respaldo
-bibliográfico que RMSE/correlación: Gleckler et al. (2008) y Taylor
-(2001) tratan sesgo/RMSE/correlación como el mismo conjunto de
-diagnósticos resumidos en un diagrama de Taylor / "portrait diagram".
+Métrica estándar de evaluación de modelos climáticos (ver Sección 4).
+Diagnóstico independiente, reportado tal cual pide el TdR ("sesgos")
+-- no alimenta ningún cálculo posterior (ver nota sobre LS al
+principio del documento). Mismo respaldo bibliográfico que
+RMSE/correlación: Gleckler et al. (2008) y Taylor (2001) tratan
+sesgo/RMSE/correlación como el mismo conjunto de diagnósticos
+resumidos en un diagrama de Taylor / "portrait diagram".
 
 
 4. RAIZ DEL ERROR CUADRATICO MEDIO (RMSE)
@@ -88,6 +111,15 @@ Versión centrada (remueve el sesgo de la media, la que efectivamente
 entra en el diagrama de Taylor -- ver Sección 6):
 
     RMSE' = sqrt( (1/N) * sum_i [ (M_i - M_barra) - (O_i - O_barra) ]^2 )
+
+Por qué centrado y no el total: no es una preferencia de estilo, es
+una restricción algebraica. La identidad de Taylor (Sección 6,
+E'^2 = sigma_f^2 + sigma_r^2 - 2*sigma_f*sigma_r*r) solo es exacta si
+E' es el RMSE de las series YA centradas (cada una menos su propia
+media). Con el RMSE total esa identidad no cierra, porque mezcla el
+error de patrón con el error de sesgo medio -- y el sesgo medio ya se
+excluyó a propósito (Sección 3), queda fuera del diagrama por diseño,
+no por descuido.
 
 Autor de referencia para el uso combinado de sesgo/RMSE/correlación
 como métricas resumen de desempeño de modelos climáticos:
@@ -106,6 +138,23 @@ Mide el grado de covariación temporal/espacial modelo-observación,
 independiente del sesgo y de la amplitud. Entra directo en el
 diagrama de Taylor (Sección 6).
 
+Por qué Pearson y no Spearman: el termino sigma_f*sigma_r*r de la
+identidad de Taylor (Sección 6) ES la covarianza entre modelo y obs
+(r de Pearson = covarianza / (sigma_f*sigma_r) por definición) -- se
+deriva directo de ahí. Spearman correlaciona rangos, no valores; no
+tiene esa relación algebraica con la varianza de la diferencia
+(M-O), así que no se puede insertar en la identidad de Taylor y
+esperar que el RMSE centrado salga consistente con el punto graficado.
+Además, Spearman se prefiere para datos ordinales o muy no-lineales
+con outliers que distorsionan una correlación lineal -- no es el caso
+de anomalías de TSM, una variable física continua sin esas patologías;
+ahí Pearson es el estándar en climatología.
+
+    Wilks, D. S. (2011). Statistical Methods in the Atmospheric
+    Sciences (3rd ed.). Academic Press. -- referencia estándar en
+    climatología para la elección Pearson vs. Spearman según el tipo
+    de dato.
+
 
 6. DIAGRAMA DE TAYLOR
 ------------------------
@@ -121,9 +170,9 @@ diagrama, cada uno con climatologías propias de distinta amplitud) se
 usa sigma_f_hat = sigma_f / sigma_r, de modo que el punto de cada
 modelo se ubica en coordenadas polares (radio = sigma_f_hat, ángulo =
 arccos(r)); el punto de referencia (observación perfecta) queda en
-(1, 0). Se arma un diagrama por caja/índice (Niño3.4-ONI,
-Niño3.4-RONI, Niño1+2-ICEN -- ver Sección 11), sobre la serie ya
-corregida por LS.
+(1, 0). Se arma un diagrama por caja/índice (Niño3.4-ONI, Niño3.4-RONI,
+Niño1+2-ICEN -- ver Sección 10), sobre la anomalía respecto a la
+climatología propia de cada dataset (Sección 2, sin LS).
 
     Taylor, K. E. (2001). Summarizing multiple aspects of model
     performance in a single diagram. Journal of Geophysical Research:
@@ -143,49 +192,16 @@ sobre-representa la amplitud de la variabilidad ENOS observada --
 parte de lo que el TdR pide explícitamente ("variabilidad").
 
 
-8. CORRECCION DE SESGO POR LINEAR SCALING (LS)
----------------------------------------------------
-Antes de derivar ONI/RONI (Sección 9) o ICEN (Sección 10) de cada
-modelo, se corrige el sesgo de su serie mensual con Linear Scaling --
-variante aditiva, la apropiada para una variable de tipo temperatura
-como la TSM -- usando el sesgo climatológico mensual ya definido en
-la Sección 3:
-
-    X*_modelo(y, m) = X_modelo(y, m) - B_m
-                     = X_modelo(y, m) + (C_m^obs - C_m^modelo)
-
-La serie corregida X* comparte la climatología mensual del observado
-por construcción (bias = 0 por mes, en el período de referencia). Es
-esta serie corregida, no la cruda, la que alimenta las Secciones 9-10.
-
-    Teutschbein, C., & Seibert, J. (2012). Bias correction of regional
-    climate model simulations for hydrological climate-change impact
-    studies: Review and evaluation of three methods. Journal of
-    Hydrology, 456-457, 12-29. doi:10.1016/j.jhydrol.2012.05.052
-
-    (formaliza Linear Scaling como uno de tres métodos de corrección
-    de sesgo revisados, con la variante aditiva -- la que aplica aquí
-    -- y la multiplicativa, para variables tipo precipitación.)
-
-    Antecedente de la aplicación del método:
-    Lenderink, G., Buishand, A., & Van Deursen, W. (2007). Estimates
-    of future discharges of the river Rhine using two scenario
-    methodologies: direct versus delta approach. Hydrology and Earth
-    System Sciences, 11(3), 1145-1159. doi:10.5194/hess-11-1145-2007
-
-
-9. ONI Y RONI (Niño 3.4)
+8. ONI Y RONI (Niño 3.4)
 ----------------------------
-Sobre la serie ya corregida por LS (Sección 8) en la caja Niño 3.4:
+Sobre la anomalía respecto a la climatología propia de cada dataset
+(Sección 2) en la caja Niño 3.4:
 
 ONI (Oceanic Niño Index): media móvil de 3 meses de la anomalía de
-TSM corregida, respecto a una climatología base de 30 años,
-actualizada cada 5 años (criterio operacional NOAA CPC):
+TSM, respecto a una climatología base de 30 años, actualizada cada 5
+años (criterio operacional NOAA CPC):
 
-    ONI(y, m) = (1/3) * sum_{k=-1}^{1} A*(y, m+k)
-
-donde A* es la anomalía calculada sobre la serie ya corregida por LS
-(A* = X* - C_m).
+    ONI(y, m) = (1/3) * sum_{k=-1}^{1} A(y, m+k)
 
     Trenberth, K. E. (1997). The definition of El Niño. Bulletin of
     the American Meteorological Society, 78(12), 2771-2777.
@@ -193,70 +209,197 @@ donde A* es la anomalía calculada sobre la serie ya corregida por LS
 
 RONI (Relative Oceanic Niño Index): la misma anomalía de Niño 3.4,
 menos la anomalía de TSM media tropical (20°N-20°S, todos los
-océanos) -- remueve la tendencia de calentamiento de fondo para que
-el umbral operacional de El Niño/La Niña no se "infle" solo por
-cambio climático de largo plazo:
+océanos), reescalada para que su varianza iguale a la del ONI original
+(definición oficial NOAA CPC, implementada en
+scripts_e2/p01_indices_enso.py::roni_index) -- remueve la tendencia de
+calentamiento de fondo para que el umbral operacional de El Niño/La
+Niña no se "infle" solo por cambio climático de largo plazo:
 
-    RONI(y, m) = ONI(y, m) - A*_tropical_media(y, m)
+    RONI(y, m) = [ ONI(y, m) - A_tropical_media(y, m) ] * escala
+    escala = sigma(ONI) / sigma(ONI - A_tropical_media)
 
-Producto experimental de NOAA CPC. *Cita académica exacta pendiente
-de confirmar* -- no asumir sin verificar. Candidata más cercana
-identificada (no confirmada como la fuente formal del método):
+NOTA (actualizado tras investigación web, ver
+informe/borradores/propuesta_puntos_11_12.md): NOAA CPC adoptó RONI
+como índice oficial de monitoreo ENOS en 2026 (reemplazando/
+conviviendo con ONI -- confirmar el estado exacto vigente antes de
+escribir esto en el informe final). La cita académica más sólida
+encontrada, con la MISMA definición que RONI antes del reescalado de
+varianza (Niño3.4 SSTA menos SSTA media tropical), es:
 
-    L'Heureux, M. L., Takahashi, K., Watkins, A. B., Barnston, A. G.,
-    Becker, E. J., Di Liberto, T. E., ... & Wittenberg, A. T. (2017).
-    Observing and predicting the 2015/16 El Niño. Bulletin of the
-    American Meteorological Society, 98(7), 1363-1382.
-    doi:10.1175/BAMS-D-16-0009.1
+    van Oldenborgh, G. J., Hendon, H., Stockdale, T., L'Heureux, M.,
+    Coughlan de Perez, E., Singh, R., & van Aalst, M. (2021). Defining
+    El Niño indices in a warming climate. Environmental Research
+    Letters, 16, 044003. doi:10.1088/1748-9326/abe9ed
+
+    (ese índice se llama rENSOi en la literatura -- confirmar si citar
+    este paper directamente para RONI, o si corresponde citar la nota
+    técnica propia de NOAA CPC del reescalado de varianza por separado.
+    L'Heureux et al. 2017, citado en una version anterior de este
+    documento, queda descartado como candidata: no define el método,
+    solo lo menciona de paso.)
 
 
-10. ICEN (Niño 1+2)
+9. ICEN (Niño 1+2)
 -----------------------
-Misma construcción (media móvil de 3 meses) pero sobre la anomalía de
-TSM corregida por LS en la caja Niño 1+2, definido operacionalmente
-por el IGP/ENFEN para el contexto costero peruano:
+Misma construcción (media móvil de 3 meses) sobre la anomalía de TSM
+(Sección 2, sin LS) en la caja Niño 1+2, definido operacionalmente por
+el IGP/ENFEN para el contexto costero peruano:
 
-    ICEN(y, m) = (1/3) * sum_{k=-1}^{1} A*_Nino12(y, m+k)
+    ICEN(y, m) = (1/3) * sum_{k=-1}^{1} A_Nino12(y, m+k)
 
-*Cita exacta pendiente de confirmar con el IGP*. No asumir que
-[[takahashi2019]] (ya citado en informe_e1_smnv3.tex, sobre el Niño
-costero de 1925) es la referencia formal de la definición
-metodológica del ICEN -- es temáticamente cercana (Niño 1+2, mismo
-autor del IGP) pero no verificada como la fuente del índice en sí.
+Cita confirmada por investigación web (ver
+informe/borradores/propuesta_puntos_11_12.md):
+
+    Takahashi, K., & Reupo, J. (2015). Índice Costero El Niño (ICEN)
+    con nueva fuente de datos. Boletín Técnico "Generación de modelos
+    climáticos para el pronóstico de la ocurrencia del Fenómeno El
+    Niño", IGP, 2(6), 9-10.
+
+(reemplaza la referencia [[takahashi2019]] -- El Niño costero de 1925,
+ya citada en informe_e1_smnv3.tex -- que era temáticamente cercana pero
+no la fuente formal del índice en sí.)
 
 
-11. FLUJO COMPLETO PARA EVENTOS CALIDOS EXTREMOS
+10. FLUJO COMPLETO PARA EVENTOS CALIDOS EXTREMOS
 ------------------------------------------------------
 Por caja, el flujo metodológico completo para la actividad (b) del
 TdR:
 
-    1. Corregir la serie mensual del modelo por LS (Sección 8), a
-       partir del sesgo de su climatología (Sección 3) respecto a
-       ERSSTv5.
-    2. Derivar el índice correspondiente sobre la serie ya corregida:
-       ONI + RONI en Niño 3.4 (Sección 9), ICEN en Niño 1+2
-       (Sección 10).
-    3. Comparar el índice del modelo (ya corregido) contra el mismo
-       índice calculado sobre ERSSTv5, con las métricas de las
-       Secciones 4-7 (sesgo, RMSE, correlación, variabilidad),
-       resumidas en un diagrama de Taylor (Sección 6) por caja/índice.
+    1. Calcular la anomalía del modelo respecto a su propia
+       climatología (Sección 2) -- sin LS.
+    2. Derivar el índice correspondiente: ONI + RONI en Niño 3.4
+       (Sección 8), ICEN en Niño 1+2 (Sección 9).
+    3. Comparar el índice del modelo contra el mismo índice calculado
+       sobre ERSSTv5, con las métricas de las Secciones 4-7 (sesgo,
+       RMSE, correlación, variabilidad), resumidas en un diagrama de
+       Taylor (Sección 6) por caja/índice.
     4. Clasificar eventos cálidos extremos con el umbral operacional
        de cada índice y comparar frecuencia/magnitud modelo vs.
-       observado. Umbrales de referencia (*confirmar cifra exacta y
-       fuente antes de portar a .tex, no asumir*): ONI >= +0.5 °C
-       sostenido por >= 5 estaciones consecutivas de 3 meses; ICEN
-       >= +0.4 °C sostenido por >= 3 meses consecutivos.
+       observado -- ver informe/borradores/propuesta_puntos_11_12.md
+       para el enfoque revisado (umbral oficial + umbral relativo a la
+       propia sigma del modelo, más análisis compuesto de la evolución
+       típica del evento para el diagrama de Taylor) y las tablas de
+       umbrales de ONI/ICEN encontradas por investigación web, con su
+       nivel de confianza documentado.
 
-Nota sobre el tab:roadmap del informe de E1: esa tabla ubica hoy
-"ONI e ICEN" en el Entregable 3 (proyecciones) y "Índices C y E" en
-el Entregable 2 -- coherente con la actividad (c) del TdR, que nombra
-ONI/ICEN explícitamente para la etapa de proyecciones futuras. Esta
-decisión los adelanta a E2 como definición de "eventos cálidos
-extremos" del período histórico (actividad b), y retira los Índices
-C/E del marco teórico. Falta decidir si esto implica actualizar
-tab:roadmap en informe_e1_smnv3.tex para que no quede en contradicción
-con lo que efectivamente se hace en E2 -- señalado, no aplicado (no
-se toca ese archivo sin pedido explícito).
+Nota sobre el tab:roadmap del informe de E1: esa tabla ya se actualizó
+(commit 38dd573) para reflejar ONI/RONI/ICEN en el Entregable 2 en vez
+de Índices C/E -- consistente con lo que efectivamente se hace acá.
+
+
+11. CLASIFICACION DE EVENTOS CALIDOS EXTREMOS (umbral dual)
+-----------------------------------------------------------------
+Un evento se detecta cuando el índice (ONI/RONI/ICEN, Secciones 8-9)
+supera un umbral de inicio de forma sostenida por un número mínimo de
+meses consecutivos (criterio operacional NOAA CPC/IGP-ENFEN):
+
+    ONI/RONI: inicio >= 0.5 grados C, >=5 meses consecutivos.
+    ICEN:     inicio >= 0.4 grados C, >=3 meses consecutivos.
+
+Detectado el evento, su magnitud pico (el máximo del índice dentro de
+la ventana del evento) se clasifica en DOS escalas simultáneas -- no
+dos listas de eventos separadas, dos etiquetas sobre el mismo evento:
+
+    a) Escala OFICIAL: umbral absoluto en grados C, tabla de 4
+       categorías (débil/moderado/fuerte/muy_fuerte u
+       "extraordinario" para ICEN), la misma que usa el monitoreo
+       operacional real -- comparabilidad directa con boletines
+       SENAMHI/IGP/NOAA.
+    b) Escala RELATIVA: múltiplos de la propia sigma del dataset
+       (Sección 7), 3 categorías:
+
+           moderado: magnitud_pico >= 0.5 * sigma
+           fuerte:   magnitud_pico >= 1.0 * sigma
+           extremo:  magnitud_pico >= 2.0 * sigma
+
+       donde sigma se calcula sobre la MISMA serie del índice que se
+       está clasificando (no la sigma de caja de Taylor, Sección 6).
+
+Por qué un umbral no basta con los 40 modelos: la escala oficial fija
+en grados C asume que la variabilidad ENOS del modelo tiene una
+amplitud parecida a la observada. Pero sigma_norm (Secciones 6-7) va
+de ~0.7 a >1.6 entre los 40 modelos -- un modelo con varianza inflada
+"gana" eventos extremos con la escala oficial solo por su escala, no
+porque su ENOS real sea más intenso; y un modelo con varianza
+deprimida los "pierde" por la razón inversa. La escala relativa
+normaliza ese efecto y permite comparar la frecuencia relativa de
+eventos extremos entre modelos de forma justa; la escala oficial se
+mantiene en paralelo porque es la que exige comparabilidad operacional
+real (y la que pide el TdR al hablar de "eventos extremos" en términos
+reconocibles).
+
+    Shin, N.-Y., Kug, J.-S., Stuecker, M. F., Jin, F.-F., Timmermann,
+    A., & Kim, G.-I. (2022). More frequent central Pacific El Niño and
+    stronger eastern Pacific El Niño in a warmer climate. npj Climate
+    and Atmospheric Science, 5, 101. doi:10.1038/s41612-022-00324-9
+
+Las categorías se evalúan sobre la magnitud pico ya redondeada a 1
+decimal, porque las tablas oficiales (NOAA CPC / IGP-ENFEN) se
+definieron sobre el valor publicado, no el continuo -- ver
+data/processed/e2/README.md, sección eventos_<INDICE>_ref<ref>.csv,
+para el detalle del bug real que este redondeo corrige.
+
+Implementación: scripts_e2/p07_eventos.py, salida
+data/processed/e2/eventos_<INDICE>_ref<ref>.csv.
+
+
+12. ANALISIS COMPUESTO Y DIAGRAMA DE TAYLOR SOBRE EL EVENTO TIPICO
+-----------------------------------------------------------------
+Problema de partida: el diagrama de Taylor de la Sección 6, aplicado
+sobre la serie temporal COMPLETA del índice, da correlación cercana a
+0 para los 40 modelos (ver taylor_nino34_ref1981-2014.csv). Esto no es
+necesariamente un defecto real del modelo: `historical` es una corrida
+libre, no inicializada con el estado oceánico observado, así que no
+hay ninguna razón física para que un modelo produzca su episodio de
+Niño fuerte el mismo año calendario que ERSSTv5. El Pearson de la
+Sección 5 sobre la serie completa penaliza por igual un error de FASE
+(el evento ocurre en otro año) y un error de FORMA (el evento, cuando
+ocurre, no se parece al observado) -- y el primero domina el segundo
+en una corrida libre, enmascarando cualquier diferencia real de
+desempeño entre modelos.
+
+Solución (superposed epoch analysis / análisis compuesto, Kaur et al.
+2021; Kumar et al. 2023): en vez de comparar las series completas
+alineadas por fecha calendario, se alinean los eventos por su PROPIO
+pico (fecha_pico, Sección 11) y se compara la forma promedio del
+evento -- así se responde "cuando el modelo sí genera un evento, ¿se
+parece al observado en amplitud y evolución temporal?", una pregunta
+que sí es respondible con una corrida libre.
+
+Para cada evento detectado en la Sección 11, se extrae una ventana de
++-12 meses (24 meses totales) centrada en su fecha_pico -- mismo ancho
+de ventana que usan Kaur et al. (2021) y Kumar et al. (2023) para
+composites de eventos ENOS. Los eventos cuya ventana cae parcialmente
+fuera del rango de datos disponible (bordes del registro común, ver
+Sección "Ventana temporal común" en data/processed/e2/README.md) se
+DESCARTAN por completo, no se rellenan con NaN -- así todos los meses
+relativos del compuesto (t=-12...0...+12) promedian exactamente el
+mismo conjunto de eventos, sin sesgo introducido por relleno parcial.
+Las ventanas válidas de cada dataset se promedian en una curva
+compuesta de 25 puntos: el "evento típico" de ese dataset.
+
+Esa curva compuesta se compara, modelo contra ERSSTv5, con las mismas
+4 métricas y la misma identidad algebraica de la Sección 6 (sigma,
+correlación de Pearson, RMSE centrado, sigma_norm) -- el diagrama de
+Taylor resultante evalúa forma del evento compuesto, no fase temporal.
+Resultado obtenido: con los mismos 40 modelos, la correlación del
+compuesto (taylor_compuesto_ONI_ref1981-2014.csv) va de ~0.94 a ~0.99,
+frente a valores cercanos a 0 en el Taylor de serie completa --
+confirma la hipótesis de que el problema era de fase, no de forma.
+
+    Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang, X. L. (2021).
+    CMIP5 model evaluation for extreme ocean wave height responses to
+    ENSO. Climate Dynamics. doi:10.1007/s00382-021-06039-6
+
+    (Kumar et al. 2023, citado en la investigación previa de
+    informe/borradores/propuesta_puntos_11_12.md como segunda
+    referencia de la misma metodología de composite -- confirmar cita
+    completa antes de portar a informe_e2.tex, ver PENDIENTE DE
+    REVISION abajo.)
+
+Implementación: scripts_e2/p08_taylor_compuesto.py, insumo directo de
+scripts_e2/p07_eventos.py (no independiente de él), salida
+data/processed/e2/taylor_compuesto_<INDICE>_ref<ref>.csv.
 
 
 PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
@@ -265,21 +408,25 @@ PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
   (Gleckler et al., 2008) para consolidar bias+RMSE+correlación+sigma
   en un ranking único de los 40 modelos, o si el ranking final se
   reporta como tabla de métricas individuales sin agregación (decisión
-  metodológica, no está en el TdR).
-- Verificar antes de citar (no confirmadas): la fuente académica
-  exacta de RONI (candidata L'Heureux et al. 2017, Sección 9) y la
-  referencia metodológica formal del ICEN con el IGP (Sección 10).
-- Confirmar los umbrales operacionales exactos de ONI e ICEN (Sección
-  11, punto 4) contra la fuente oficial antes de darlos por
-  definitivos en el informe.
-- Decidir si tab:roadmap (informe_e1_smnv3.tex) se actualiza para
-  reflejar que ONI/RONI/ICEN ya se usan en E2, no solo en E3 (ver nota
-  al final de la Sección 11).
+  metodológica, no está en el TdR). Ya hay un portrait diagram
+  prototipado en scripts_e2/pruebas_metricas_e2.ipynb.
+- Verificar antes de citar (confianza media, no primaria todavía): la
+  fuente académica exacta de RONI (candidata van Oldenborgh et al.
+  2021, Sección 8) y los umbrales operacionales exactos de ICEN
+  (Sección 9 / propuesta_puntos_11_12.md).
+- Ver informe/borradores/propuesta_puntos_11_12.md para las decisiones
+  ya tomadas de la clasificación de eventos extremos (Sección 11) y el
+  diagrama de Taylor compuesto (Sección 12), ambas ya implementadas
+  (scripts_e2/p07_eventos.py, scripts_e2/p08_taylor_compuesto.py).
+- Confirmar la cita completa de Kumar et al. (2023) (Sección 12,
+  segunda referencia de la metodología de composite) antes de portar a
+  informe_e2.tex -- verificada en propuesta_puntos_11_12.md pero sin
+  el detalle completo trasladado aquí todavía.
 - Referencias nuevas a agregar a informe/references.bib recién al
   portar esto a .tex -- ninguna existe todavía ahí: Eyring et al.
-  (2019), Gleckler et al. (2008), Taylor (2001), Teutschbein & Seibert
-  (2012), Lenderink et al. (2007), Trenberth (1997) -- más RONI/ICEN
-  una vez verificadas las dos citas pendientes de arriba.
+  (2019), Gleckler et al. (2008), Taylor (2001), Trenberth (1997),
+  Wilks (2011), van Oldenborgh et al. (2021), Takahashi & Reupo (2015),
+  Shin et al. (2022), Kaur et al. (2021), Kumar et al. (2023).
 - Revisar notación: aquí se usó pseudo-LaTeX en texto plano
   (sigma, barra, etc.) por legibilidad -- al portar a .tex reemplazar
   por \sigma, \bar{M}, etc. reales.
