@@ -46,6 +46,15 @@ subdirectorios, ni modificar nada bajo `scripts/`, `run.sh` o
 `data/processed/masked/` -- eso es responsabilidad exclusiva del
 pipeline de E1.
 
+## Scripts
+
+`p01`...`p09` -- ver `data/processed/e2/README.md` para el listado
+completo con el punto del cálculo que cubre cada uno y el detalle de
+su archivo de salida. `p09_skill_score.py` es el último de la cadena:
+score de habilidad (Taylor, 2001) y selección final de modelos, punto
+(14.), consume directamente las salidas de `p05_taylor.py` y
+`p08_taylor_compuesto.py`.
+
 ## Convenciones de datos de E2
 
 Documentadas en `data/processed/e2/README.md` (numeración de modelos

@@ -44,6 +44,9 @@ solo, en la próxima corrida.
   (11.) (ver `eventos_*.csv` abajo).
 - `p08_taylor_compuesto.py` -- diagrama de Taylor sobre el evento
   compuesto, punto (12.) (ver `taylor_compuesto_*.csv` abajo).
+- `p09_skill_score.py` -- score de habilidad S (Taylor, 2001) y
+  ranking/selección final de los 40 modelos, punto (14.) (ver
+  `skill_score_*.csv` abajo).
 
 ## `model_registry_e2.csv`
 
@@ -345,3 +348,77 @@ Generado por `scripts_e2/p08_taylor_compuesto.py`. Sin corrección
 Linear Scaling (mismo criterio que el resto de E2). Sobre la anomalía
 propia de cada dataset (mismos índices ONI/RONI/ICEN de
 `indices_enso_*.csv`/`load_all_indices()`, no un recálculo aparte).
+
+## `skill_score_ref<ref>.csv`
+
+Punto (14.) del cálculo -- responde directamente a la actividad (b) del
+TdR ("seleccionar los modelos con mejor capacidad de representación"),
+que no fija un número ni un umbral. Una fila por modelo (`M01`...`M40`,
+sin `OBS` -- $S_{obs}=1$ trivial, no es un modelo a evaluar), ordenada
+descendente por `S_final`. Columnas:
+
+- `S_nino34`, `S_nino12` -- skill score $S$ (ver fórmula abajo)
+  calculado sobre `taylor_nino34_ref<ref>.csv` / `taylor_nino12_ref<ref>.csv`
+  (serie completa). Se reportan solo como **referencia/diagnóstico** --
+  **no entran en `S_final`** (ver por qué abajo).
+- `S_ONI`, `S_RONI`, `S_ICEN` -- mismo $S$ calculado sobre
+  `taylor_compuesto_<INDICE>_ref<ref>.csv` (evolución compuesta del
+  evento extremo, ver arriba).
+- `S_final` -- `mean(S_ONI, S_RONI, S_ICEN)`, el número usado para
+  ordenar/seleccionar.
+- `grupo` -- `"bueno"`/`"malo"` si el gap statistic confirmó una
+  separación real en los datos (ver abajo); **vacío** si no la
+  confirmó (resultado obtenido con `ref1981-2014`: vacío para los 40 --
+  no hay un quiebre objetivamente distinguible, los modelos caen en un
+  continuo de `S_final`).
+
+**Fórmula ($S$, Taylor 2001)**, sobre `r` y `sigma_norm` ya presentes
+en cada `taylor_*.csv` (no usa `rmse_centrado`, redundante dada la
+identidad de Taylor; no usa sesgo, diagnóstico aparte por diseño):
+
+$$S=\frac{4(1+R)^4}{(\hat\sigma+1/\hat\sigma)^2(1+R_0)^4}$$
+
+con $R_0=1$ (correlación máxima alcanzable -- default estándar sin una
+estimación propia de incertidumbre observacional de ERSSTv5), lo que
+simplifica a $S=(1+R)^4/[4(\hat\sigma+1/\hat\sigma)^2]$. Acotado en
+$[0,1]$, $S=1$ solo si $\hat\sigma=1$ y $R=1$.
+
+**Por qué `S_final` usa SOLO los 3 índices compuestos, no las 5
+tablas**: se probó primero un promedio 50/50 por bloque temático
+(`S_serie`=mean(nino34,nino12) y `S_compuesto`=mean(ONI,RONI,ICEN)),
+pero `S_nino34`/`S_nino12` salieron sistemáticamente bajos (0.04-0.14)
+para los 40 modelos -- no por defecto de los modelos, sino porque
+`historical` es una corrida libre sin inicializar (mismo argumento de
+`taylor_compuesto_*.csv` arriba): con $R\approx0$ por el problema de
+fase, el numerador $(1+R)^4$ colapsa $S$ a un techo bajo (~0.06)
+**para cualquier modelo, bueno o malo**. Meter ese bloque en
+`S_final` con peso 50% mezclaría ruido de fase con señal real de
+habilidad, y en la práctica el bloque compuesto terminaba dominando
+igual (0.35-0.98) pese al peso nominal igual -- decisión del usuario:
+excluir el bloque de serie completa de `S_final`, dejarlo solo como
+referencia.
+
+**Gap statistic** (Tibshirani, Walther & Hastie, 2001), sobre los 40
+valores de `S_final`: compara la dispersión intra-grupo real (K=1 vs
+K=2, K-means) contra la esperada bajo una referencia sin estructura
+(uniforme en el rango de `S_final`, 1000 datasets Monte Carlo,
+semilla fija para reproducibilidad). Se elige K=1 (sin partición)
+salvo que Gap(2) supere a Gap(1) por más que el margen de error de la
+referencia. Con `ref1981-2014`: Gap(1)=0.601±0.153 vs.
+Gap(2)=0.292±0.149 -- K=1 gana, **no hay separación real
+"buenos/malos"**, resultado real (no forzado), reportado tal cual.
+
+> Tibshirani, R., Walther, G., & Hastie, T. (2001). Estimating the
+> number of clusters in a data set via the gap statistic. *Journal of
+> the Royal Statistical Society: Series B*, 63(2), 411-423.
+> https://doi.org/10.1111/1467-9868.00293
+
+Si el gap statistic hubiera confirmado K=2, el punto de corte se
+calcula con **Jenks natural breaks** (Fisher, 1958, búsqueda
+exhaustiva del corte que minimiza la varianza intra-grupo -- exacto
+para 40 puntos), reportando también el GVF (goodness of variance fit)
+como medida de qué tan limpia es la partición.
+
+Generado por `scripts_e2/p09_skill_score.py`. Sin corrección Linear
+Scaling (mismo criterio que el resto de E2, por herencia de las tablas
+`taylor_*.csv` que consume).

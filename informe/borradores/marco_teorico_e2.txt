@@ -402,6 +402,82 @@ scripts_e2/p07_eventos.py (no independiente de él), salida
 data/processed/e2/taylor_compuesto_<INDICE>_ref<ref>.csv.
 
 
+13. SCORE DE HABILIDAD S Y SELECCION FINAL DE MODELOS
+-----------------------------------------------------------------
+La actividad (b) del TdR pide "seleccionar los modelos con mejor
+capacidad de representación", sin fijar un número, porcentaje ni
+umbral -- decisión metodológica abierta, no derivable del TdR. Se
+resuelve en dos pasos: (a) un número único de habilidad por modelo
+(Taylor, 2001), y (b) una prueba estadística objetiva para decidir SI
+existe una separación real "buenos/malos" antes de imponerla, en vez
+de un corte arbitrario.
+
+Skill score de Taylor (2001), sobre `r` y `sigma_norm` de cada tabla
+`taylor_*.csv` (Secciones 6 y 12) -- no usa `rmse_centrado` (redundante
+dada la identidad de Taylor) ni el sesgo (Sección 3, diagnóstico
+aparte por diseño):
+
+    S = 4*(1+R)^4 / [ (sigma_hat + 1/sigma_hat)^2 * (1+R0)^4 ]
+
+con R0=1 (correlación máxima alcanzable; default estándar sin una
+estimación propia de incertidumbre observacional de ERSSTv5), lo que
+simplifica a S = (1+R)^4 / [4*(sigma_hat+1/sigma_hat)^2]. Acotado en
+[0,1], S=1 solo si sigma_hat=1 y R=1 (modelo perfecto); penaliza
+simétricamente sub- y sobre-dispersión (sigma_hat+1/sigma_hat es
+simétrico en escala logarítmica, mínimo en sigma_hat=1).
+
+    Taylor, K. E. (2001). Summarizing multiple aspects of model
+    performance in a single diagram. Journal of Geophysical Research:
+    Atmospheres, 106(D7), 7183-7192. doi:10.1029/2000JD900719
+
+Agregación: S_final = mean(S_ONI, S_RONI, S_ICEN) -- SOLO los 3
+índices compuestos (Sección 12), la serie completa (Secciones 6, cajas
+Niño3.4/Niño1+2) queda deliberadamente FUERA. Se probó primero un
+promedio 50/50 por bloque temático (serie completa + compuesto, para
+darle igual peso a "estado medio/variabilidad" y "eventos extremos"
+como pide el TdR), pero el bloque de serie completa resultó no
+informativo: por el mismo problema de fase de la Sección 12 (corrida
+libre, sin inicializar, R~0 para CUALQUIER modelo sin importar su
+calidad real), S sobre la serie completa queda topado en ~0.06 para
+los 40 modelos -- incluirlo mezclaría ruido de fase con señal real de
+habilidad, y en la práctica el bloque compuesto terminaba dominando
+igual pese al peso nominal 50/50. Decisión del usuario: excluir la
+serie completa de S_final, reportarla solo como referencia/diagnóstico
+en el CSV de salida.
+
+Gap statistic (Tibshirani, Walther & Hastie, 2001) sobre los 40
+valores de S_final: compara la dispersión intra-grupo real (K=1 sin
+partición vs. K=2, K-means) contra la esperada bajo una referencia SIN
+estructura (uniforme en el rango de S_final, generada por Monte
+Carlo). Se elige K=1 salvo que Gap(2) supere a Gap(1) por más que el
+margen de error de la referencia (regla del paper: menor k tal que
+Gap(k) >= Gap(k+1) - s_{k+1}). Resultado obtenido con
+REF_INICIO=1981/REF_FIN=2014: Gap(1)=0.601+-0.153 vs.
+Gap(2)=0.292+-0.149 -- K=1 gana, no hay separación "buenos/malos"
+estadísticamente confirmada; los 40 modelos caen en un continuo de
+S_final (0.37-0.95), reportado tal cual, sin forzar una partición que
+los datos no sustentan.
+
+    Tibshirani, R., Walther, G., & Hastie, T. (2001). Estimating the
+    number of clusters in a data set via the gap statistic. Journal of
+    the Royal Statistical Society: Series B, 63(2), 411-423.
+    doi:10.1111/1467-9868.00293
+
+Si el gap statistic hubiera confirmado K=2, el corte se calcula con
+Jenks natural breaks (Fisher, 1958): búsqueda exhaustiva (exacta para
+40 puntos) del punto que minimiza la varianza intra-grupo, con el GVF
+(goodness of variance fit) como medida de qué tan limpia es la
+partición.
+
+    Fisher, W. D. (1958). On grouping for maximum homogeneity. Journal
+    of the American Statistical Association, 53(284), 789-798.
+    doi:10.2307/2281952
+
+Implementación: scripts_e2/p09_skill_score.py, insumo directo de
+scripts_e2/p05_taylor.py y scripts_e2/p08_taylor_compuesto.py, salida
+data/processed/e2/skill_score_ref<ref>.csv.
+
+
 PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
 -----------------------------------------------------------
 - Confirmar si se usa una métrica agregada tipo "portrait diagram"
@@ -426,7 +502,8 @@ PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
   portar esto a .tex -- ninguna existe todavía ahí: Eyring et al.
   (2019), Gleckler et al. (2008), Taylor (2001), Trenberth (1997),
   Wilks (2011), van Oldenborgh et al. (2021), Takahashi & Reupo (2015),
-  Shin et al. (2022), Kaur et al. (2021), Kumar et al. (2023).
+  Shin et al. (2022), Kaur et al. (2021), Kumar et al. (2023),
+  Tibshirani, Walther & Hastie (2001), Fisher (1958).
 - Revisar notación: aquí se usó pseudo-LaTeX en texto plano
   (sigma, barra, etc.) por legibilidad -- al portar a .tex reemplazar
   por \sigma, \bar{M}, etc. reales.
