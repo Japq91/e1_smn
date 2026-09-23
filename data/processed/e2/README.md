@@ -302,16 +302,17 @@ corregido durante la construcción de este script.
 Generado por `scripts_e2/p07_eventos.py`. Insumo directo del punto
 (12.) (`p08_taylor_compuesto.py`, ver abajo) -- no independientes.
 
-## `taylor_compuesto_<INDICE>_ref<ref>.csv`
+## `taylor_compuesto_<INDICE>_vent<V>m_ref<ref>.csv`
 
-Tres archivos, uno por índice (`ONI`, `RONI`, `ICEN`) -- punto (12.)
-del cálculo, **no independiente**: consume directamente
-`eventos_<INDICE>_ref<ref>.csv` (punto 11., arriba). Mismo formato de
-4 columnas que `taylor_<caja>_ref<ref>.csv` (fila 1 = `OBS`, filas
-2-41 = `M01`...`M40`, columnas `sigma, r, rmse_centrado, sigma_norm`,
-mismas fórmulas y misma identidad de Taylor) -- pero calculado sobre
-la **evolución compuesta** del evento cálido extremo, no sobre la
-serie temporal completa del índice.
+Seis archivos, uno por índice (`ONI`, `RONI`, `ICEN`) × ancho de
+ventana (`V=12`, `V=15`) -- punto (12.) del cálculo, **no
+independiente**: consume directamente `eventos_<INDICE>_ref<ref>.csv`
+(punto 11., arriba). Mismo formato de 4 columnas que
+`taylor_<caja>_ref<ref>.csv` (fila 1 = `OBS`, filas 2-41 =
+`M01`...`M40`, columnas `sigma, r, rmse_centrado, sigma_norm`, mismas
+fórmulas y misma identidad de Taylor) -- pero calculado sobre la
+**evolución compuesta** del evento cálido extremo, no sobre la serie
+temporal completa del índice.
 
 **Por qué un Taylor distinto del de `taylor_*.csv`**: `historical` es
 una corrida libre (no inicializada), así que no hay razón física para
@@ -324,34 +325,47 @@ problema: en vez de "¿pasó el evento el mismo año?", compara "cuando
 el modelo sí genera un evento, ¿tiene la **forma** correcta (arma,
 pico, decaimiento)?" -- pregunta respondible con una corrida libre.
 Confirma la hipótesis en la práctica: con los mismos 40 modelos, $r$
-en `taylor_compuesto_ONI_ref1981-2014.csv` va de ~0.94 a ~0.99, contra
-valores cercanos a 0 en `taylor_nino34_ref1981-2014.csv`.
+en `taylor_compuesto_ONI_vent12m_ref1981-2014.csv` va de ~0.94 a
+~0.99, contra valores cercanos a 0 en `taylor_nino34_ref1981-2014.csv`.
+
+**Sin cita de respaldo para la técnica en sí** -- se buscó un paper que
+describa exactamente esta metodología aplicada a ENOS/CMIP (incluida
+lectura completa de Kaur et al. 2021 y Sardana et al. 2023, los dos
+candidatos que se habían identificado antes) y ninguno la describe
+(ver `informe/borradores/marco_teorico_e2.txt`, Sección 12, para el
+detalle de esa verificación). *Superposed epoch analysis* (alinear
+eventos por su propio pico en vez de por fecha calendario) es una
+técnica general establecida en climatología, pero no se encontró la
+aplicación específica ENOS+Taylor que se buscaba -- se presenta como
+**decisión metodológica propia del equipo**, justificada por el
+argumento del párrafo anterior (evade el problema de fase), no por un
+precedente bibliográfico directo.
 
 Metodología: para cada evento de `eventos_<INDICE>_ref<ref>.csv`, se
-extrae una ventana de **±12 meses (24 meses totales) centrada en
-`fecha_pico`**; los eventos cuya ventana pediría meses fuera del rango
-disponible (bordes del registro, ej. cerca de 1900 por IITM-ESM o
-cerca de 2014) se **descartan enteros**, no se rellenan con NaN --
-decisión explícita del usuario, para no promediar compuestos con
-distinto número de observaciones por mes relativo. Las ventanas
-válidas de cada dataset se promedian en una sola curva de 25 puntos
-(mes relativo al pico, $t=-12..0..+12$): el "evento típico" de ese
-dataset. Esa curva compuesta del modelo se compara contra la curva
-compuesta de OBS con las mismas 4 métricas del Taylor de caja.
+extrae una ventana de **±`V` meses centrada en `fecha_pico`**; los
+eventos cuya ventana pediría meses fuera del rango disponible (bordes
+del registro, ej. cerca de 1900 por IITM-ESM o cerca de 2014) se
+**descartan enteros**, no se rellenan con NaN -- decisión explícita
+del usuario, para no promediar compuestos con distinto número de
+observaciones por mes relativo. Las ventanas válidas de cada dataset
+se promedian en una sola curva de $2V+1$ puntos (mes relativo al pico,
+$t=-V..0..+V$): el "evento típico" de ese dataset. Esa curva compuesta
+del modelo se compara contra la curva compuesta de OBS con las mismas
+4 métricas del Taylor de caja.
 
-> **Cita pendiente -- sin verificar.** Se citaba aquí Kaur et al.
-> (2021) y "Kumar et al. 2023" como respaldo de esta metodología, pero
-> al leer el PDF completo de ambos papers (búsqueda de
-> "composite/superposed/epoch/window/peak": cero coincidencias en los
-> dos) ninguno describe una ventana compuesta centrada en el pico del
-> evento -- error de la investigación original, corregido en
-> `informe/borradores/marco_teorico_e2.txt` (Sección 12, nota "CITA SIN
-> VERIFICAR"). El usuario está buscando la cita correcta. No agregar
-> ninguna cita acá hasta que la confirme.
+Se corre con **dos anchos de ventana**, sin que ningún paper fije cuál
+es "correcto" (decisión del usuario, ver nota de arriba):
+- `V=12` (25 puntos) -- **resultado principal**, el que alimenta
+  `skill_score_ref<ref>.csv` (punto 14., abajo).
+- `V=15` (31 puntos) -- **prueba de sensibilidad**: confirma si el
+  resultado depende fuertemente del ancho elegido. No alimenta el
+  score final, se reporta solo como comparación.
 
-Generado por `scripts_e2/p08_taylor_compuesto.py`. Sin corrección
-Linear Scaling (mismo criterio que el resto de E2). Sobre la anomalía
-propia de cada dataset (mismos índices ONI/RONI/ICEN de
+Generado por `scripts_e2/p08_taylor_compuesto.py` (constante
+`VENTANA_MESES`, editable, arma el nombre de archivo sola -- mismo
+patrón que `REF_INICIO`/`REF_FIN`). Sin corrección Linear Scaling
+(mismo criterio que el resto de E2). Sobre la anomalía propia de cada
+dataset (mismos índices ONI/RONI/ICEN de
 `indices_enso_*.csv`/`load_all_indices()`, no un recálculo aparte).
 
 ## `skill_score_ref<ref>.csv`
@@ -367,8 +381,9 @@ descendente por `S_final`. Columnas:
   (serie completa). Se reportan solo como **referencia/diagnóstico** --
   **no entran en `S_final`** (ver por qué abajo).
 - `S_ONI`, `S_RONI`, `S_ICEN` -- mismo $S$ calculado sobre
-  `taylor_compuesto_<INDICE>_ref<ref>.csv` (evolución compuesta del
-  evento extremo, ver arriba).
+  `taylor_compuesto_<INDICE>_vent12m_ref<ref>.csv` (evolución
+  compuesta del evento extremo, ventana principal ±12 meses, ver
+  arriba).
 - `S_final` -- `mean(S_ONI, S_RONI, S_ICEN)`, el número usado para
   ordenar/seleccionar.
 - `grupo` -- `"bueno"`/`"malo"` si el gap statistic confirmó una

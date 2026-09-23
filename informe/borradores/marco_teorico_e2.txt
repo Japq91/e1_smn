@@ -358,68 +358,84 @@ ocurre, no se parece al observado) -- y el primero domina el segundo
 en una corrida libre, enmascarando cualquier diferencia real de
 desempeño entre modelos.
 
-Solución (superposed epoch analysis / análisis compuesto, Kaur et al.
-2021; Kumar et al. 2023): en vez de comparar las series completas
-alineadas por fecha calendario, se alinean los eventos por su PROPIO
-pico (fecha_pico, Sección 11) y se compara la forma promedio del
-evento -- así se responde "cuando el modelo sí genera un evento, ¿se
-parece al observado en amplitud y evolución temporal?", una pregunta
-que sí es respondible con una corrida libre.
+Solución (análisis compuesto por evento): en vez de comparar las
+series completas alineadas por fecha calendario, se alinean los
+eventos por su PROPIO pico (fecha_pico, Sección 11) y se compara la
+forma promedio del evento -- así se responde "cuando el modelo sí
+genera un evento, ¿se parece al observado en amplitud y evolución
+temporal?", una pregunta que sí es respondible con una corrida libre.
+
+    *** SIN CITA DE RESPALDO -- decisión metodológica propia ***
+    Se buscó un paper que describa exactamente esta técnica (ventana
+    compuesta centrada en el pico del evento + diagrama de Taylor
+    sobre la curva compuesta) aplicada a ENOS/CMIP. Se citaba aquí
+    Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang, X. L. (2021),
+    CMIP5 model evaluation for extreme ocean wave height responses to
+    ENSO, Climate Dynamics, doi:10.1007/s00382-021-06039-6, y "Kumar
+    et al. 2023" (sin cita completa), pero al leer el PDF COMPLETO de
+    Kaur et al. (2021) (informe/borradores/s00382-021-06039-6.pdf) y
+    del segundo paper (Divya Sardana, Prashant Kumar, Rajni, 2023,
+    "CMIP6 model evaluation for sea surface height responses to ENSO",
+    Climate Dynamics 62:1829-1847, doi:10.1007/s00382-023-06997-z --
+    casi con certeza el "Kumar et al. 2023" citado antes, dado el
+    coautor Kumar en común) buscando "composite/superposed/epoch/
+    window/peak": CERO coincidencias en los dos. Ninguno de los dos
+    describe una ventana compuesta centrada en el pico del evento --
+    Kaur et al. (2021) usa un análisis GEV no-estacionario con el
+    índice ENOS como covariable + Taylor skill score sobre MAPAS DE
+    REGRESIÓN (no series compuestas por evento); Sardana et al. (2023)
+    usa RMSE/IVS/M-Score/TSS también sobre patrones de regresión
+    espacial. La cita que se le puso a este punto durante la
+    investigación web de la propuesta original
+    (propuesta_puntos_11_12.md) NO estaba respaldada por lo que
+    realmente dicen estos papers -- error de esa investigación,
+    detectado al leer el texto completo. El usuario buscó
+    personalmente ("superposed epoch ENSO" y variantes) y tampoco
+    encontró un paper que fije esta técnica exacta para ENOS+Taylor.
+    Decisión: se presenta como METODOLOGÍA PROPIA del equipo,
+    justificada por el argumento del párrafo anterior (evade el
+    problema de fase), sin anclar a un precedente bibliográfico
+    directo. *Superposed epoch analysis* (alinear eventos por su
+    propio pico) sigue siendo el nombre técnico general de la familia
+    de técnicas en climatología, pero no se cita un paper específico
+    para esta aplicación.
+
+    (Nota aparte: el mismo Kaur et al. 2021 SÍ resultó útil para otra
+    cosa -- su ecuación (3) es la fuente verificada del exponente n=1
+    del skill score S de la Sección 13, distinto de la metodología de
+    ventana compuesta de esta sección.)
 
 Para cada evento detectado en la Sección 11, se extrae una ventana de
-+-12 meses (24 meses totales) centrada en su fecha_pico -- mismo ancho
-de ventana que usan Kaur et al. (2021) y Kumar et al. (2023) para
-composites de eventos ENOS. Los eventos cuya ventana cae parcialmente
-fuera del rango de datos disponible (bordes del registro común, ver
-Sección "Ventana temporal común" en data/processed/e2/README.md) se
-DESCARTAN por completo, no se rellenan con NaN -- así todos los meses
-relativos del compuesto (t=-12...0...+12) promedian exactamente el
-mismo conjunto de eventos, sin sesgo introducido por relleno parcial.
-Las ventanas válidas de cada dataset se promedian en una curva
-compuesta de 25 puntos: el "evento típico" de ese dataset.
+±V meses centrada en su fecha_pico. Los eventos cuya ventana cae
+parcialmente fuera del rango de datos disponible (bordes del registro
+común, ver Sección "Ventana temporal común" en
+data/processed/e2/README.md) se DESCARTAN por completo, no se rellenan
+con NaN -- así todos los meses relativos del compuesto (t=-V...0...+V)
+promedian exactamente el mismo conjunto de eventos, sin sesgo
+introducido por relleno parcial. Las ventanas válidas de cada dataset
+se promedian en una curva compuesta de 2V+1 puntos: el "evento típico"
+de ese dataset.
+
+Se corre con DOS anchos de ventana, sin que ningún paper fije cuál es
+"correcto" (decisión del usuario): V=12 (25 puntos, resultado
+principal, alimenta el score final de la Sección 13) y V=15 (31
+puntos, prueba de sensibilidad -- confirma si el resultado depende
+fuertemente del ancho elegido, no alimenta el score final).
 
 Esa curva compuesta se compara, modelo contra ERSSTv5, con las mismas
 4 métricas y la misma identidad algebraica de la Sección 6 (sigma,
 correlación de Pearson, RMSE centrado, sigma_norm) -- el diagrama de
 Taylor resultante evalúa forma del evento compuesto, no fase temporal.
-Resultado obtenido: con los mismos 40 modelos, la correlación del
-compuesto (taylor_compuesto_ONI_ref1981-2014.csv) va de ~0.94 a ~0.99,
-frente a valores cercanos a 0 en el Taylor de serie completa --
-confirma la hipótesis de que el problema era de fase, no de forma.
+Resultado obtenido (V=12): con los mismos 40 modelos, la correlación
+del compuesto (taylor_compuesto_ONI_vent12m_ref1981-2014.csv) va de
+~0.94 a ~0.99, frente a valores cercanos a 0 en el Taylor de serie
+completa -- confirma la hipótesis de que el problema era de fase, no
+de forma.
 
-    *** CITA SIN VERIFICAR -- NO USAR EN informe_e2.tex TODAVIA ***
-    Se citaba aca Kaur, S., Kumar, P., Min, S.-K., Patra, A., & Wang,
-    X. L. (2021), CMIP5 model evaluation for extreme ocean wave height
-    responses to ENSO, Climate Dynamics, doi:10.1007/s00382-021-06039-6,
-    y "Kumar et al. 2023" (sin cita completa), como respaldo de la
-    metodologia de ventana compuesta +-12 meses. Se leyo el PDF
-    COMPLETO de Kaur et al. (2021) (informe/borradores/s00382-021-06039-6.pdf)
-    y el del segundo paper (Divya Sardana, Prashant Kumar, Rajni, 2023,
-    "CMIP6 model evaluation for sea surface height responses to ENSO",
-    Climate Dynamics 62:1829-1847, doi:10.1007/s00382-023-06997-z --
-    casi con certeza el "Kumar et al. 2023" citado antes, dado el
-    coautor Kumar en comun) buscando "composite/superposed/epoch/
-    window/peak": CERO coincidencias en los dos. Ninguno de los dos
-    describe una ventana compuesta centrada en el pico del evento --
-    Kaur et al. (2021) usa un analisis GEV no-estacionario con el
-    indice ENOS como covariable + Taylor skill score sobre MAPAS DE
-    REGRESION (no series compuestas por evento); Sardana et al. (2023)
-    usa RMSE/IVS/M-Score/TSS tambien sobre patrones de regresion
-    espacial. La cita que se le puso a este punto durante la
-    investigacion web de la propuesta original
-    (propuesta_puntos_11_12.md) NO esta respaldada por lo que
-    realmente dicen estos papers -- error de esa investigacion, sin
-    verificar hasta ahora. El USUARIO esta buscando una cita correcta
-    por su cuenta; no reemplazar esta nota hasta que la confirme.
-
-    (Nota aparte: el mismo Kaur et al. 2021 SI resultó útil para otra
-    cosa -- su ecuación (3) es la fuente verificada del exponente n=1
-    del skill score S de la Sección 13, distinto de la metodología de
-    ventana compuesta de esta sección.)
-
-Implementación: scripts_e2/p08_taylor_compuesto.py, insumo directo de
-scripts_e2/p07_eventos.py (no independiente de él), salida
-data/processed/e2/taylor_compuesto_<INDICE>_ref<ref>.csv.
+Implementación: scripts_e2/p08_taylor_compuesto.py (constante
+VENTANA_MESES, editable, arma el nombre de archivo sola), insumo
+directo de scripts_e2/p07_eventos.py (no independiente de él), salida
+data/processed/e2/taylor_compuesto_<INDICE>_vent<V>m_ref<ref>.csv.
 
 
 13. SCORE DE HABILIDAD S Y SELECCION FINAL DE MODELOS
@@ -525,15 +541,17 @@ PENDIENTE DE REVISION (antes de portar a informe_e2.tex)
   ya tomadas de la clasificación de eventos extremos (Sección 11) y el
   diagrama de Taylor compuesto (Sección 12), ambas ya implementadas
   (scripts_e2/p07_eventos.py, scripts_e2/p08_taylor_compuesto.py).
-- ***PENDIENTE CRITICO***: la Sección 12 (metodología de ventana
-  compuesta +-12 meses) se quedó SIN cita de respaldo -- se leyó el
-  PDF completo de Kaur et al. (2021) y de Sardana et al. (2023,
-  antes mal citado como "Kumar et al. 2023") y ninguno describe esa
-  metodología (ver nota "CITA SIN VERIFICAR" dentro de la Sección 12).
-  El usuario está buscando la cita correcta por su cuenta. NO portar
-  la Sección 12 a informe_e2.tex hasta tener una cita verificada, o
-  presentarla explícitamente como metodología propia sin anclar a un
-  paper específico.
+- RESUELTO: la Sección 12 (metodología de ventana compuesta) se buscó
+  respaldar con Kaur et al. (2021) y Sardana et al. (2023, antes mal
+  citado como "Kumar et al. 2023"), pero al leer el PDF completo
+  ninguno describe esa metodología (ver nota "SIN CITA DE RESPALDO"
+  dentro de la Sección 12). El usuario buscó personalmente y tampoco
+  encontró un paper que la respalde. Decisión final: se presenta en
+  informe_e2.tex como metodología PROPIA del equipo, sin anclar a un
+  paper específico -- no seguir buscando una cita para esto salvo que
+  el usuario traiga una nueva. Se corre con dos anchos de ventana
+  (V=12 principal, V=15 sensibilidad) precisamente porque no hay un
+  valor "correcto" fijado por la literatura.
 - Referencias nuevas a agregar a informe/references.bib recién al
   portar esto a .tex -- ninguna existe todavía ahí: Eyring et al.
   (2019), Gleckler et al. (2008), Taylor (2001), Trenberth (1997),

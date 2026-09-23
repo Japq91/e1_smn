@@ -84,7 +84,7 @@ representacion") sin imponer un umbral arbitrario.
 
 Ejecutable de forma independiente: lee directamente
 data/processed/e2/taylor_nino34_ref<ref>.csv,
-taylor_nino12_ref<ref>.csv, taylor_compuesto_ONI/RONI/ICEN_ref<ref>.csv
+taylor_nino12_ref<ref>.csv, taylor_compuesto_ONI/RONI/ICEN_vent12m_ref<ref>.csv
 (salidas de p05_taylor.py y p08_taylor_compuesto.py -- si falta alguna,
 avisa y corta).
 
@@ -107,6 +107,12 @@ import common_e2 as c2
 # REF_INICIO/REF_FIN de los demas pXX.
 REF_INICIO = 1981
 REF_FIN = 2014
+
+# Ancho de ventana del compuesto a consumir -- debe coincidir con
+# VENTANA_MESES de p08_taylor_compuesto.py. Se usa la corrida principal
+# (12, 25 puntos); la de sensibilidad (15, 31 puntos) NO alimenta el
+# score final, queda solo como comparacion en el informe.
+VENTANA_MESES = 12
 
 # R0: correlacion maxima alcanzable en la formula de Taylor (2001).
 # R0=1 -- default estandar sin una estimacion propia de incertidumbre
@@ -207,9 +213,9 @@ def main():
     print("Cargando taylor_*.csv (5 tablas) ...", file=sys.stderr)
     s_nino34 = cargar_S(c2.E2_DIR / f"taylor_nino34_ref{REF_INICIO}-{REF_FIN}.csv", "S_nino34")
     s_nino12 = cargar_S(c2.E2_DIR / f"taylor_nino12_ref{REF_INICIO}-{REF_FIN}.csv", "S_nino12")
-    s_oni = cargar_S(c2.E2_DIR / f"taylor_compuesto_ONI_ref{REF_INICIO}-{REF_FIN}.csv", "S_ONI")
-    s_roni = cargar_S(c2.E2_DIR / f"taylor_compuesto_RONI_ref{REF_INICIO}-{REF_FIN}.csv", "S_RONI")
-    s_icen = cargar_S(c2.E2_DIR / f"taylor_compuesto_ICEN_ref{REF_INICIO}-{REF_FIN}.csv", "S_ICEN")
+    s_oni = cargar_S(c2.E2_DIR / f"taylor_compuesto_ONI_vent{VENTANA_MESES}m_ref{REF_INICIO}-{REF_FIN}.csv", "S_ONI")
+    s_roni = cargar_S(c2.E2_DIR / f"taylor_compuesto_RONI_vent{VENTANA_MESES}m_ref{REF_INICIO}-{REF_FIN}.csv", "S_RONI")
+    s_icen = cargar_S(c2.E2_DIR / f"taylor_compuesto_ICEN_vent{VENTANA_MESES}m_ref{REF_INICIO}-{REF_FIN}.csv", "S_ICEN")
 
     df = pd.concat([s_nino34, s_nino12, s_oni, s_roni, s_icen], axis=1)
     registro = c2.read_model_registry()
