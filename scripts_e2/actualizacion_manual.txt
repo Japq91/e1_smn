@@ -1,0 +1,155 @@
+% ONI y RONI
+Tu version es correcta para el ONI clásico (Trenberth 1997), pero no reproduce el ONI actual de NOAA.
+
+Tu oni_index es la media móvil de 3 meses de la anomalía respecto a una sola climatología fija (clim_da, un único REF_INICIO-REF_FIN). Eso es justo lo que NOAA dejó de hacer, porque una base fija arrastra la tendencia de calentamiento a la anomalía. Lo demás está bien: la anomalía se calcula antes del rolling3, la media móvil es centrada y la climatología es mensual.
+
+Si quieres seguir el criterio del CPC, la base debe cambiar cada 5 años, con ventanas de 30 años centradas:
+
+1950-1955 usa 1936-1965.
+Cada bloque de 5 años desde 1956 usa la ventana de 30 años que empieza 15 años antes de que empiece el bloque (1956-1960 usa 1941-1970, 2001-2005 usa 1986-2015).
+Si la ventana no está completa en los datos (final de la serie), se usa la última ventana de 30 años disponible.
+
+Hay que corregir `cpc_base_period`: mi versión anterior asignaba 1936-1965 a todo año ≤1955, lo cual no sirve con datos desde 1900. Ahora la ventana se deduce del año y del rango real del dato, sin constantes por script.
+
+```python
+def _rango_anios(da):
+    y = da.time.dt.year.values
+    return int(y.min()), int(y.max())
+
+
+def cpc_base_period(year, data_start, data_end):
+    """Base de 30 anios centrada (CPC) para un anio dado.
+    Bloques de 5 anios: 1951-55 -> 1936-1965, 1956-60 -> 1941-1970, ...
+    Antes de 1950 NOAA no define nada: se extiende el mismo patron hacia
+    atras. Se ajusta a los limites reales del dato."""
+    y = 1951 if year == 1950 else year        # 1950 pertenece al bloque 1951-55
+    b = 1951 + 5 * ((y - 1951) // 5)          # primer anio del bloque
+    b0, b1 = b - 15, b + 14
+    if b1 > data_end:                         # ventana incompleta al final
+        b0, b1 = data_end - 29, data_end
+    if b0 < data_start:                       # ventana incompleta al inicio
+        b0, b1 = data_start, data_start + 29
+    return b0, b1
+
+
+def anomaly_cpc(da):
+    """Anomalia con bases moviles CPC; el rango se detecta desde 'da'."""
+    y_ini, y_fin = _rango_anios(da)
+    years = da.time.dt.year.values
+    bases = np.array([cpc_base_period(y, y_ini, y_fin) for y in years])
+    partes = []
+    for b0, b1 in {tuple(b) for b in bases}:
+        idx = np.where((bases[:, 0] == b0) & (bases[:, 1] == b1))[0]
+        partes.append(anomaly(da.isel(time=idx), climatology(da, b0, b1)))
+    return xr.concat(partes, dim="time").sortby("time")
+
+
+def oni_index(nino34_da):
+    """ONI CPC: rolling 3m de la anomalia con bases moviles de 30 anios."""
+    return rolling3(anomaly_cpc(nino34_da))
+
+
+def base_fija(da, ref_inicio=None, ref_fin=None):
+    """Base fija de 30 anios. Por defecto 1991-2020 (NOAA); si el dato
+    no llega a 2020, usa los ultimos 30 anios disponibles."""
+    y_ini, y_fin = _rango_anios(da)
+    if ref_fin is None:
+        ref_fin = min(2020, y_fin)
+    if ref_inicio is None:
+        ref_inicio = max(ref_fin - 29, y_ini)
+    return ref_inicio, ref_fin
+
+
+def roni_index(nino34_da, tropical_da, ref_inicio=None, ref_fin=None):
+    """RONI: base fija (auto), rolling3(A_nino34 - A_tropical), reescalado
+    a la varianza de rolling3(A_nino34) con la misma base."""
+    r0, r1 = base_fija(nino34_da, ref_inicio, ref_fin)
+    a34 = anomaly(nino34_da, climatology(nino34_da, r0, r1))
+    atr = anomaly(tropical_da, climatology(tropical_da, r0, r1))
+    orig = rolling3(a34)
+    raw = rolling3(a34 - atr)
+    o, r = xr.align(orig.dropna("time"), raw.dropna("time"), join="inner")
+    return raw * float(o.std(ddof=1) / r.std(ddof=1))
+```
+
+**Bases que se aplican con tus datos (1900-2014):**
+
+| Años | Base ONI |
+|---|---|
+| 1900-1915 | 1900-1929 (la ventana centrada no existe) |
+| 1916-1920 | 1901-1930 |
+| ... | se desplaza 5 años por bloque |
+| 1951-1955 (y 1950) | 1936-1965 |
+| 1996-2000 | 1981-2010 |
+| 2001-2014 | 1985-2014 (la ventana 1986-2015 no existe) |
+
+RONI usa base fija 1985-2014, igual para observación y modelos.
+
+**Cosas a tener en cuenta:**
+
+1. **Antes de 1950 es una extensión propia.** NOAA no define bases para ese periodo. Documéntalo en la tesis.
+2. **1985-2014 no es 1991-2020.** No podrás reproducir exactamente el RONI publicado, pero es la base equivalente que permiten tus datos, y con ella modelos y observación son comparables entre sí.
+3. **Llamadores:** `oni_index(nino34_da)` y `roni_index(nino34_da, tropical_da)` ya no reciben climatologías ni `REF_INICIO`/`REF_FIN`. Si un script necesita otra base para RONI, pásala con `ref_inicio=`/`ref_fin=`.
+4. **Asume años completos** (enero a diciembre) en los extremos. Si el primer o último año está incompleto, la climatología de ese mes se calcula con un año menos, sin mayor problema.
+
+% ICEN:
+Tu `icen_index` actual usa una sola climatología fija, así que hay que cambiarla al esquema por quinquenios. Es el mismo que el del ONI, con dos diferencias: los bloques arrancan en 1946 (1946-1950 usa 1931-1960, sin la excepción de 1950 del ONI) y, desde 2006, la base se congela en 1991-2020.
+
+Primero generalizo `anomaly_cpc` para que reciba la función de base, y luego agrego la del ICEN:
+
+```python
+def anomaly_bloques(da, base_fn):
+    """Anomalia con base de 30 anios variable por anio; 'base_fn(year,
+    data_start, data_end)' devuelve (b0, b1). El rango se detecta desde 'da'."""
+    y_ini, y_fin = _rango_anios(da)
+    years = da.time.dt.year.values
+    bases = np.array([base_fn(y, y_ini, y_fin) for y in years])
+    partes = []
+    for b0, b1 in {tuple(b) for b in bases}:
+        idx = np.where((bases[:, 0] == b0) & (bases[:, 1] == b1))[0]
+        partes.append(anomaly(da.isel(time=idx), climatology(da, b0, b1)))
+    return xr.concat(partes, dim="time").sortby("time")
+
+
+def anomaly_cpc(da):
+    return anomaly_bloques(da, cpc_base_period)
+
+
+def icen_base_period(year, data_start, data_end):
+    """Base de 30 anios del ICEN (Tabla 1 del documento oficial).
+    Bloques 1946-50 -> 1931-1960, 1951-55 -> 1936-1965, ... 2006-10 -> 1991-2020.
+    Desde 2011 se mantiene 1991-2020. Antes de 1946 el patron se extiende
+    hacia atras (no oficial). Se ajusta a los limites reales del dato."""
+    b = 1946 + 5 * ((year - 1946) // 5)   # primer anio del bloque
+    b = min(b, 2006)                      # tope: 1991-2020
+    b0, b1 = b - 15, b + 14
+    if b1 > data_end:                     # ventana incompleta al final
+        b0, b1 = data_end - 29, data_end
+    if b0 < data_start:                   # ventana incompleta al inicio
+        b0, b1 = data_start, data_start + 29
+    return b0, b1
+
+
+def icen_index(nino12_da):
+    """ICEN: rolling 3m de la anomalia en Nino1+2 con bases por quinquenio."""
+    return rolling3(anomaly_bloques(nino12_da, icen_base_period))
+```
+
+**Con tus datos (1900-2014):**
+
+| Años | Base ICEN |
+|---|---|
+| 1900-1915 | 1900-1929 (la ventana centrada no existe) |
+| 1916-1920 | 1901-1930 |
+| ... | se desplaza 5 años por bloque |
+| 1946-1950 | 1931-1960 |
+| 1951-1955 | 1936-1965 |
+| 1996-2000 | 1981-2010 |
+| 2001-2014 | 1985-2014 (la 1986-2015 y la 1991-2020 no existen) |
+
+**Notas:**
+
+1. **Firma nueva**: `icen_index(nino12_da)`, sin `clim_da`. Hay que actualizar los llamadores.
+2. **Diferencia con tu ONI en estos datos**: como terminas en 2014, el tope de 1991-2020 nunca se activa. La única diferencia práctica con las bases del ONI es 1950 (ICEN: 1931-1960; ONI: 1936-1965).
+3. **Antes de 1946** es una extensión propia, igual que en el ONI. Documéntalo en la tesis.
+4. **Cola 2001-2014**: 1985-2014 no es la base oficial (1986-2015 para 2001-2005 y 1991-2020 después). Es la mejor aproximación con tus datos, y es la misma para modelos y observación.

@@ -41,21 +41,17 @@ def read_model_registry():
         sys.exit(f"Falta {MODEL_REGISTRY_E2}. Generarlo antes (ver data/processed/e2/README.md).")
     return pd.read_csv(MODEL_REGISTRY_E2).to_dict("records")
 
-
 def model_path(model, exp="historical"):
     return MASKED / f"tos_{model}_{exp}.nc"
 
-
 def obs_path():
     return MASKED / "ersstv5_region.nc"
-
 
 def _select_box(da, box):
     sub = da.sel(lat=slice(box["lat1"], box["lat2"]), lon=slice(box["lon1"], box["lon2"]))
     if sub.lat.size == 0:  # lat descendente en el archivo: invertir el slice
         sub = da.sel(lat=slice(box["lat2"], box["lat1"]), lon=slice(box["lon1"], box["lon2"]))
     return sub
-
 
 def _normalize_time(da):
     """Fuerza el tiempo a Timestamp de pandas, dia-1-del-mes, sin
@@ -66,7 +62,6 @@ def _normalize_time(da):
     idx = da.indexes["time"]
     nuevas = pd.to_datetime([f"{t.year:04d}-{t.month:02d}-01" for t in idx])
     return da.assign_coords(time=nuevas)
-
 
 def box_series(path, box, varname, weighted=False):
     """Serie temporal promediada espacialmente dentro de 'box'.
@@ -83,7 +78,6 @@ def box_series(path, box, varname, weighted=False):
         out = sub.weighted(w).mean(dim=("lat", "lon"))
     return _normalize_time(out)
 
-
 def field_time_mean(path, varname, y0, y1):
     """Media temporal del campo 2D COMPLETO (lat, lon) -- sin recortar
     a ninguna caja -- sobre [y0, y1]. Dominio igual al del archivo de
@@ -91,7 +85,6 @@ def field_time_mean(path, varname, y0, y1):
     ds = xr.open_dataset(path)
     da = _normalize_time(ds[varname])
     return da.sel(time=slice(f"{y0}", f"{y1}")).mean(dim="time")
-
 
 def field_anomaly_std(path, varname, y0, y1):
     """Desviacion estandar de la ANOMALIA del campo 2D completo, sobre
@@ -108,7 +101,6 @@ def field_anomaly_std(path, varname, y0, y1):
     anom = ref.groupby("time.month") - clim
     return anom.std(dim="time", ddof=1)
 
-
 def field_anomaly(path, varname, y0, y1):
     """Anomalia del campo 2D completo (time, lat, lon) sobre [y0, y1]
     -- climatologia propia del dataset en ese mismo periodo, sin LS.
@@ -120,7 +112,6 @@ def field_anomaly(path, varname, y0, y1):
     ref = da.sel(time=slice(f"{y0}", f"{y1}"))
     clim = ref.groupby("time.month").mean("time")
     return ref.groupby("time.month") - clim
-
 
 def lag1_autocorr(da, dim="time"):
     """Autocorrelacion lag-1, por POSICION (no por etiqueta de fecha):
@@ -142,19 +133,16 @@ def lag1_autocorr(da, dim="time"):
         return xr.DataArray(r1, dims=other_dims, coords=coords)
     return float(r1)
 
-
 def climatology(da, ref_inicio, ref_fin):
     """C_m = media mensual multi-anual sobre [ref_inicio, ref_fin]."""
     ref = da.sel(time=slice(f"{ref_inicio}", f"{ref_fin}"))
     return ref.groupby("time.month").mean("time")
-
 
 def anomaly(da, clim):
     """A(y,m) = X(y,m) - C_m. Sin correccion Linear Scaling -- LS se
     probo y se descarto (resta constante por mes que se cancela sola
     en cualquier anomalia, ver scripts_e2/README.md)."""
     return da.groupby("time.month") - clim
-
 
 def pearson_r(model_da, obs_da):
     """Correlacion de Pearson, no Spearman: la identidad de Taylor
@@ -165,33 +153,107 @@ def pearson_r(model_da, obs_da):
     m, o = xr.align(model_da, obs_da, join="inner")
     return float(xr.corr(m, o))
 
-
 def rolling3(da):
     return da.rolling(time=3, center=True).mean()
 
+# def oni_index(nino34_da, clim_da):
+#     """ONI = media movil de 3 meses de la anomalia (Trenberth, 1997)."""
+#     return rolling3(anomaly(nino34_da, clim_da))
 
-def oni_index(nino34_da, clim_da):
-    """ONI = media movil de 3 meses de la anomalia (Trenberth, 1997)."""
-    return rolling3(anomaly(nino34_da, clim_da))
+# def roni_index(oni_da, tropical_da, clim_tropical_da):
+#     """RONI = ONI - anomalia tropical (rolling 3m), reescalado para que
+#     su varianza iguale a la del ONI original (definicion oficial NOAA
+#     CPC; candidata academica: van Oldenborgh et al. 2021, ver
+#     informe/borradores/marco_teorico_e2.txt Seccion 8)."""
+#     a_trop = anomaly(tropical_da, clim_tropical_da)
+#     raw = oni_da - rolling3(a_trop)
+#     m_oni, m_raw = xr.align(oni_da, raw, join="inner")
+#     scale = float(m_oni.std(ddof=1) / m_raw.std(ddof=1))
+#     return raw * scale
 
+# def icen_index(nino12_da, clim_da):
+#     """ICEN = media movil de 3 meses de la anomalia en Nino1+2
+#     (Takahashi & Reupo, 2015)."""
+#     return rolling3(anomaly(nino12_da, clim_da))
+###########################
+# INICIO NUEVAS FUNCIONES #
+def _rango_anios(da):
+    y = da.time.dt.year.values
+    return int(y.min()), int(y.max())
 
-def roni_index(oni_da, tropical_da, clim_tropical_da):
-    """RONI = ONI - anomalia tropical (rolling 3m), reescalado para que
-    su varianza iguale a la del ONI original (definicion oficial NOAA
-    CPC; candidata academica: van Oldenborgh et al. 2021, ver
-    informe/borradores/marco_teorico_e2.txt Seccion 8)."""
-    a_trop = anomaly(tropical_da, clim_tropical_da)
-    raw = oni_da - rolling3(a_trop)
-    m_oni, m_raw = xr.align(oni_da, raw, join="inner")
-    scale = float(m_oni.std(ddof=1) / m_raw.std(ddof=1))
-    return raw * scale
+def cpc_base_period(year, data_start, data_end):
+    """Base de 30 anios centrada (CPC) para un anio dado.
+    Bloques de 5 anios: 1951-55 -> 1936-1965, 1956-60 -> 1941-1970, ...
+    Antes de 1950 NOAA no define nada: se extiende el mismo patron hacia
+    atras. Se ajusta a los limites reales del dato;    
+    NOTA: si el dataset tiene menos de 30 anios en total, la segunda
+    correccion puede dejar b1 > data_end; el slice lo recorta sin
+    error pero la base deja de tener 30 anios. Con datos 1900-2014
+    esto no ocurre: las bases de los bordes quedan 1900-1929 y
+    1985-2014 (30 anios, no centradas)."""
+    y = 1951 if year == 1950 else year        # 1950 pertenece al bloque 1951-55
+    b = 1951 + 5 * ((y - 1951) // 5)          # primer anio del bloque
+    b0, b1 = b - 15, b + 14
+    if b1 > data_end: b0, b1 = data_end - 29, data_end # ventana incompleta al final
+    if b0 < data_start: b0, b1 = data_start, data_start + 29 # ventana incompleta al inicio
+    return b0, b1
 
+def anomaly_bloques(da, base_fn):
+    """Anomalia con base de 30 anios variable por anio; 'base_fn(year,
+    data_start, data_end)' devuelve (b0, b1). El rango se detecta desde 'da'."""
+    y_ini, y_fin = _rango_anios(da)
+    years = da.time.dt.year.values
+    bases = np.array([base_fn(y, y_ini, y_fin) for y in years])
+    partes = []
+    for b0, b1 in {tuple(b) for b in bases}:
+        idx = np.where((bases[:, 0] == b0) & (bases[:, 1] == b1))[0]
+        partes.append(anomaly(da.isel(time=idx), climatology(da, b0, b1)))
+    return xr.concat(partes, dim="time").sortby("time")
 
-def icen_index(nino12_da, clim_da):
-    """ICEN = media movil de 3 meses de la anomalia en Nino1+2
-    (Takahashi & Reupo, 2015)."""
-    return rolling3(anomaly(nino12_da, clim_da))
+def anomaly_cpc(da):
+    return anomaly_bloques(da, cpc_base_period)
 
+def icen_base_period(year, data_start, data_end):
+    """Base de 30 anios del ICEN (Tabla 1 del documento oficial).
+    Bloques 1946-50 -> 1931-1960, 1951-55 -> 1936-1965, ... 2006-10 -> 1991-2020.
+    Desde 2011 se mantiene 1991-2020. Antes de 1946 el patron se extiende
+    hacia atras (no oficial). Se ajusta a los limites reales del dato."""
+    b = 1946 + 5 * ((year - 1946) // 5)   # primer anio del bloque
+    b = min(b, 2006)                      # tope: 1991-2020
+    b0, b1 = b - 15, b + 14
+    if b1 > data_end:                     # ventana incompleta al final
+        b0, b1 = data_end - 29, data_end
+    if b0 < data_start:                   # ventana incompleta al inicio
+        b0, b1 = data_start, data_start + 29
+    return b0, b1
+
+def icen_index(nino12_da):
+    """ICEN: rolling 3m de la anomalia en Nino1+2 con bases por quinquenio."""
+    return rolling3(anomaly_bloques(nino12_da, icen_base_period))
+
+def oni_index(nino34_da):
+    """ONI CPC: rolling 3m de la anomalia con bases moviles de 30 anios."""
+    return rolling3(anomaly_cpc(nino34_da))
+
+def base_fija(da, ref_inicio=None, ref_fin=None):
+    """Base fija de 30 anios. Por defecto 1991-2020 (NOAA); si el dato
+    no llega a 2020, usa los ultimos 30 anios disponibles."""
+    y_ini, y_fin = _rango_anios(da)
+    if ref_fin is None: ref_fin = min(2020, y_fin)
+    if ref_inicio is None: ref_inicio = max(ref_fin - 29, y_ini)
+    return ref_inicio, ref_fin
+
+def roni_index(nino34_da, tropical_da, ref_inicio=None, ref_fin=None):
+    """RONI: base fija (auto), rolling3(A_nino34 - A_tropical), reescalado
+    a la varianza de rolling3(A_nino34) con la misma base."""
+    r0, r1 = base_fija(nino34_da, ref_inicio, ref_fin)
+    a34 = anomaly(nino34_da, climatology(nino34_da, r0, r1))
+    atr = anomaly(tropical_da, climatology(tropical_da, r0, r1))
+    orig, raw = rolling3(a34), rolling3(a34 - atr)     
+    o, r = xr.align(orig.dropna("time"), raw.dropna("time"), join="inner")
+    return raw * float(o.std(ddof=1) / r.std(ddof=1))
+# FIN NUEVAS FUNCIONES #
+########################
 
 def find_indices_csv(ref_inicio, ref_fin):
     """Ubica el CSV de indices que escribio p01_indices_enso.py para
@@ -204,7 +266,6 @@ def find_indices_csv(ref_inicio, ref_fin):
         sys.exit(f"Falta {pattern}. Correr antes p01_indices_enso.py con REF_INICIO={ref_inicio}, REF_FIN={ref_fin}.")
     return matches[-1]
 
-
 def obs_indices(ref_inicio, ref_fin):
     """indices_enso_*.csv (p01) deliberadamente NO incluye ERSSTv5
     (columnas solo M01..M40, pedido explicito del usuario) -- se
@@ -213,18 +274,19 @@ def obs_indices(ref_inicio, ref_fin):
     p08_taylor_compuesto.py)."""
     series = {k: box_series(obs_path(), box, "sst", weighted=WEIGHTED[k]) for k, box in BOXES.items()}
     clim = {k: climatology(v, ref_inicio, ref_fin) for k, v in series.items()}
-    oni = oni_index(series["nino34"], clim["nino34"])
-    roni = roni_index(oni, series["tropical"], clim["tropical"])
-    icen = icen_index(series["nino12"], clim["nino12"])
+    # oni = oni_index(series["nino34"], clim["nino34"])
+    oni = oni_index(series["nino34"])
+    # roni = roni_index(oni, series["tropical"], clim["tropical"])
+    roni = roni_index(oni, series["tropical"])
+    # icen = icen_index(series["nino12"], clim["nino12"])
+    icen = icen_index(series["nino12"])
     return pd.DataFrame({"OBS_ONI": oni.to_pandas(), "OBS_RONI": roni.to_pandas(), "OBS_ICEN": icen.to_pandas()})
-
 
 def load_all_indices(ref_inicio, ref_fin):
     """Indices de los 40 modelos (CSV de p01) + OBS (recalculado aca) en
     un solo DataFrame, indexado por tiempo."""
     df = pd.read_csv(find_indices_csv(ref_inicio, ref_fin), index_col="time", parse_dates=True)
     return df.join(obs_indices(ref_inicio, ref_fin), how="left")
-
 
 def taylor_stats_arrays(model_vals, obs_vals):
     """Igual que pearson_r/rmse pero sobre arrays numpy simples (no
@@ -240,7 +302,6 @@ def taylor_stats_arrays(model_vals, obs_vals):
     mc, oc = m - m.mean(), o - o.mean()
     rmse_c = float(np.sqrt(np.mean((mc - oc) ** 2)))
     return dict(sigma=sigma_f, r=r, rmse_centrado=rmse_c, sigma_norm=sigma_f / sigma_r)
-
 
 def rmse(model_da, obs_da, centered=False):
     """centered=True: cada serie menos su propia media antes de
